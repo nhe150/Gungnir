@@ -241,23 +241,23 @@ object Queries {
       |           ELSE 0
       |       END AS isOneToOneRoom,
       |       CASE
-      |           WHEN (teamId IS NULL
-      |                 AND SM.convOneOnOne='false') THEN 1
+      |           WHEN (`@fields`.teamId IS NULL
+      |                 AND SM.convOneOnOne=false) THEN 1
       |           ELSE 0
       |       END AS isGroupRoom,
       |       CASE
-      |           WHEN teamId IS NOT NULL THEN 1
+      |           WHEN `@fields`.teamId IS NOT NULL THEN 1
       |           ELSE 0
       |       END AS isTeamRoom,
       |       CASE
-      |           WHEN (teamId IS NULL
-      |                 AND SM.convOneOnOne='false') THEN SM.target.id
+      |           WHEN (`@fields`.teamId IS NULL
+      |                 AND SM.convOneOnOne=false) THEN SM.target.id
       |       END AS isGroupRoomId,
       |       CASE
       |           WHEN (SM.convOneOnOne=true) THEN SM.target.id
       |       END AS isOneToOneRoomId,
       |       CASE
-      |           WHEN teamId IS NOT NULL THEN SM.target.id
+      |           WHEN `@fields`.teamId IS NOT NULL THEN SM.target.id
       |       END AS isTeamRoomId,
       |       CASE
       |           WHEN SM.verb='post'

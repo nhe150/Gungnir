@@ -238,7 +238,7 @@ public class SparkDataBatch implements Serializable{
     private void activeUserRollUp(String input) throws Exception{
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> activeUserRollUp = tableProcessor.activeUserRollUp(activeUser);
-        sinkToFileByKey(activeUserRollUp.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "activeUserRollUp");
+//        sinkToFileByKey(activeUserRollUp.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "activeUserRollUp");
 
         writeToCassandra(activeUserRollUp, constants.CassandraTableData());
     }
@@ -246,7 +246,7 @@ public class SparkDataBatch implements Serializable{
     private void rtUser(String input) throws Exception{
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> rtUser = tableProcessor.rtUser(activeUser);
-        sinkToFileByKey(rtUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "rtUser");
+//        sinkToFileByKey(rtUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "rtUser");
 
         writeToCassandra(rtUser, constants.CassandraTableData());
     }
@@ -272,8 +272,8 @@ public class SparkDataBatch implements Serializable{
     private void callQualityCount(String input) throws Exception{
         Dataset<Row> callQuality = readDetails(input);
         Dataset<Row> callQualityCount = tableProcessor.callQualityCount(callQuality);
-        callQualityCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "callQualityCount");
+//        callQualityCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "callQualityCount");
 
         writeToCassandra(callQualityCount,  constants.CassandraTableAgg());
     }
@@ -281,8 +281,8 @@ public class SparkDataBatch implements Serializable{
     private void callVolumeCount(String input) throws Exception{
         Dataset<Row> callVolume = readDetails(input);
         Dataset<Row> callVolumeCount = tableProcessor.callVolumeCount(callVolume);
-        callVolumeCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "callVolumeCount");
+//        callVolumeCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "callVolumeCount");
 
         writeToCassandra(callVolumeCount, constants.CassandraTableAgg());
     }
@@ -290,8 +290,8 @@ public class SparkDataBatch implements Serializable{
     private void callDurationCount(String input) throws Exception{
         Dataset<Row> callDuration = readDetails(input);
         Dataset<Row> callDurationCount = tableProcessor.callDurationCount(callDuration);
-        callDurationCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "callDurationCount");
+//        callDurationCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "callDurationCount");
 
         writeToCassandra(callDurationCount, constants.CassandraTableAgg());
     }
@@ -299,8 +299,8 @@ public class SparkDataBatch implements Serializable{
     private void fileUsedCount(String input) throws Exception{
         Dataset<Row> fileUsed = readDetails(input);
         Dataset<Row> fileUsedCount = tableProcessor.fileUsedCount(fileUsed);
-        fileUsedCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "fileUsedCount");
+//        fileUsedCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "fileUsedCount");
 
         writeToCassandra(fileUsedCount, constants.CassandraTableAgg());
     }
@@ -308,8 +308,8 @@ public class SparkDataBatch implements Serializable{
     private void registeredEndpointCount(String input) throws Exception{
         Dataset<Row> registeredEndpoint = readDetails(input);
         Dataset<Row> registeredEndpointCount = tableProcessor.registeredEndpointCount(registeredEndpoint);
-        registeredEndpointCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "registeredEndpointCount");
+//        registeredEndpointCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "registeredEndpointCount");
 
         writeToCassandra(registeredEndpointCount, constants.CassandraTableAgg());
     }
@@ -318,8 +318,8 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> activeUser = readDetails(input).cache();
         List<Dataset> activeUserCounts = tableProcessor.activeUserCounts(activeUser);
         for(Dataset activeUserCount: activeUserCounts){
-            activeUserCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                    .save(constants.outputLocation() + activeUserCount.columns()[3]);
+//            activeUserCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                    .save(constants.outputLocation() + activeUserCount.columns()[3]);
 
             writeToCassandra(activeUserCount, constants.CassandraTableAgg());
         }
@@ -328,8 +328,8 @@ public class SparkDataBatch implements Serializable{
     private void activeUserTopCount(String input) throws Exception{
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> activeUserTopCount = tableProcessor.activeUserTopCount(activeUser);
-        activeUserTopCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "activeUserTopCount");
+//        activeUserTopCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "activeUserTopCount");
 
         writeToCassandra(activeUserTopCount, constants.CassandraTableAgg());
     }
@@ -337,8 +337,8 @@ public class SparkDataBatch implements Serializable{
     private void topPoorQuality(String input) throws Exception{
         Dataset<Row> callQuality = readDetails(input);
         Dataset<Row> topPoorQuality = tableProcessor.topPoorQuality(callQuality);
-        topPoorQuality.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-                .save(constants.outputLocation() + "topPoorQuality");
+//        topPoorQuality.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "topPoorQuality");
 
         writeToCassandra(topPoorQuality,  constants.CassandraTableAgg());
     }
