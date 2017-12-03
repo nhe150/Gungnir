@@ -42,8 +42,8 @@ object Queries {
       |          SM.value.clientCallDuration AS duration,
       |          `@fields`.orgId AS orgId,
       |          SM.key AS mediaType,
-      |          SM.uuid AS userId,
-      |          CONCAT(`@timestamp`, '^', SM.uuid) AS call_id,
+      |          `@fields`.userId AS userId,
+      |          CONCAT(`@timestamp`, '^', `@fields`.userId) AS call_id,
       |          SM.sessionId as confId,
       |          SM.value.event.identifiers.correlationId as meetingId,
       |          CASE
