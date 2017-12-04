@@ -12,8 +12,8 @@ import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Properties;
+import java.time.Instant;
+import java.util.*;
 
 import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.functions.col;
@@ -397,6 +397,7 @@ public class SparkDataStreaming implements Serializable {
     private static class KafkaMetrics extends StreamingQueryListener {
         private KafkaProducer<String, String> kafkaProducer;
         private String topic;
+        private Map<UUID, String> queryIdMap;
         public KafkaMetrics(String servers, String topic){
             Properties kafkaProperties = new Properties();
             kafkaProperties.put("bootstrap.servers", servers);
@@ -404,17 +405,21 @@ public class SparkDataStreaming implements Serializable {
             kafkaProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
             this.topic = topic;
+            this.queryIdMap = new HashMap<>();
         }
 
         @Override
         public void onQueryStarted(QueryStartedEvent queryStarted) {
-            String message = "{\"started\":" + queryStarted.id() + "}";
-            kafkaProducer.send(new ProducerRecord(topic, message));
+            queryIdMap.put(queryStarted.id(), queryStarted.name());
+            String message = "{\"id\":\"" + queryStarted.id() + "\"," + "\"name\":\"" + queryStarted.name() + "\",\"timestamp\":\"" + Instant.now().toString() + "\"}";
+            String fullMessage = "{\"started\":" + message + "}";
+            kafkaProducer.send(new ProducerRecord(topic, fullMessage));
         }
         @Override
         public void onQueryTerminated(QueryTerminatedEvent queryTerminated) {
-            String message = "{\"terminated\":" + queryTerminated.id() + "}";
-            kafkaProducer.send(new ProducerRecord(topic, message));
+            String message = "{\"id\":\"" + queryTerminated.id() + "\"," + "\"name\":\"" + queryIdMap.get(queryTerminated.id()) + "\",\"timestamp\":\"" + Instant.now().toString() + "\"}";
+            String fullMessage = "{\"terminated\":" + message + "}";
+            kafkaProducer.send(new ProducerRecord(topic, fullMessage));
         }
         @Override
         public void onQueryProgress(StreamingQueryListener.QueryProgressEvent queryProgress) {
