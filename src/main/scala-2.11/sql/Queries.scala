@@ -42,8 +42,8 @@ object Queries {
       |          SM.value.clientCallDuration AS duration,
       |          `@fields`.orgId AS orgId,
       |          SM.key AS mediaType,
-      |          `@fields`.userId AS userId,
-      |          CONCAT(`@timestamp`, '^', `@fields`.userId) AS call_id,
+      |          coalesce(`@fields`.userId, "unknown") AS userId,
+      |          CONCAT(`@timestamp`, '^', coalesce(`@fields`.userId, "unknown")) AS call_id,
       |          SM.sessionId as confId,
       |          SM.value.event.identifiers.correlationId as meetingId,
       |          CASE
@@ -107,7 +107,7 @@ object Queries {
       |          to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          `@fields`.uaVersion AS uaVersion,
       |          `@fields`.uaType AS uaType,
-      |          `@fields`.userId AS userId,
+      |          coalesce(`@fields`.userId, 'unknown') AS userId,
       |          CASE
       |              WHEN (SM.key='Failures'
       |                    AND SM.value.error_code<3000
@@ -162,7 +162,7 @@ object Queries {
       |  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknow') AS orgId,
       |          to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          SM.legDuration AS legDuration,
-      |          `@fields`.USER_ID AS userId,
+      |          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
       |          `@fields`.uaVersion AS uaVersion,
       |          SM.uaType AS uaType
       |   FROM callDurationRaw
