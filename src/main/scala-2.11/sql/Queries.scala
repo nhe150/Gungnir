@@ -24,16 +24,13 @@ object Queries {
       |       meetingId,
       |       CASE
       |           WHEN (mediaType='callEnd_audio'
-      |                 AND audio_jitter<150
-      |                 AND audio_rtt<400
-      |                 AND audio_packetloss<0.05) THEN 1
+      |                 AND audio_jitter<=150
+      |                 AND audio_rtt<=400
+      |                 AND audio_packetloss<=0.05) THEN 1
       |           ELSE 0
       |       END AS audio_is_good,
       |       CASE
-      |           WHEN (mediaType='callEnd_video'
-      |                 AND video_jitter<150
-      |                 AND video_rtt<400
-      |                 AND video_packetloss<0.05) THEN 1
+      |           WHEN (mediaType='callEnd_video') THEN 1
       |           ELSE 0
       |       END AS video_is_good,
       |       'callQuality' AS relation_name
@@ -83,7 +80,7 @@ object Queries {
       |       time_stamp,
       |       orgId,
       |       sum(quality_is_good) AS number_of_good_calls,
-      |       sum(1-quality_is_good) AS number_of_bad_calls,
+      |       sum(quality_is_bad) AS number_of_bad_calls,
       |       periodTag(orgId) AS period,
       |       'callQuality' AS relation_name
       |FROM callQuality
@@ -434,7 +431,7 @@ object Queries {
       |       time_stamp,
       |       orgId,
       |       userId,
-      |       sum(1-quality_is_good) AS number_of_bad_calls,
+      |       sum(quality_is_bad) AS number_of_bad_calls,
       |       periodTag(orgId) AS period,
       |       'topPoorQuality' AS relation_name
       |FROM callQuality
