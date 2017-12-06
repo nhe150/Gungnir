@@ -40,7 +40,7 @@ object Queries {
       |FROM
       |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          SM.value.clientCallDuration AS duration,
-      |          `@fields`.orgId AS orgId,
+      |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
       |          SM.key AS mediaType,
       |          coalesce(`@fields`.userId, "unknown") AS userId,
       |          CONCAT(`@timestamp`, '^', coalesce(`@fields`.userId, "unknown")) AS call_id,
@@ -73,6 +73,8 @@ object Queries {
       |     AND SM.value.clientCallDuration>10000
       |     AND (SM.key='callEnd_audio'
       |          OR SM.key='callEnd_video'))
+      |WHERE orgId<>'unknown'
+      |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
   def callQualityCount =
@@ -159,7 +161,7 @@ object Queries {
       |       'Spark' AS SOURCE,
       |       'callDuration' AS relation_name
       |FROM
-      |  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknow') AS orgId,
+      |  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
       |          to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          SM.legDuration AS legDuration,
       |          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
@@ -350,11 +352,12 @@ object Queries {
       |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
       |          SM.deviceIdentifier AS deviceId,
-      |          CASE
-      |              WHEN (SM.value.model='Room 70D') THEN 'Undefined'
-      |              WHEN (SM.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
-      |              ELSE SM.value.model
-      |          END AS model,
+      |          coalesce(
+      |             CASE
+      |                 WHEN (SM.value.model='Room 70D') THEN 'Undefined'
+      |                 WHEN (SM.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
+      |                 ELSE SM.value.model
+      |             END, 'unknown') AS model,
       |          'NA' AS userId
       |   FROM registeredEndpointRaw
       |   WHERE _appname='metrics'
