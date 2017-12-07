@@ -169,6 +169,9 @@ public class SparkDataBatch implements Serializable{
             case "topPoorQuality":
                 topPoorQuality("callQuality");
                 break;
+            case "kohlsRawData":
+                kohlsRawData("conv");
+                break;
             default:
                 System.out.println("Invalid input for job name");
                 System.exit(0);
@@ -258,6 +261,18 @@ public class SparkDataBatch implements Serializable{
         sinkToFile(fileUsed.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "fileUsed", SaveMode.Overwrite);
 
         writeToCassandra(fileUsed, constants.CassandraTableData());
+    }
+
+    //temp throw away job
+    private void kohlsRawData(String input) throws Exception{
+        Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/conv.json"));
+//        Dataset test = spark.sql("select coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId from raw")
+        Dataset test = raw.filter(col("SM.actor.orgId").equalTo("7cc93e58-2470-45e3-9812-856fed12c26e")).selectExpr("to_json(struct(*)) AS value");
+
+        test.select("value").repartition(1).write()
+                .mode(SaveMode.Overwrite)
+                .format("csv")
+                .save(constants.outputLocation() + "test");
     }
 
     private void activeUserRollUp(String input) throws Exception{
