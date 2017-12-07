@@ -44,6 +44,7 @@ public class Schemas {
             new StructField("uaType", DataTypes.StringType, true, Metadata.empty()),
             new StructField("callFailure", DataTypes.IntegerType, true, Metadata.empty()),
             new StructField("source", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("call_id", DataTypes.StringType, false, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, false, Metadata.empty())}
     );
 
@@ -57,6 +58,7 @@ public class Schemas {
             new StructField("uaType", DataTypes.StringType, true, Metadata.empty()),
             new StructField("legDuration", DataTypes.LongType, true, Metadata.empty()),
             new StructField("source", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("call_id", DataTypes.StringType, false, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, false, Metadata.empty())}
     );
 
