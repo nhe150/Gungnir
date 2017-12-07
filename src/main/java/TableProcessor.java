@@ -96,8 +96,8 @@ public class TableProcessor implements Serializable {
         callQuality
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
-                        "CASE WHEN (audio_is_good=1) THEN 1 ELSE 0 END AS quality_is_good",
-                        "CASE WHEN (audio_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
+                        "CASE WHEN (audio_is_good=1 OR video_is_good=1) THEN 1 ELSE 0 END AS quality_is_good",
+                        "CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
                 .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_good", "quality_is_bad")
                 .createOrReplaceTempView("callQuality");
         return spark.sql(sql.Queries.callQualityCount());
