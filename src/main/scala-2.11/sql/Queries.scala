@@ -40,9 +40,13 @@ object Queries {
       |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
       |          SM.key AS mediaType,
       |          coalesce(`@fields`.userId, "unknown") AS userId,
-      |          CONCAT(`@timestamp`, '^', coalesce(`@fields`.userId, "unknown")) AS call_id,
+      |
+      |          //CONCAT(@timestamp, '^', @fields.userId) AS call_id,
+      |          CONCAT(SM.value.locusId , '^', SM.value.locusTimestamp) AS call_id,
       |          SM.sessionId as confId,
-      |          SM.value.event.identifiers.correlationId as meetingId,
+      |          //ToDo: following a.k.a callLeg
+      |          SM.value.correlationId as meetingId,
+      |
       |          CASE
       |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.jitter)
       |          END AS audio_jitter,
@@ -100,6 +104,7 @@ object Queries {
       |       uaType,
       |       callFailure,
       |       'Spark' AS SOURCE,
+      |       call_id,
       |       'callVolume' AS relation_name
       |FROM
       |  (SELECT coalesce(`@fields`.orgId, 'unknown') AS orgId,
@@ -107,6 +112,7 @@ object Queries {
       |          `@fields`.uaVersion AS uaVersion,
       |          `@fields`.uaType AS uaType,
       |          coalesce(`@fields`.userId, 'unknown') AS userId,
+      |          CONCAT(SM.value.locusId , '^', SM.value.locusTimestamp) AS call_id,
       |          CASE
       |              WHEN (SM.key='Failures'
       |                    AND SM.value.error_code<3000
@@ -156,6 +162,7 @@ object Queries {
       |       uaType,
       |       legDuration,
       |       'Spark' AS SOURCE,
+      |       call_id,
       |       'callDuration' AS relation_name
       |FROM
       |  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
@@ -163,6 +170,7 @@ object Queries {
       |          SM.legDuration AS legDuration,
       |          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
       |          `@fields`.uaVersion AS uaVersion,
+      |          CONCAT(`@fields`.LOCUS_ID , '^', `@fields`.locusStartTime) AS call_id,
       |          SM.uaType AS uaType
       |   FROM callDurationRaw
       |   WHERE _appname='locus'
