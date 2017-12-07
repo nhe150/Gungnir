@@ -20,6 +20,7 @@ public class SparkDataBatch implements Serializable{
     private TableProcessor tableProcessor;
     private String intputPath;
     private String startDate;
+    private String writeMode;
     private String period;
     private Constants constants;
 
@@ -27,6 +28,7 @@ public class SparkDataBatch implements Serializable{
         this.constants = constants;
         this.spark = createSparkSession(appName, constants);
         this.tableProcessor = new TableProcessor(spark);
+        this.writeMode = "append";
     }
 
     public static void main(String[] args) throws Exception {
@@ -41,12 +43,16 @@ public class SparkDataBatch implements Serializable{
         options.addOption(job);
 
         Option startDate = new Option("s", "startDate", true, "start date of data to be processed");
-        startDate.setRequired(true);
+        startDate.setRequired(false);
         options.addOption(startDate);
 
         Option input = new Option("i", "input", true, "input data path");
         input.setRequired(false);
         options.addOption(input);
+
+        Option writeMode = new Option("w", "writeMode", true, "save mode for data output");
+        input.setRequired(false);
+        options.addOption(writeMode);
 
         Option period = new Option("p", "period", true, "aggregation period");
         period.setRequired(false);
@@ -75,6 +81,7 @@ public class SparkDataBatch implements Serializable{
         app.startDate = cmd.getOptionValue("startDate");
         app.intputPath = cmd.getOptionValue("input");
         app.period = aggPeriod;
+        if(cmd.getOptionValue("writeMode")!= null) app.writeMode = cmd.getOptionValue("writeMode");
 
         app.run(jobName);
     }
@@ -98,7 +105,15 @@ public class SparkDataBatch implements Serializable{
             case "sparkData":
                 sparkData();
             case "splitData":
-                splitData(intputPath, "conv,metrics,locus");
+                if(startDate != null) {
+                    if(writeMode.equals("overwrite")){
+                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Overwrite);
+                    } else{
+                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Append);
+                    }
+                } else {
+                    splitData(intputPath, "conv,metrics,locus");
+                }
                 break;
             case "details":
                 details();
@@ -194,7 +209,17 @@ public class SparkDataBatch implements Serializable{
             Dataset<Tuple2<String, String>> splitedData = inputData
                     .filter(new Functions.AppFilter(s))
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-            sinkToFileByKey(splitedData.toDF("key", "value"), "parquet", s);
+            sinkToFileByKey(splitedData.toDF("key", "value"), "parquet", s, SaveMode.Append);
+        }
+    }
+
+    private void splitDataWithStartDate(String input, String applist, String startDate, SaveMode saveMode) throws Exception{
+        Dataset<String> inputData = spark.read().textFile(input).repartition(500).cache();
+        for (String s : applist.split(",")) {
+            Dataset<Tuple2<String, String>> splitedData = inputData
+                    .filter(new Functions.AppFilter(s))
+                    .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
+            sinkToFile(splitedData.toDF("key", "value").filter(col("key").equalTo(startDate)), "parquet", s, saveMode);
         }
     }
 
@@ -202,7 +227,7 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> callQuality = tableProcessor.callQuality(raw);
 
-        sinkToFileByKey(callQuality.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callQuality");
+        sinkToFile(callQuality.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callQuality", SaveMode.Overwrite);
 
         writeToCassandra(callQuality, constants.CassandraTableData());
     }
@@ -211,7 +236,7 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> callVolume = tableProcessor.callVolume(raw);
 
-        sinkToFileByKey(callVolume.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callVolume");
+        sinkToFile(callVolume.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callVolume", SaveMode.Overwrite);
 
         writeToCassandra(callVolume, constants.CassandraTableData());
     }
@@ -220,7 +245,7 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> callDuration = tableProcessor.callDuration(raw);
 
-        sinkToFileByKey(callDuration.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callDuration");
+        sinkToFile(callDuration.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callDuration", SaveMode.Overwrite);
 
         writeToCassandra(callDuration, constants.CassandraTableData());
 
@@ -230,7 +255,7 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> fileUsed = tableProcessor.fileUsed(raw);
 
-        sinkToFileByKey(fileUsed.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "fileUsed");
+        sinkToFile(fileUsed.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "fileUsed", SaveMode.Overwrite);
 
         writeToCassandra(fileUsed, constants.CassandraTableData());
     }
@@ -238,7 +263,7 @@ public class SparkDataBatch implements Serializable{
     private void activeUserRollUp(String input) throws Exception{
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> activeUserRollUp = tableProcessor.activeUserRollUp(activeUser);
-//        sinkToFileByKey(activeUserRollUp.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "activeUserRollUp");
+//        sinkToFile(activeUserRollUp.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "activeUserRollUp");
 
         writeToCassandra(activeUserRollUp, constants.CassandraTableData());
     }
@@ -246,7 +271,7 @@ public class SparkDataBatch implements Serializable{
     private void rtUser(String input) throws Exception{
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> rtUser = tableProcessor.rtUser(activeUser);
-//        sinkToFileByKey(rtUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "rtUser");
+//        sinkToFile(rtUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "csv", "rtUser");
 
         writeToCassandra(rtUser, constants.CassandraTableData());
     }
@@ -257,14 +282,14 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = convRaw.union(locusRaw);
         Dataset<Row> activeUser = tableProcessor.activeUser(raw);
 
-        sinkToFileByKey(activeUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "activeUser");
+        sinkToFile(activeUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "activeUser", SaveMode.Overwrite);
     }
 
     private void registeredEndpoint(String input) throws Exception{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> registeredEndpoint = tableProcessor.registeredEndpoint(raw);
 
-        sinkToFileByKey(registeredEndpoint.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "registeredEndpoint");
+        sinkToFile(registeredEndpoint.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "registeredEndpoint", SaveMode.Overwrite);
 
         writeToCassandra(registeredEndpoint, constants.CassandraTableData());
     }
@@ -343,12 +368,19 @@ public class SparkDataBatch implements Serializable{
         writeToCassandra(topPoorQuality,  constants.CassandraTableAgg());
     }
 
-    private void sinkToFileByKey(Dataset<Row> dataset, String format, String datasetName){
+    private void sinkToFileByKey(Dataset<Row> dataset, String format, String datasetName, SaveMode saveMode){
         dataset.write()
-                .mode(SaveMode.Append)
+                .mode(saveMode)
                 .partitionBy("key")
                 .format(format)
                 .save(constants.outputLocation() + datasetName);
+    }
+
+    private void sinkToFile(Dataset<Row> dataset, String format, String datasetName, SaveMode saveMode){
+        dataset.write()
+                .mode(saveMode)
+                .format(format)
+                .save(constants.outputLocation() + datasetName + "/key=" + startDate);
     }
 
     private Dataset<Row> readRaw(String source, StructType schema) throws Exception {
