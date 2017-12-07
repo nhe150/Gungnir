@@ -40,11 +40,8 @@ object Queries {
       |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
       |          SM.key AS mediaType,
       |          coalesce(`@fields`.userId, "unknown") AS userId,
-      |
-      |          //CONCAT(@timestamp, '^', @fields.userId) AS call_id,
       |          CONCAT(SM.value.locusId , '^', SM.value.locusTimestamp) AS call_id,
       |          SM.sessionId as confId,
-      |          //ToDo: following a.k.a callLeg
       |          SM.value.correlationId as meetingId,
       |
       |          CASE
