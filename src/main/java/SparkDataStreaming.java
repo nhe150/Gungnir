@@ -305,6 +305,9 @@ public class SparkDataStreaming implements Serializable {
                 .option("topic", topic)
                 .option("kafka.retries", constants.kafkaProducerRetries())
                 .option("kafka.retry.backoff.ms", constants.kafkaRetryBackoffMs())
+                .option("kafka.metadata.fetch.timeout.ms", constants.kafkaMetadataFetchTimeoutMs())
+                .option("fetchOffset.numRetries", constants.kafkaFetchOffsetNumRetries())
+                .option("fetchOffset.retryIntervalMs", constants.kafkaFetchOffsetRetryIntervalMs())
                 .queryName("sinkToKafka_" + topic)
                 .start();
     }
@@ -320,6 +323,8 @@ public class SparkDataStreaming implements Serializable {
                 .option("kafka.bootstrap.servers", bootstrap_ervers)
                 .option("subscribe", topics)
                 .option("maxOffsetsPerTrigger", constants.kafkaMaxOffsetsPerTrigger())
+                .option("fetchOffset.numRetries", constants.kafkaFetchOffsetNumRetries())
+                .option("fetchOffset.retryIntervalMs", constants.kafkaFetchOffsetRetryIntervalMs())
                 .load()
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)");
     }
