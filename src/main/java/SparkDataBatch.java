@@ -336,11 +336,11 @@ public class SparkDataBatch implements Serializable{
 
     private void callQualityCount(String input) throws Exception{
         Dataset<Row> callQuality = readDetails(input);
-        Dataset<Row> callQualityGoodCount = tableProcessor.callQualityGoodCount(callQuality);
-//        callQualityGoodCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
-//                .save(constants.outputLocation() + "callQualityGoodCount");
+        Dataset<Row> callQualityTotalCount = tableProcessor.callQualityTotalCount(callQuality);
+//        callQualityTotalCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)
+//                .save(constants.outputLocation() + "callQualityTotalCount");
 
-        writeToCassandra(callQualityGoodCount,  constants.CassandraTableAgg());
+        writeToCassandra(callQualityTotalCount,  constants.CassandraTableAgg());
 
         Dataset<Row> callQualityBadCount = tableProcessor.callQualityBadCount(callQuality);
 //        callQualityBadCount.repartition(1).write().format("csv").mode(SaveMode.Overwrite)

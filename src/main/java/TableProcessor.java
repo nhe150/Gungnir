@@ -92,21 +92,20 @@ public class TableProcessor implements Serializable {
         return spark.sql(sql.Queries.activeUser());
     }
 
-    public Dataset callQualityGoodCount(Dataset callQuality){
+    public Dataset callQualityTotalCount(Dataset callQuality){
         callQuality
                 .withWatermark("time_stamp", watermarkDelayThreshold)
-                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
-                        "CASE WHEN (audio_is_good=1 OR video_is_good=1) THEN 1 ELSE 0 END AS quality_is_good")
-                .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_good")
+                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id")
+                .dropDuplicates("time_stamp", "orgId", "call_id")
                 .createOrReplaceTempView("callQuality");
-        return spark.sql(sql.Queries.callQualityGoodCount());
+        return spark.sql(sql.Queries.callQualityTotalCount());
     }
 
     public Dataset callQualityBadCount(Dataset callQuality){
         callQuality
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
-                        "CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
+                        "CASE WHEN (audio_jitter>150 OR audio_rtt>400 OR audio_packetloss>0.05) THEN 1 ELSE 0 END AS quality_is_bad")
                 .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_bad")
                 .createOrReplaceTempView("callQuality");
         return spark.sql(sql.Queries.callQualityBadCount());
