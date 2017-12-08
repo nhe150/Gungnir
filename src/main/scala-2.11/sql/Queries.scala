@@ -196,7 +196,7 @@ object Queries {
     """
       |SELECT time_stamp,
       |       convertTime(time_stamp) as pdate,
-      |       uuid(orgId) as dataid,
+      |       CONCAT('fileUsed', '^', time_stamp, '^', orgId, '^', userId, '^', contentSize) AS dataid,
       |       orgId,
       |       userId,
       |       isFile,
