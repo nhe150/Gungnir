@@ -115,6 +115,8 @@ public class SparkDataBatch implements Serializable{
                     splitData(intputPath, "conv,metrics,locus");
                 }
                 break;
+            case "splitDataText":
+                splitDataText(intputPath, "conv,metrics,locus");
             case "details":
                 details();
                 break;
@@ -213,6 +215,17 @@ public class SparkDataBatch implements Serializable{
                     .filter(new Functions.AppFilter(s))
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
             sinkToFileByKey(splitedData.toDF("key", "value"), "parquet", s, SaveMode.Append);
+        }
+    }
+
+
+    private void splitDataText(String input, String applist) throws Exception{
+        Dataset<String> inputData = spark.read().textFile(input).repartition(500).cache();
+        for (String s : applist.split(",")) {
+            Dataset<Tuple2<String, String>> splitedData = inputData
+                    .filter(new Functions.AppFilter(s))
+                    .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
+            sinkToFileByKey(splitedData.toDF("key", "value"), "text", s+"_text", SaveMode.Append);
         }
     }
 
