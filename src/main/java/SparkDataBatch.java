@@ -174,6 +174,9 @@ public class SparkDataBatch implements Serializable{
             case "kohlsRawData":
                 kohlsRawData("conv");
                 break;
+            case "test":
+                test(intputPath);
+                break;
             default:
                 System.out.println("Invalid input for job name");
                 System.exit(0);
@@ -206,6 +209,15 @@ public class SparkDataBatch implements Serializable{
         callDurationCount("callDuration");
         activeUserTopCount("activeUser");
         topPoorQuality("callQuality");
+    }
+
+    private void test(String input) {
+        Dataset<String> inputData = spark.read().textFile(input).repartition(500);
+        Dataset test = inputData.filter(new Functions.TestFilter());
+        test.repartition(1).write()
+                .mode(SaveMode.Overwrite)
+                .format("csv")
+                .save(constants.outputLocation() + "test_1143");
     }
 
     private void splitData(String input, String applist) throws Exception{
