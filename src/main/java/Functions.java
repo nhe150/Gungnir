@@ -74,4 +74,10 @@ public class Functions {
             return toFormat.format(timeStamp);
         }
     }
+
+    public static final class TestFilter implements FilterFunction<String> {
+        public boolean call(String line){
+            return line.contains("\"_appname\":\"conv\"") && line.contains("9e986e67-1d39-44e0-a2f0-4063b51eb708") && line.contains("\\\"contentSize\\\":1143") && line.contains("\\\"verb\\\":\\\"share\\\"");
+        }
+    }
 }

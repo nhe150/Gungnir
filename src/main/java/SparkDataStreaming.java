@@ -235,9 +235,9 @@ public class SparkDataStreaming implements Serializable {
 
     private void callQualityCount(String input) throws Exception{
         Dataset<Row> callQuality = readFromKafkaWithSchema(input);
-        Dataset<Row> callQualityGoodCount = tableProcessor.callQualityGoodCount(callQuality);
-//        callQualityGoodCount.writeStream().format("console").outputMode("update").start();
-        sinkToCassandra(callQualityGoodCount, constants.CassandraTableAgg(), "update",   "callQualityGoodCount_" + tableProcessor.getAggregatePeriod());
+        Dataset<Row> callQualityTotalCount = tableProcessor.callQualityTotalCount(callQuality);
+//        callQualityTotalCount.writeStream().format("console").outputMode("update").start();
+        sinkToCassandra(callQualityTotalCount, constants.CassandraTableAgg(), "update",   "callQualityTotalCount_" + tableProcessor.getAggregatePeriod());
 
         Dataset<Row> callQualityBadCount = tableProcessor.callQualityBadCount(callQuality);
 //        callQualityBadCount.writeStream().format("console").outputMode("update").start();
