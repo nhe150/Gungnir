@@ -109,7 +109,6 @@ public class Schemas {
             new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
             new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
             new StructField("number_of_good_calls", DataTypes.LongType, true, Metadata.empty()),
-            new StructField("number_of_bad_calls", DataTypes.LongType, true, Metadata.empty()),
             new StructField("period", DataTypes.StringType, true, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
     );

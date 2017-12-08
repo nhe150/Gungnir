@@ -92,15 +92,24 @@ public class TableProcessor implements Serializable {
         return spark.sql(sql.Queries.activeUser());
     }
 
-    public Dataset callQualityCount(Dataset callQuality){
+    public Dataset callQualityGoodCount(Dataset callQuality){
         callQuality
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
-                        "CASE WHEN (audio_is_good=1 OR video_is_good=1) THEN 1 ELSE 0 END AS quality_is_good",
-                        "CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
-                .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_good", "quality_is_bad")
+                        "CASE WHEN (audio_is_good=1 OR video_is_good=1) THEN 1 ELSE 0 END AS quality_is_good")
+                .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_good")
                 .createOrReplaceTempView("callQuality");
-        return spark.sql(sql.Queries.callQualityCount());
+        return spark.sql(sql.Queries.callQualityGoodCount());
+    }
+
+    public Dataset callQualityBadCount(Dataset callQuality){
+        callQuality
+                .withWatermark("time_stamp", watermarkDelayThreshold)
+                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
+                        "CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
+                .dropDuplicates("time_stamp", "orgId", "call_id", "quality_is_bad")
+                .createOrReplaceTempView("callQuality");
+        return spark.sql(sql.Queries.callQualityBadCount());
     }
 
     public Dataset callVolumeCount(Dataset callVolume){
@@ -182,6 +191,7 @@ public class TableProcessor implements Serializable {
 
     private Dataset activeUserCount(Dataset activeUser, String aggregateColumn, String resultColumn){
         activeUser
+                .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", aggregateColumn)
                 .dropDuplicates("time_stamp", "orgId", aggregateColumn).createOrReplaceTempView(resultColumn);
         return spark.sql(sql.Queries.activeUserCountQuery(aggregateColumn, resultColumn));
