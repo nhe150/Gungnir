@@ -75,12 +75,25 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
-  def callQualityCount =
+  def callQualityGoodCount =
     """
       |SELECT CONCAT(time_stamp, '^', orgId, '^', 'callQuality', '^', periodTag(orgId)) AS eventKey,
       |       time_stamp,
       |       orgId,
       |       sum(quality_is_good) AS number_of_good_calls,
+      |       periodTag(orgId) AS period,
+      |       'callQuality' AS relation_name
+      |FROM callQuality
+      |GROUP BY time_stamp,
+      |         orgId
+
+    """.stripMargin
+
+  def callQualityBadCount =
+    """
+      |SELECT CONCAT(time_stamp, '^', orgId, '^', 'callQuality', '^', periodTag(orgId)) AS eventKey,
+      |       time_stamp,
+      |       orgId,
       |       sum(quality_is_bad) AS number_of_bad_calls,
       |       periodTag(orgId) AS period,
       |       'callQuality' AS relation_name
