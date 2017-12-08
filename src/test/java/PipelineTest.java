@@ -91,7 +91,7 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
 
         expected = read("src/test/data/callQualityCount.json", Schemas.callQualityCountSchema);
 
-        result = tableProcessor.callQualityGoodCount(input);
+        result = tableProcessor.callQualityTotalCount(input);
 
     }
 
