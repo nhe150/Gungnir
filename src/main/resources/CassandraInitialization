@@ -59,7 +59,7 @@ CREATE TABLE ks_global_pda.spark_agg (
     orgId text,
     userId text,
     model text,
-    number_of_good_calls bigint,
+    number_of_total_calls bigint,
     number_of_bad_calls bigint,
     number_of_failed_calls bigint,
     number_of_successful_calls bigint,
