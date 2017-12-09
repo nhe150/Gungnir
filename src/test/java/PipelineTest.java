@@ -86,16 +86,6 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     }
 
     @Test
-    public void testCallQualityCount() throws Exception {
-        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
-
-        expected = read("src/test/data/callQualityCount.json", Schemas.callQualityCountSchema);
-
-        result = tableProcessor.callQualityTotalCount(input);
-
-    }
-
-    @Test
     public void testCallVolumeCount() throws Exception {
         Dataset input = read("src/test/data/callVolume.json", Schemas.callVolumeSchema);
 

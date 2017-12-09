@@ -92,7 +92,7 @@ public class SparkDataBatch implements Serializable{
                 .config("spark.cassandra.connection.host", constants.CassandraHosts())
                 .config("spark.cassandra.auth.username", constants.CassandraUsername())
                 .config("spark.cassandra.auth.password", constants.CassandraPassword())
-                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
+//                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
                 .config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzopCodec")
                 .appName(appName).getOrCreate();
 
@@ -141,9 +141,9 @@ public class SparkDataBatch implements Serializable{
             case "callQuality":
                 callQuality("metrics");
                 break;
-            case "callVolume":
-                callVolume("metrics");
-                break;
+//            case "callVolume":
+//                callVolume("metrics");
+//                break;
             case "callDuration":
                 callDuration("locus");
                 break;
@@ -159,9 +159,9 @@ public class SparkDataBatch implements Serializable{
             case "callQualityCount":
                 callQualityCount("callQuality");
                 break;
-            case "callVolumeCount":
-                callVolumeCount("callVolume");
-                break;
+//            case "callVolumeCount":
+//                callVolumeCount("callVolume");
+//                break;
             case "callDurationCount":
                 callDurationCount("callDuration");
                 break;
@@ -369,6 +369,11 @@ public class SparkDataBatch implements Serializable{
 //                .save(constants.outputLocation() + "callDurationCount");
 
         writeToCassandra(callDurationCount, constants.CassandraTableAgg());
+
+        Dataset<Row> totalCallCount = tableProcessor.totalCallCount(callDuration);
+
+        writeToCassandra(totalCallCount, constants.CassandraTableAgg());
+
     }
 
     private void fileUsedCount(String input) throws Exception{

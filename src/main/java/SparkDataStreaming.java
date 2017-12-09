@@ -85,7 +85,7 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.cassandra.connection.host", constants.CassandraHosts())
                 .config("spark.cassandra.auth.username", constants.CassandraUsername())
                 .config("spark.cassandra.auth.password", constants.CassandraPassword())
-                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
+//                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
                 .config("spark.streaming.backpressure.enabled", constants.streamingBackpressureEnabled())
@@ -142,9 +142,9 @@ public class SparkDataStreaming implements Serializable {
             case "callQuality":
                 callQuality("metrics");
                 break;
-            case "callVolume":
-                callVolume("metrics");
-                break;
+//            case "callVolume":
+//                callVolume("metrics");
+//                break;
             case "callDuration":
                 callDuration("locus");
                 break;
@@ -160,9 +160,9 @@ public class SparkDataStreaming implements Serializable {
             case "callQualityCount":
                 callQualityCount("callQuality");
                 break;
-            case "callVolumeCount":
-                callVolumeCount("callVolume");
-                break;
+//            case "callVolumeCount":
+//                callVolumeCount("callVolume");
+//                break;
             case "callDurationCount":
                 callDurationCount("callDuration");
                 break;
@@ -256,6 +256,8 @@ public class SparkDataStreaming implements Serializable {
         Dataset<Row> callDurationCount = tableProcessor.callDurationCount(callDuration);
 //        callDurationCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(callDurationCount, constants.CassandraTableAgg(), "update", "callDurationCount_" + tableProcessor.getAggregatePeriod());
+        Dataset<Row> totalCallCount = tableProcessor.totalCallCount(callDuration);
+        sinkToCassandra(totalCallCount, constants.CassandraTableAgg(), "update", "totalCallCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private void fileUsedCount(String input) throws Exception{

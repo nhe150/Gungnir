@@ -125,6 +125,15 @@ public class TableProcessor implements Serializable {
         return spark.sql(sql.Queries.callDurationCount());
     }
 
+    public Dataset totalCallCount(Dataset callDuration){
+        callDuration
+                .withWatermark("time_stamp", watermarkDelayThreshold)
+                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id")
+                .dropDuplicates("time_stamp", "orgId", "call_id")
+                .createOrReplaceTempView("callDuration");
+        return spark.sql(sql.Queries.totalCallCount());
+    }
+
     public Dataset fileUsedCount(Dataset fileUsed){
         fileUsed
                 .withWatermark("time_stamp", watermarkDelayThreshold)

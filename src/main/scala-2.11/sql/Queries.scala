@@ -80,7 +80,7 @@ object Queries {
       |SELECT CONCAT(time_stamp, '^', orgId, '^', 'callQuality', '^', periodTag(orgId)) AS eventKey,
       |       time_stamp,
       |       orgId,
-      |       count(call_id) AS number_of_good_calls,
+      |       count(call_id) AS number_of_total_calls,
       |       periodTag(orgId) AS period,
       |       'callQuality' AS relation_name
       |FROM callQuality
@@ -198,6 +198,19 @@ object Queries {
       |       aggregateStartDate(time_stamp) AS time_stamp,
       |       orgId,
       |       CAST(round(sum(legDuration)/60) AS BIGINT) AS number_of_minutes,
+      |       periodTag(orgId) AS period,
+      |       'callDuration' AS relation_name
+      |FROM callDuration
+      |GROUP BY orgId,
+      |         aggregateStartDate(time_stamp)
+    """.stripMargin
+
+  def totalCallCount =
+    """
+      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
+      |       aggregateStartDate(time_stamp) AS time_stamp,
+      |       orgId,
+      |       count(call_id) AS number_of_successful_calls,
       |       periodTag(orgId) AS period,
       |       'callDuration' AS relation_name
       |FROM callDuration
