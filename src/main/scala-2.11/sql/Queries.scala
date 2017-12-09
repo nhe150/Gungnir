@@ -26,7 +26,7 @@ object Queries {
       |           WHEN (mediaType='callEnd_audio'
       |                 AND audio_jitter<=150
       |                 AND audio_rtt<=400
-      |                 AND audio_packetloss<=0.05) THEN 1
+      |                 AND audio_packetloss<=5) THEN 1
       |           ELSE 0
       |       END AS audio_is_good,
       |       CASE
