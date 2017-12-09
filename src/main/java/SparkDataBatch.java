@@ -212,7 +212,7 @@ public class SparkDataBatch implements Serializable{
     }
 
     private void test(String input) {
-        Dataset<String> inputData = spark.read().textFile(input).repartition(500);
+        Dataset<String> inputData = spark.read().textFile(input);
         Dataset test = inputData.filter(new Functions.TestFilter());
         test.repartition(1).write()
                 .mode(SaveMode.Overwrite)
@@ -220,8 +220,9 @@ public class SparkDataBatch implements Serializable{
                 .save(constants.outputLocation() + "test_1143");
     }
 
+
     private void splitData(String input, String applist) throws Exception{
-        Dataset<String> inputData = spark.read().textFile(input).repartition(500).cache();
+        Dataset<String> inputData = spark.read().textFile(input).cache();
         for (String s : applist.split(",")) {
             Dataset<Tuple2<String, String>> splitedData = inputData
                     .filter(new Functions.AppFilter(s))
@@ -232,12 +233,15 @@ public class SparkDataBatch implements Serializable{
 
 
     private void splitDataText(String input, String applist) throws Exception{
-        Dataset<String> inputData = spark.read().textFile(input).repartition(500).cache();
+        Dataset<String> inputData = spark.read().textFile(input).cache();
         for (String s : applist.split(",")) {
             Dataset<Tuple2<String, String>> splitedData = inputData
                     .filter(new Functions.AppFilter(s))
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-            sinkToFileByKey(splitedData.toDF("key", "value"), "text", s+"_text", SaveMode.Append);
+            splitedData.coalesce(1).write()
+                    .mode(SaveMode.Append)
+                    .format("text")
+                    .save(constants.outputLocation() + s + "_textfile");
         }
     }
 
