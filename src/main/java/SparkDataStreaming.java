@@ -186,7 +186,7 @@ public class SparkDataStreaming implements Serializable {
     private void sinkTopicsToFile(String topicList) {
         for (String s : topicList.split(",")) {
             Dataset<Row> inputStream = readFromKafka(s);
-            sinkToFileByKey(inputStream.toDF("key", "value"), "parquet", s);
+            sinkToFileByKey(inputStream.selectExpr("split(key, '_')[0] as key", "value"), "parquet", s);
         }
     }
 
@@ -299,6 +299,7 @@ public class SparkDataStreaming implements Serializable {
 
     private StreamingQuery sinkToKafka(Dataset<Row> dataset, String topic){
         return dataset
+                .selectExpr("CONCAT(key, '_', uuid(key)) as key", "value")
                 .writeStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", constants.kafkaOutputBroker())
@@ -340,7 +341,6 @@ public class SparkDataStreaming implements Serializable {
 
     private StreamingQuery sinkToFileByKey(Dataset<Row> dataset, String format, String queryName){
         return dataset
-                .repartition(col("key"))
                 .writeStream()
                 .queryName("sinkToFile_" + queryName)
                 .partitionBy("key")
