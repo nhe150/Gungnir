@@ -17,6 +17,8 @@ import java.util.*;
 
 import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
+
 import com.datastax.spark.connector.cql.CassandraConnector;
 import org.apache.commons.cli.*;
 import util.Constants;
@@ -186,7 +188,7 @@ public class SparkDataStreaming implements Serializable {
     private void sinkTopicsToFile(String topicList) {
         for (String s : topicList.split(",")) {
             Dataset<Row> inputStream = readFromKafka(s);
-            sinkToFileByKey(inputStream.toDF("key", "value"), "parquet", s);
+            sinkToFileByKey(inputStream.selectExpr("split(key, '_')[0] as key", "value"), "parquet", s);
         }
     }
 
@@ -299,6 +301,7 @@ public class SparkDataStreaming implements Serializable {
 
     private StreamingQuery sinkToKafka(Dataset<Row> dataset, String topic){
         return dataset
+                .selectExpr("CONCAT(key, '_', uuid(key)) as key", "value")
                 .writeStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", constants.kafkaOutputBroker())
@@ -308,6 +311,7 @@ public class SparkDataStreaming implements Serializable {
                 .option("kafka.metadata.fetch.timeout.ms", constants.kafkaMetadataFetchTimeoutMs())
                 .option("fetchOffset.numRetries", constants.kafkaFetchOffsetNumRetries())
                 .option("fetchOffset.retryIntervalMs", constants.kafkaFetchOffsetRetryIntervalMs())
+                .trigger(ProcessingTime(constants.streamngTriggerWindow()))
                 .queryName("sinkToKafka_" + topic)
                 .start();
     }
@@ -340,11 +344,11 @@ public class SparkDataStreaming implements Serializable {
 
     private StreamingQuery sinkToFileByKey(Dataset<Row> dataset, String format, String queryName){
         return dataset
-                .repartition(col("key"))
                 .writeStream()
                 .queryName("sinkToFile_" + queryName)
                 .partitionBy("key")
                 .outputMode("append")
+                .trigger(ProcessingTime(constants.streamngTriggerWindow()))
                 .format(format)
                 .option("path", constants.outputLocation() + queryName).start();
     }
@@ -358,6 +362,7 @@ public class SparkDataStreaming implements Serializable {
                 .writeStream()
                 .outputMode(outputMode)
                 .foreach((ForeachWriter) new CassandraForeachWriter(connector, keySpace, tablename, dataset.schema()))
+                .trigger(ProcessingTime(constants.streamngTriggerWindow()))
                 .queryName("sinkToCassandra_" + queryName)
                 .start();
     }
