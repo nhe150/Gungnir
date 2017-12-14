@@ -37,4 +37,10 @@ class Constants(confFile: String) extends Serializable {
   def kafkaFetchOffsetNumRetries = conf.getString("kafka.fetchOffsetNumRetries")
   def kafkaFetchOffsetRetryIntervalMs = conf.getString("kafka.fetchOffsetRetryIntervalMs")
   def kafkaMetadataFetchTimeoutMs = conf.getString("kafka.metadataFetchTimeoutMs")
+  def kafkaLingerMs = conf.getString("kafka.lingerMs")
+  def kafkaBatchSize = conf.getString("kafka.batchSize")
+  def kafkaTimeoutMs = conf.getString("kafka.timeoutMs")
+  def kafkaRequestTimeoutMs = conf.getString("kafka.requestTimeoutMs")
+  def kafkaMaxRequestSize = conf.getString("kafka.maxRequestSize")
+
 }
