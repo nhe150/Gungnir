@@ -379,7 +379,7 @@ object Queries {
       |FROM
       |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
-      |          SM.deviceIdentifier AS deviceId,
+      |          SM.value.deviceIdentifier AS deviceId,
       |          coalesce(
       |             CASE
       |                 WHEN (SM.value.model='Room 70D') THEN 'Undefined'
