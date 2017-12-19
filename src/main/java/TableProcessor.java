@@ -20,7 +20,7 @@ import java.util.*;
 
 public class TableProcessor implements Serializable {
     private SparkSession spark;
-    private String watermarkDelayThreshold = "2 day";
+    private String watermarkDelayThreshold = "1800 minutes";
     private String aggregationPeriod = "daily";
 
     public TableProcessor(SparkSession spark){
@@ -37,7 +37,7 @@ public class TableProcessor implements Serializable {
         switch (period){
             case "daily":
                 setPeriod(period);
-                setWatermarkDelayThreshold("2 day");
+                setWatermarkDelayThreshold("1800 minutes");
                 break;
             case "weekly":
                 setPeriod(period);
