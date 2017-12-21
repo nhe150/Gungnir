@@ -244,6 +244,20 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
+  def fileUsedData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) AS dataid,
+      |       orgId,
+      |       userId,
+      |       cast('isFile' as Integer) as isFile,
+      |       cast('fileSize' as Long)  as contentSize,
+      |       'fileUsed' AS relation_name
+      |FROM fu
+      |WHERE orgId <> 'orgId'
+    """.stripMargin
+
   def fileUsedCount =
     """
       |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'fileUsed', '^', periodTag(orgId)) AS eventKey,
@@ -366,6 +380,47 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
+  def activeUserData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) as dataid,
+      |       orgId,
+      |       userId,
+      |       cast('isMessage' as Integer)  as isMessage,
+      |       cast('isCall' as Integer)  as isCall,
+      |       cast('isCreate' as Integer)  as isCreate,
+      |       isRTUser as rtUser,
+      |       isOneToOneUser as oneToOneUser,
+      |       isGroupUser as groupUser ,
+      |       isTeamUser as teamUser,
+      |       isOneToOne as oneToOne,
+      |       isGroup as group,
+      |       isTeam as team,
+      |       'activeUser' AS relation_name
+      |FROM au
+      |where orgId <> 'orgId'
+    """.stripMargin
+
+  def registeredEndpointData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) as dataid,
+      |       orgId,
+      |       userId,
+      |       deviceId,
+      |       coalesce(
+      |             CASE
+      |                 WHEN (model='Room 70D') THEN 'Undefined'
+      |                 WHEN (model='SparkBoard 55') THEN 'SPARK-BOARD55'
+      |                 ELSE model
+      |             END, 'unknown') AS model,
+      |       'registeredEndpoint' AS relation_name
+      |FROM re
+      |WHERE orgId<>'orgId'
+    """.stripMargin
+
   def registeredEndpoint =
     """
       |SELECT time_stamp,
@@ -440,6 +495,8 @@ object Queries {
 
   def topUser =
     """
+      |SELECT orgId,userId,messages, calls, peroid, relation_name, time_stamp, eventKey FROM
+      |(
       |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', userId, '^', 'topUser', '^', periodTag(orgId)) AS eventKey,
       |       aggregateStartDate(time_stamp) as time_stamp,
       |       orgId,
@@ -447,30 +504,38 @@ object Queries {
       |       sum(isMessage) AS messages,
       |       sum(isCall) AS calls,
       |       periodTag(orgId) AS period,
-      |       'topUser' AS relation_name
+      |       'topUser' AS relation_name,
+      |       dense_rank()
+      |         OVER (PARTITION BY orgId ORDER BY messages + calls DESC) as rank
       |FROM activeUser
       |GROUP BY orgId,
       |         userId,
       |         aggregateStartDate(time_stamp)
-      |ORDER BY messages + calls DESC
-      |LIMIT 25
+      |
+      |) tmp
+      |where  rank <= 30
+      |
     """.stripMargin
 
   def topPoorQuality =
     """
-      |SELECT CONCAT(time_stamp, '^', orgId, '^', userId, '^', 'topPoorQuality', '^', periodTag(orgId)) AS eventKey,
-      |       time_stamp,
+      |select eventKey, time_stamp, orgId, userId, number_of_bad_calls, period, relation_name from
+      |(
+      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', userId, '^', 'topPoorQuality', '^', periodTag(orgId)) AS eventKey,
+      |       aggregateStartDate(time_stamp) as time_stamp,
       |       orgId,
       |       userId,
       |       sum(quality_is_bad) AS number_of_bad_calls,
       |       periodTag(orgId) AS period,
-      |       'topPoorQuality' AS relation_name
+      |       'topPoorQuality' AS relation_name,
+      |       dense_rank()
+      |         OVER (PARTITION BY orgId ORDER BY number_of_bad_calls DESC) as rank
       |FROM callQuality
       |GROUP BY orgId,
       |         userId,
-      |         time_stamp
-      |ORDER BY number_of_bad_calls DESC
-      |LIMIT 25
+      |         aggregateStartDate(time_stamp)
+      |) tmp
+      |where rank <=30
     """.stripMargin
 
 

@@ -223,6 +223,7 @@ public class TableProcessor implements Serializable {
         spark.udf().register("aggregateStartDate", new AggregateStartDate(aggregationPeriod), DataTypes.TimestampType);
         spark.udf().register("endOfDay", new EndOfDay(), DataTypes.TimestampType);
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
+
         spark.udf().register("shortUuid", new shortUuid(), DataTypes.StringType);
     }
 
@@ -256,6 +257,12 @@ public class TableProcessor implements Serializable {
             return UUID.randomUUID().toString();
         }
     }
+
+//    private class Uuid implements UDF1<Timestamp, String> {
+//        public String call(Timestamp dummy) throws Exception {
+//            return UUID.randomUUID().toString();
+//        }
+//    }
 
     private class shortUuid implements UDF1<String, String> {
         public String call(String dummy) throws Exception {
