@@ -138,7 +138,7 @@ public class SparkDataStreaming implements Serializable {
                 callQuality("metrics");
                 callVolume("metrics");
                 callDuration("locus");
-                activeUserRollUp("activeUser");
+                //activeUserRollUp("activeUser");   moving activeUserRollUp to seperate job due to memory constraints
                 rtUser("activeUser");
                 break;
             case "aggregates":
