@@ -244,6 +244,20 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
+  def fileUsedData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) AS dataid,
+      |       orgId,
+      |       userId,
+      |       cast('isFile' as Integer) as isFile,
+      |       cast('fileSize' as Long)  as contentSize,
+      |       'fileUsed' AS relation_name
+      |FROM fu
+      |WHERE orgId <> 'orgId'
+    """.stripMargin
+
   def fileUsedCount =
     """
       |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'fileUsed', '^', periodTag(orgId)) AS eventKey,
@@ -366,6 +380,47 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
+  def activeUserData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) as dataid,
+      |       orgId,
+      |       userId,
+      |       cast('isMessage' as Integer)  as isMessage,
+      |       cast('isCall' as Integer)  as isCall,
+      |       cast('isCreate' as Integer)  as isCreate,
+      |       isRTUser as rtUser,
+      |       isOneToOneUser as oneToOneUser,
+      |       isGroupUser as groupUser ,
+      |       isTeamUser as teamUser,
+      |       isOneToOne as oneToOne,
+      |       isGroup as group,
+      |       isTeam as team,
+      |       'activeUser' AS relation_name
+      |FROM au
+      |where orgId <> 'orgId'
+    """.stripMargin
+
+  def registeredEndpointData =
+    """
+      |SELECT date as time_stamp,
+      |       date as pdate,
+      |       uuid(orgId) as dataid,
+      |       orgId,
+      |       'NA' as userId,
+      |       deviceId,
+      |       coalesce(
+      |             CASE
+      |                 WHEN (model='Room 70D') THEN 'Undefined'
+      |                 WHEN (model='SparkBoard 55') THEN 'SPARK-BOARD55'
+      |                 ELSE model
+      |             END, 'unknown') AS model,
+      |       'registeredEndpoint' AS relation_name
+      |FROM re
+      |WHERE orgId<>'orgId'
+    """.stripMargin
+
   def registeredEndpoint =
     """
       |SELECT time_stamp,
@@ -462,11 +517,10 @@ object Queries {
          ) dataSet
       ) randDataSet
       where rank <= 30
-""".stripMargin
+    """.stripMargin
 
   def topPoorQuality =
     """
-
       SELECT eventKey,time_stamp, orgId,userId,number_of_bad_calls, period, relation_name
       FROM
       (

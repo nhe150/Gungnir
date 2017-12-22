@@ -21,6 +21,7 @@ import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 
 import com.datastax.spark.connector.cql.CassandraConnector;
 import org.apache.commons.cli.*;
+import sql.Queries;
 import util.Constants;
 
 public class SparkDataStreaming implements Serializable {
@@ -28,6 +29,16 @@ public class SparkDataStreaming implements Serializable {
     private SparkSession spark;
     private TableProcessor tableProcessor;
     private CassandraConnector connector;
+
+    public String getDataFile() {
+        return dataFile;
+    }
+
+    public void setDataFile(String dataFile) {
+        this.dataFile = dataFile;
+    }
+
+    private String dataFile;
 
     public SparkDataStreaming(String appName, Constants constants){
         this.constants = constants;
@@ -51,6 +62,10 @@ public class SparkDataStreaming implements Serializable {
         period.setRequired(false);
         options.addOption(period);
 
+        Option dataFileOpt = new Option("f", "file", true, "datafile path");
+        dataFileOpt.setRequired(false);
+        options.addOption(dataFileOpt);
+
         CommandLineParser parser = new GnuParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -69,9 +84,11 @@ public class SparkDataStreaming implements Serializable {
         String jobName = cmd.getOptionValue("job");
         String aggPeriod = cmd.getOptionValue("period");
         String configFile = cmd.getOptionValue("config");
+        String dataFile = cmd.getOptionValue("file");
 
         SparkDataStreaming streamingApp = new SparkDataStreaming(jobName, new Constants(configFile));
         streamingApp.tableProcessor.setAggregatePeriod(aggPeriod);
+        streamingApp.setDataFile(dataFile);
 
         streamingApp.spark.streams().addListener(new KafkaMetrics(streamingApp.constants.kafkaMonitorBroker(), streamingApp.constants.kafkaMonitorTopic()));
 
@@ -91,7 +108,11 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
                 .config("spark.streaming.backpressure.enabled", constants.streamingBackpressureEnabled())
-                .appName(appName).getOrCreate();
+                //for local run to enable the following 2 lines ---- 2017-12-22 Norman He
+                //.config("spark.master", "local[4]")
+               // .config("spark.executor.memory","2g")
+                .appName(appName)
+                .getOrCreate();
 
         spark.sparkContext().setLogLevel(constants.logLevel());
         return spark;
@@ -103,10 +124,12 @@ public class SparkDataStreaming implements Serializable {
                 splitData(constants.kafkaInputTopic(), "conv,metrics,locus");
                 break;
             case "saveToFile":
-                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callVolume,callDuration");
+                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callVolume,callDuration", "parquet");
+                //sinkTopicsToFile("fileUsed", "csv");
                 break;
             case "saveToCassandra":
                 sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callVolume,callDuration");
+                //sinkDetailsToCassandra("fileUsed");
                 break;
             case "details":
                 fileUsed("conv");
@@ -125,6 +148,7 @@ public class SparkDataStreaming implements Serializable {
                 callQualityCount("callQuality");
                 callVolumeCount("callVolume");
                 callDurationCount("callDuration");
+
                 break;
             case "activeUserRollUp":
                 activeUserRollUp("activeUser");
@@ -135,11 +159,17 @@ public class SparkDataStreaming implements Serializable {
             case "fileUsed":
                 fileUsed("conv");
                 break;
+            case "activeUserData":
+                activeUserData();
+                break;
             case "activeUser":
                 activeUser("conv,locus");
                 break;
             case "registeredEndpoint":
                 registeredEndpoint("metrics");
+                break;
+            case "registeredEndpointData":
+                registeredEndpointData();
                 break;
             case "callQuality":
                 callQuality("metrics");
@@ -152,6 +182,9 @@ public class SparkDataStreaming implements Serializable {
                 break;
             case "fileUsedCount":
                 fileUsedCount("fileUsed");
+                break;
+            case "fileUsedData":
+                fileUsedData();
                 break;
             case "activeUserCount":
                 activeUserCount("activeUser");
@@ -174,6 +207,8 @@ public class SparkDataStreaming implements Serializable {
         }
     }
 
+
+
     private void splitData(String input, String applist) throws Exception{
         Dataset<String> inputStream = readFromKafka(input, constants.kafkaInputBroker()).select("value").as(Encoders.STRING());
 
@@ -185,10 +220,15 @@ public class SparkDataStreaming implements Serializable {
         }
     }
 
-    private void sinkTopicsToFile(String topicList) {
+    /**
+     *
+     * @param topicList
+     * @param format "csv" , "parquet" etc
+     */
+    private void sinkTopicsToFile(String topicList, String format) {
         for (String s : topicList.split(",")) {
             Dataset<Row> inputStream = readFromKafka(s);
-            sinkToFileByKey(inputStream.selectExpr("split(key, '_')[0] as key", "value"), "parquet", s);
+            sinkToFileByKey(inputStream.selectExpr("split(key, '_')[0] as key", "value"), format, s);
         }
     }
 
@@ -227,6 +267,34 @@ public class SparkDataStreaming implements Serializable {
         Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> registeredEndpoint = tableProcessor.registeredEndpoint(raw);
         sinkToKafka(registeredEndpoint.selectExpr("pdate as key","to_json(struct(*)) AS value"),"registeredEndpoint");
+    }
+
+    private void registeredEndpointData() throws Exception{
+         syncDataInfoKafka(Queries.registeredEndpointData(), "re", "registeredEndpoint");
+    }
+
+    private void fileUsedData() throws Exception {
+        syncDataInfoKafka(Queries.fileUsedData(), "fu", "fileUsed");
+    }
+
+
+    private void activeUserData() {
+        syncDataInfoKafka(Queries.activeUserData(), "au", "activeUser");
+    }
+
+    private void syncDataInfoKafka(String query, String viewTable, String topic) {
+        Dataset<Row> df0 = spark.read().option("header","true").csv(dataFile);
+        df0.printSchema();
+
+        Dataset<Row> df = spark.readStream().schema(df0.schema()).csv(dataFile);
+
+        df.createOrReplaceTempView(viewTable);
+        Dataset<Row> au = spark.sql(query);
+
+
+        au.printSchema();
+        //au.show(1);
+        sinkToKafka(au.selectExpr("pdate as key","to_json(struct(*)) AS value"), topic);
     }
 
     private void activeUser(String input) throws Exception{
@@ -321,6 +389,7 @@ public class SparkDataStreaming implements Serializable {
                 .start();
     }
 
+
     private Dataset<Row> readFromKafka(String topics){
         return readFromKafka(topics, constants.kafkaOutputBroker());
     }
@@ -363,6 +432,7 @@ public class SparkDataStreaming implements Serializable {
     }
 
     private StreamingQuery sinkToCassandra(Dataset<Row> dataset, String keySpace, String tablename, String outputMode, String queryName){
+        dataset.printSchema();
         return dataset
                 .writeStream()
                 .outputMode(outputMode)
@@ -377,20 +447,46 @@ public class SparkDataStreaming implements Serializable {
         private String keySpace;
         private String tablename;
         private StructType schema;
+        /**
+         * ToDo: better resource sharing
+         */
+        private Session session;
         public CassandraForeachWriter(CassandraConnector connector, String keySpace, String tablename, StructType schema){
             this.connector = connector;
             this.keySpace = keySpace;
             this.tablename = tablename;
             this.schema = schema;
+
         }
         @Override
         public boolean open(long partitionId, long version) {
-            // open connection
+            session = connector.openSession();
+            return true;
+        }
+
+        /**
+         * handle wrong schema case so the system don't blow up
+         * @param values
+         * @return
+         */
+        private boolean isAllNull(String[] values)
+        {
+            for( String so : values){
+                if (so == null || so.equals("'null'") || so.equals("null"))
+                {
+                   continue;
+
+                }else {
+                    return false;
+                }
+            }
+
             return true;
         }
 
         @Override
         public void process(GenericRowWithSchema value) {
+
             // write string to connection
             StructField[] structField =schema.fields();
             String[] values = new String[structField.length];
@@ -400,18 +496,28 @@ public class SparkDataStreaming implements Serializable {
                         || type.sameType(DataTypes.TimestampType) ? "'" + value.get(i) + "'" : value.get(i) + "";
             }
 
+            if( isAllNull(values)){
+                return;
+            }
+
             String fields = "(" + String.join(", ", schema.fieldNames()).toLowerCase() + ")";
+
             String fieldValues =  "(" + String.join(", ", values) + ")";
 
             String statement = "insert into " + keySpace + "." + tablename + " " + fields + " values" + fieldValues;
-            try (Session session = connector.openSession()) {
-                session.execute(statement);
-            }
+
+            //System.out.println(statement);
+            session.execute(statement);
+
+
         }
 
         @Override
         public void close(Throwable errorOrNull) {
-            // close the connection
+            if( session != null ){
+                session.close();
+            }
+
         }
     }
 
