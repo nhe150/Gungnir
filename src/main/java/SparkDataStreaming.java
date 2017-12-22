@@ -108,7 +108,8 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
                 .config("spark.streaming.backpressure.enabled", constants.streamingBackpressureEnabled())
-               // .config("spark.master", "local[4]")
+                //for local run to enable the following 2 lines ---- 2017-12-22 Norman He
+                //.config("spark.master", "local[4]")
                // .config("spark.executor.memory","2g")
                 .appName(appName)
                 .getOrCreate();
@@ -455,10 +456,11 @@ public class SparkDataStreaming implements Serializable {
             this.keySpace = keySpace;
             this.tablename = tablename;
             this.schema = schema;
+
         }
         @Override
         public boolean open(long partitionId, long version) {
-            // open connection
+            session = connector.openSession();
             return true;
         }
 
@@ -505,14 +507,17 @@ public class SparkDataStreaming implements Serializable {
             String statement = "insert into " + keySpace + "." + tablename + " " + fields + " values" + fieldValues;
 
             //System.out.println(statement);
-            try (Session session = connector.openSession()) {
-                session.execute(statement);
-            }
+            session.execute(statement);
+
+
         }
 
         @Override
         public void close(Throwable errorOrNull) {
-            // close the connection
+            if( session != null ){
+                session.close();
+            }
+
         }
     }
 
