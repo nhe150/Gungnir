@@ -408,7 +408,7 @@ object Queries {
       |       date as pdate,
       |       uuid(orgId) as dataid,
       |       orgId,
-      |       userId,
+      |       'NA' as userId,
       |       deviceId,
       |       coalesce(
       |             CASE
