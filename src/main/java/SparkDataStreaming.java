@@ -108,8 +108,8 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
                 .config("spark.streaming.backpressure.enabled", constants.streamingBackpressureEnabled())
-                .config("spark.master", "local[4]")
-                .config("spark.executor.memory","2g")
+               // .config("spark.master", "local[4]")
+               // .config("spark.executor.memory","2g")
                 .appName(appName)
                 .getOrCreate();
 
@@ -123,13 +123,12 @@ public class SparkDataStreaming implements Serializable {
                 splitData(constants.kafkaInputTopic(), "conv,metrics,locus");
                 break;
             case "saveToFile":
-                //sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callVolume,callDuration");
-                sinkTopicsToFile("fileUsed", "csv");
+                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callVolume,callDuration", "parquet");
+                //sinkTopicsToFile("fileUsed", "csv");
                 break;
             case "saveToCassandra":
-                //sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callVolume,callDuration");
-                sinkDetailsToCassandra("fileUsed");
-
+                sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callVolume,callDuration");
+                //sinkDetailsToCassandra("fileUsed");
                 break;
             case "details":
                 fileUsed("conv");
