@@ -440,37 +440,57 @@ object Queries {
 
   def topUser =
     """
-      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', userId, '^', 'topUser', '^', periodTag(orgId)) AS eventKey,
-      |       aggregateStartDate(time_stamp) as time_stamp,
-      |       orgId,
-      |       userId,
-      |       sum(isMessage) AS messages,
-      |       sum(isCall) AS calls,
-      |       periodTag(orgId) AS period,
-      |       'topUser' AS relation_name
-      |FROM activeUser
-      |GROUP BY orgId,
-      |         userId,
-      |         aggregateStartDate(time_stamp)
-      |ORDER BY messages + calls DESC
-      |LIMIT 25
-    """.stripMargin
+      SELECT eventKey,time_stamp, orgId,userId,messages, calls, period, relation_name
+      FROM
+      (
+         SELECT eventKey,time_stamp, orgId,userId,messages, calls, period, relation_name,
+         dense_rank() OVER (PARTITION BY orgId ORDER BY messages + calls DESC) as rank
+         FROM
+         (
+            SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', userId, '^', 'topUser', '^', periodTag(orgId)) AS eventKey,
+             aggregateStartDate(time_stamp) as time_stamp,
+             orgId,
+             userId,
+             sum(isMessage) AS messages,
+             sum(isCall) AS calls,
+             periodTag(orgId) AS period,
+             'topUser' AS relation_name
+            FROM activeUser
+            GROUP BY orgId,
+             userId,
+             aggregateStartDate(time_stamp)
+         ) dataSet
+      ) randDataSet
+      where rank <= 30
+""".stripMargin
 
   def topPoorQuality =
     """
-      |SELECT CONCAT(time_stamp, '^', orgId, '^', userId, '^', 'topPoorQuality', '^', periodTag(orgId)) AS eventKey,
-      |       time_stamp,
-      |       orgId,
-      |       userId,
-      |       sum(quality_is_bad) AS number_of_bad_calls,
-      |       periodTag(orgId) AS period,
-      |       'topPoorQuality' AS relation_name
-      |FROM callQuality
-      |GROUP BY orgId,
-      |         userId,
-      |         time_stamp
-      |ORDER BY number_of_bad_calls DESC
-      |LIMIT 25
+
+      SELECT eventKey,time_stamp, orgId,userId,number_of_bad_calls, period, relation_name
+      FROM
+      (
+          SELECT eventKey,time_stamp, orgId,userId,number_of_bad_calls, period, relation_name,
+          dense_rank() OVER (PARTITION BY orgId ORDER BY number_of_bad_calls DESC) as rank
+          FROM
+          (
+              SELECT CONCAT(time_stamp, '^', orgId, '^', userId, '^', 'topPoorQuality', '^', periodTag(orgId)) AS eventKey,
+                     time_stamp,
+                     orgId,
+                     userId,
+                     sum(quality_is_bad) AS number_of_bad_calls,
+                     periodTag(orgId) AS period,
+                     'topPoorQuality' AS relation_name
+              FROM callQuality
+              GROUP BY orgId,
+                       userId,
+                       time_stamp
+              ORDER BY number_of_bad_calls DESC
+
+          ) dataSet
+          where number_of_bad_calls > 0
+      ) randDataSet
+      where rank <= 30
     """.stripMargin
 
 

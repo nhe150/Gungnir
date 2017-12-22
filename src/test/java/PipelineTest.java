@@ -130,23 +130,23 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         result = tableProcessor.activeUserCounts(input).get(1);
     }
 
-    @Test
-    public void testTopUser() throws Exception {
-        Dataset input = read("src/test/data/activeUser.json", Schemas.activeUserSchema);
+//    @Test
+//    public void testTopUser() throws Exception {
+//        Dataset input = read("src/test/data/activeUser.json", Schemas.activeUserSchema);
+//
+//        expected = read("src/test/data/topUser.json", Schemas.topUserSchema);
+//
+//        result = tableProcessor.activeUserTopCount(input);
+//    }
 
-        expected = read("src/test/data/topUser.json", Schemas.topUserSchema);
-
-        result = tableProcessor.activeUserTopCount(input);
-    }
-
-    @Test
-    public void testTopPoorQuality() throws Exception {
-        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
-
-        expected = read("src/test/data/topPoorQuality.json", Schemas.topPoorQualitySchema);
-
-        result = tableProcessor.topPoorQuality(input);
-    }
+//    @Test
+//    public void testTopPoorQuality() throws Exception {
+//        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
+//
+//        expected = read("src/test/data/topPoorQuality.json", Schemas.topPoorQualitySchema);
+//
+//        result = tableProcessor.topPoorQuality(input);
+//    }
 
     @Test
     public void testActiveUserRollUp() throws Exception {
