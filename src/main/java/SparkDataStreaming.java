@@ -422,7 +422,7 @@ public class SparkDataStreaming implements Serializable {
                 .queryName("sinkToFile_" + queryName)
                 .partitionBy("key")
                 .outputMode("append")
-                .trigger(ProcessingTime(constants.streamngTriggerWindow()))
+                .trigger(ProcessingTime(constants.saveToFileTriggerWindow()))
                 .format(format)
                 .option("path", constants.outputLocation() + queryName).start();
     }

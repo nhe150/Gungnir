@@ -27,6 +27,7 @@ class Constants(confFile: String) extends Serializable {
   def streamingBackpressureEnabled = conf.getString("spark.streamingBackpressureEnabled")
   def streamingStopGracefullyOnShutdown = conf.getString("spark.streamingStopGracefullyOnShutdown")
   def streamngTriggerWindow = conf.getString("spark.streamngTriggerWindow")
+  def saveToFileTriggerWindow = conf.getString("spark.saveToFileTriggerWindow")
   def checkpointLocation = conf.getString("spark.checkpointLocation")
   def outputLocation = conf.getString("spark.outputLocation")
   def cassandraOutputConsistencyLevel = conf.getString("spark.cassandraOutputConsistencyLevel")
