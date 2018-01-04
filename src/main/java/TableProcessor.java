@@ -32,6 +32,10 @@ public class TableProcessor implements Serializable {
         return this.aggregationPeriod;
     }
 
+    public String getWatermarkDelayThreshold(){
+        return this.watermarkDelayThreshold;
+    }
+
     public void setAggregatePeriod(String period){
         if(period == null) return;
         switch (period){
@@ -48,8 +52,7 @@ public class TableProcessor implements Serializable {
                 setWatermarkDelayThreshold("32 days");
                 break;
             default:
-                System.out.println("Invalid input for aggregation period");
-                System.exit(0);
+                throw new IllegalArgumentException("Invalid input for aggregation period");
         }
     }
 
@@ -257,12 +260,6 @@ public class TableProcessor implements Serializable {
             return UUID.randomUUID().toString();
         }
     }
-
-//    private class Uuid implements UDF1<Timestamp, String> {
-//        public String call(Timestamp dummy) throws Exception {
-//            return UUID.randomUUID().toString();
-//        }
-//    }
 
     private class shortUuid implements UDF1<String, String> {
         public String call(String dummy) throws Exception {

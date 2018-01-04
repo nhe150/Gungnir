@@ -35,3 +35,4 @@ assemblyMergeStrategy in assembly := {
   case x => MergeStrategy.first
 }
 
+jacocoExcludes ++= Seq("SparkDataStreaming", "SparkDataBatch")

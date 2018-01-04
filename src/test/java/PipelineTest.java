@@ -4,11 +4,12 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.Serializable;
+
+import static org.junit.Assert.assertEquals;
 
 public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     private SparkSession spark;
@@ -29,6 +30,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = spark.read().text("src/test/data/conv.json");
 
         result = input.filter(new Functions.AppFilter("conv")).flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING())).toDF("key", "value").select("value");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -38,6 +41,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/callQuality.json", Schemas.callQualitySchema).drop("dataid");
 
         result = tableProcessor.callQuality(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -47,6 +52,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/callVolume.json", Schemas.callVolumeSchema).drop("dataid");
 
         result = tableProcessor.callVolume(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -56,6 +63,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/callDuration.json", Schemas.callDurationSchema).drop("dataid");
 
         result = tableProcessor.callDuration(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -65,6 +74,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/registeredEndpoint.json", Schemas.registeredEndpointSchema).drop("dataid");
 
         result = tableProcessor.registeredEndpoint(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -74,6 +85,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/activeUser.json", Schemas.activeUserSchema).drop("dataid");
 
         result = tableProcessor.activeUser(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -83,6 +96,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/fileUsed.json", Schemas.fileUsedSchema).drop("dataid");
 
         result = tableProcessor.fileUsed(input).drop("dataid");
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -92,6 +107,30 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/callVolumeCount.json", Schemas.callVolumeCountSchema);
 
         result = tableProcessor.callVolumeCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testCallQualityBadCount() throws Exception {
+        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
+
+        expected = read("src/test/data/callQualityBadCount.json", Schemas.callQualityBadCountSchema);
+
+        result = tableProcessor.callQualityBadCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testCallQualityCount() throws Exception {
+        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
+
+        expected = read("src/test/data/callQualityCount.json", Schemas.callQualityCountSchema);
+
+        result = tableProcessor.callQualityTotalCount(input);
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -101,6 +140,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/callDurationCount.json", Schemas.callDurationCountSchema);
 
         result = tableProcessor.callDurationCount(input);
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -110,6 +151,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/registeredEndpointCount.json", Schemas.registeredEndpointCountSchema);
 
         result = tableProcessor.registeredEndpointCount(input);
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -119,6 +162,19 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/fileUsedCount.json", Schemas.fileUsedCountSchema);
 
         result = tableProcessor.fileUsedCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testTotalCallCount() throws Exception {
+        Dataset input = read("src/test/data/callDuration.json", Schemas.callDurationSchema);
+
+        expected = read("src/test/data/totalCallCount.json", Schemas.totalCallCountSchema);
+
+        result = tableProcessor.totalCallCount(input);
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -128,25 +184,31 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/activeUserCount.json", Schemas.activeUserCountSchema);
 
         result = tableProcessor.activeUserCounts(input).get(1);
+
+        assertDatasetEquals(expected, result);
     }
 
-//    @Test
-//    public void testTopUser() throws Exception {
-//        Dataset input = read("src/test/data/activeUser.json", Schemas.activeUserSchema);
-//
-//        expected = read("src/test/data/topUser.json", Schemas.topUserSchema);
-//
-//        result = tableProcessor.activeUserTopCount(input);
-//    }
+    @Test
+    public void testTopUser() throws Exception {
+        Dataset input = read("src/test/data/activeUser.json", Schemas.activeUserSchema);
 
-//    @Test
-//    public void testTopPoorQuality() throws Exception {
-//        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
-//
-//        expected = read("src/test/data/topPoorQuality.json", Schemas.topPoorQualitySchema);
-//
-//        result = tableProcessor.topPoorQuality(input);
-//    }
+        expected = read("src/test/data/topUser.json", Schemas.topUserSchema);
+
+        result = tableProcessor.activeUserTopCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testTopPoorQuality() throws Exception {
+        Dataset input = read("src/test/data/callQuality.json", Schemas.callQualitySchema);
+
+        expected = read("src/test/data/topPoorQuality.json", Schemas.topPoorQualitySchema);
+
+        result = tableProcessor.topPoorQuality(input);
+
+        assertDatasetEquals(expected, result);
+    }
 
     @Test
     public void testActiveUserRollUp() throws Exception {
@@ -155,6 +217,8 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/activeUserRollUp.json", Schemas.activeUserRollUpSchema);
 
         result = tableProcessor.activeUserRollUp(input);
+
+        assertDatasetEquals(expected, result);
     }
 
     @Test
@@ -164,12 +228,37 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         expected = read("src/test/data/rtUser.json", Schemas.rtUserSchema);
 
         result = tableProcessor.rtUser(input);
+
+        assertDatasetEquals(expected, result);
     }
 
-    @After
-    public void verify() {
-//        System.out.println(result.selectExpr("to_json(struct(*)) AS value").first());
-        assertDatasetEquals(expected, result);
+    @Test
+    public void testSetAggregatePeriodToDaily() throws Exception {
+        tableProcessor.setAggregatePeriod("daily");
+        assertEquals("daily", tableProcessor.getAggregatePeriod());
+    }
+
+    @Test
+    public void testSetAggregatePeriodToWeekly() throws Exception {
+        tableProcessor.setAggregatePeriod("weekly");
+        assertEquals("weekly", tableProcessor.getAggregatePeriod());
+    }
+
+    @Test
+    public void testSetAggregatePeriodToMonthly() throws Exception {
+        tableProcessor.setAggregatePeriod("monthly");
+        assertEquals("monthly", tableProcessor.getAggregatePeriod());
+    }
+
+    @Test
+    public void testSetAggregatePeriodToNull() throws Exception {
+        tableProcessor.setAggregatePeriod(null);
+        assertEquals("daily", tableProcessor.getAggregatePeriod());
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void testSetAggregatePeriodToSomethingelse() throws Exception {
+        tableProcessor.setAggregatePeriod("something else");
     }
 
     private Dataset read(String input, StructType schema){
