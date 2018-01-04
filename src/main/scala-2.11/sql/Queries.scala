@@ -547,7 +547,6 @@ object Queries {
       where rank <= 30
     """.stripMargin
 
-
   def activeUserRollUp =
     """
       |SELECT time_stamp,

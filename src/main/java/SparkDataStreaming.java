@@ -29,16 +29,11 @@ public class SparkDataStreaming implements Serializable {
     private SparkSession spark;
     private TableProcessor tableProcessor;
     private CassandraConnector connector;
-
-    public String getDataFile() {
-        return dataFile;
-    }
+    private String dataFile;
 
     public void setDataFile(String dataFile) {
         this.dataFile = dataFile;
     }
-
-    private String dataFile;
 
     public SparkDataStreaming(String appName, Constants constants){
         this.constants = constants;
@@ -80,7 +75,6 @@ public class SparkDataStreaming implements Serializable {
             return;
         }
 
-
         String jobName = cmd.getOptionValue("job");
         String aggPeriod = cmd.getOptionValue("period");
         String configFile = cmd.getOptionValue("config");
@@ -108,9 +102,6 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
                 .config("spark.streaming.backpressure.enabled", constants.streamingBackpressureEnabled())
-                //for local run to enable the following 2 lines ---- 2017-12-22 Norman He
-                //.config("spark.master", "local[4]")
-               // .config("spark.executor.memory","2g")
                 .appName(appName)
                 .getOrCreate();
 
@@ -124,21 +115,17 @@ public class SparkDataStreaming implements Serializable {
                 splitData(constants.kafkaInputTopic(), "conv,metrics,locus");
                 break;
             case "saveToFile":
-                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callVolume,callDuration", "parquet");
-                //sinkTopicsToFile("fileUsed", "csv");
+                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callDuration", "parquet");
                 break;
             case "saveToCassandra":
-                sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callVolume,callDuration");
-                //sinkDetailsToCassandra("fileUsed");
+                sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callDuration");
                 break;
             case "details":
                 fileUsed("conv");
                 activeUser("conv,locus");
                 registeredEndpoint("metrics");
                 callQuality("metrics");
-                callVolume("metrics");
                 callDuration("locus");
-                //activeUserRollUp("activeUser");   moving activeUserRollUp to seperate job due to memory constraints
                 rtUser("activeUser");
                 break;
             case "aggregates":
@@ -146,9 +133,7 @@ public class SparkDataStreaming implements Serializable {
                 activeUserCount("activeUser");
                 registeredEndpointCount("registeredEndpoint");
                 callQualityCount("callQuality");
-                callVolumeCount("callVolume");
                 callDurationCount("callDuration");
-
                 break;
             case "activeUserRollUp":
                 activeUserRollUp("activeUser");
@@ -174,9 +159,6 @@ public class SparkDataStreaming implements Serializable {
             case "callQuality":
                 callQuality("metrics");
                 break;
-//            case "callVolume":
-//                callVolume("metrics");
-//                break;
             case "callDuration":
                 callDuration("locus");
                 break;
@@ -195,9 +177,6 @@ public class SparkDataStreaming implements Serializable {
             case "callQualityCount":
                 callQualityCount("callQuality");
                 break;
-//            case "callVolumeCount":
-//                callVolumeCount("callVolume");
-//                break;
             case "callDurationCount":
                 callDurationCount("callDuration");
                 break;
@@ -206,8 +185,6 @@ public class SparkDataStreaming implements Serializable {
                 System.exit(0);
         }
     }
-
-
 
     private void splitData(String input, String applist) throws Exception{
         Dataset<String> inputStream = readFromKafka(input, constants.kafkaInputBroker()).select("value").as(Encoders.STRING());
@@ -245,12 +222,6 @@ public class SparkDataStreaming implements Serializable {
         sinkToKafka(callQuality.selectExpr("pdate as key","to_json(struct(*)) AS value"), "callQuality");
     }
 
-    private void callVolume(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/metrics.json"));
-        Dataset<Row> callVolume = tableProcessor.callVolume(raw);
-        sinkToKafka(callVolume.selectExpr("pdate as key","to_json(struct(*)) AS value"), "callVolume");
-    }
-
     private void callDuration(String input) throws Exception{
         Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> callDuration = tableProcessor.callDuration(raw);
@@ -277,7 +248,6 @@ public class SparkDataStreaming implements Serializable {
         syncDataInfoKafka(Queries.fileUsedData(), "fu", "fileUsed");
     }
 
-
     private void activeUserData() {
         syncDataInfoKafka(Queries.activeUserData(), "au", "activeUser");
     }
@@ -293,7 +263,6 @@ public class SparkDataStreaming implements Serializable {
 
 
         au.printSchema();
-        //au.show(1);
         sinkToKafka(au.selectExpr("pdate as key","to_json(struct(*)) AS value"), topic);
     }
 
@@ -306,25 +275,15 @@ public class SparkDataStreaming implements Serializable {
     private void callQualityCount(String input) throws Exception{
         Dataset<Row> callQuality = readFromKafkaWithSchema(input);
         Dataset<Row> callQualityTotalCount = tableProcessor.callQualityTotalCount(callQuality);
-//        callQualityTotalCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(callQualityTotalCount, constants.CassandraTableAgg(), "update",   "callQualityTotalCount_" + tableProcessor.getAggregatePeriod());
 
         Dataset<Row> callQualityBadCount = tableProcessor.callQualityBadCount(callQuality);
-//        callQualityBadCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(callQualityBadCount, constants.CassandraTableAgg(), "update",   "callQualityBadCount_" + tableProcessor.getAggregatePeriod());
-    }
-
-    private void callVolumeCount(String input) throws Exception{
-        Dataset<Row> callVolume = readFromKafkaWithSchema(input);
-        Dataset<Row> callVolumeCount = tableProcessor.callVolumeCount(callVolume);
-//        callVolumeCount.writeStream().format("console").outputMode("update").start();
-        sinkToCassandra(callVolumeCount, constants.CassandraTableAgg(), "update", "callVolumeCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private void callDurationCount(String input) throws Exception{
         Dataset<Row> callDuration = readFromKafkaWithSchema(input);
         Dataset<Row> callDurationCount = tableProcessor.callDurationCount(callDuration);
-//        callDurationCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(callDurationCount, constants.CassandraTableAgg(), "update", "callDurationCount_" + tableProcessor.getAggregatePeriod());
         Dataset<Row> totalCallCount = tableProcessor.totalCallCount(callDuration);
         sinkToCassandra(totalCallCount, constants.CassandraTableAgg(), "update", "totalCallCount_" + tableProcessor.getAggregatePeriod());
@@ -333,14 +292,12 @@ public class SparkDataStreaming implements Serializable {
     private void fileUsedCount(String input) throws Exception{
         Dataset<Row> fileUsed = readFromKafkaWithSchema(input);
         Dataset<Row> fileUsedCount = tableProcessor.fileUsedCount(fileUsed);
-//        fileUsedCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(fileUsedCount, constants.CassandraTableAgg(), "update", "fileUsedCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private void registeredEndpointCount(String input) throws Exception{
         Dataset<Row> registeredEndpoint = readFromKafkaWithSchema(input);
         Dataset<Row> registeredEndpointCount = tableProcessor.registeredEndpointCount(registeredEndpoint);
-//        registeredEndpointCount.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(registeredEndpointCount, constants.CassandraTableAgg(), "update", "registeredEndpointCount_" + tableProcessor.getAggregatePeriod());
     }
 
@@ -348,7 +305,6 @@ public class SparkDataStreaming implements Serializable {
         Dataset<Row> activeUser = readFromKafkaWithSchema(input);
         List<Dataset> activeUserCounts = tableProcessor.activeUserCounts(activeUser);
         for(Dataset activeUserCount: activeUserCounts){
-//            activeUserCount.writeStream().format("console").outputMode("update").start();
             sinkToCassandra(activeUserCount, constants.CassandraTableAgg(), "update", activeUserCount.columns()[3] + "_" + tableProcessor.getAggregatePeriod());
         }
     }
@@ -356,14 +312,12 @@ public class SparkDataStreaming implements Serializable {
     private void activeUserRollUp(String input) throws Exception{
         Dataset<Row> activeUser = readFromKafkaWithSchema(input);
         Dataset<Row> activeUserRollUp = tableProcessor.activeUserRollUp(activeUser);
-//      activeUserRollUp.writeStream().format("console").outputMode("update").start();
         sinkToCassandra(activeUserRollUp, constants.CassandraTableData(), "update", "activeUserRollUp");
     }
 
     private void rtUser(String input) throws Exception{
         Dataset<Row> activeUser = readFromKafkaWithSchema(input);
         Dataset<Row> rtUser = tableProcessor.rtUser(activeUser);
-//      rtUser.writeStream().format("console").outputMode("append").start();
         sinkToCassandra(rtUser, constants.CassandraTableData(), "append", "rtUser");
     }
 
@@ -388,7 +342,6 @@ public class SparkDataStreaming implements Serializable {
                 .queryName("sinkToKafka_" + topic)
                 .start();
     }
-
 
     private Dataset<Row> readFromKafka(String topics){
         return readFromKafka(topics, constants.kafkaOutputBroker());
@@ -508,8 +461,6 @@ public class SparkDataStreaming implements Serializable {
 
             //System.out.println(statement);
             session.execute(statement);
-
-
         }
 
         @Override
@@ -517,7 +468,6 @@ public class SparkDataStreaming implements Serializable {
             if( session != null ){
                 session.close();
             }
-
         }
     }
 

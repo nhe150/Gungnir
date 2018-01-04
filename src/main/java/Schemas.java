@@ -113,6 +113,15 @@ public class Schemas {
             new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
     );
 
+    public static final StructType callQualityBadCountSchema = new StructType(new StructField[]{
+            new StructField("eventKey", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
+            new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("number_of_bad_calls", DataTypes.LongType, true, Metadata.empty()),
+            new StructField("period", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
+    );
+
     public static final StructType callDurationCountSchema = new StructType(new StructField[]{
             new StructField("eventKey", DataTypes.StringType, true, Metadata.empty()),
             new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
@@ -157,6 +166,15 @@ public class Schemas {
             new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
             new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
             new StructField("userCountByOrg", DataTypes.LongType, true, Metadata.empty()),
+            new StructField("period", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
+    );
+
+    public static final StructType totalCallCountSchema = new StructType(new StructField[]{
+            new StructField("eventKey", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
+            new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("number_of_successful_calls", DataTypes.LongType, true, Metadata.empty()),
             new StructField("period", DataTypes.StringType, true, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
     );
