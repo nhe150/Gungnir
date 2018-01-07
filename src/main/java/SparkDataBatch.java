@@ -22,13 +22,16 @@ public class SparkDataBatch implements Serializable{
     private String startDate;
     private String writeMode;
     private String period;
+    private String outputType;
+    private String format;
     private Constants constants;
 
     public SparkDataBatch(String appName, Constants constants){
         this.constants = constants;
         this.spark = createSparkSession(appName, constants);
         this.tableProcessor = new TableProcessor(spark);
-        this.writeMode = "append";
+        this.writeMode = "overwrite";
+        this.format = "parquet";
     }
 
     public static void main(String[] args) throws Exception {
@@ -58,6 +61,14 @@ public class SparkDataBatch implements Serializable{
         period.setRequired(false);
         options.addOption(period);
 
+        Option outputType = new Option("o", "outputType", true, "output type");
+        period.setRequired(false);
+        options.addOption(outputType);
+
+        Option format = new Option("f", "format", true, "output format");
+        period.setRequired(false);
+        options.addOption(format);
+
         CommandLineParser parser = new GnuParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -81,7 +92,9 @@ public class SparkDataBatch implements Serializable{
         app.startDate = cmd.getOptionValue("startDate");
         app.intputPath = cmd.getOptionValue("input");
         app.period = aggPeriod;
+        app.outputType = cmd.getOptionValue("outputType");
         if(cmd.getOptionValue("writeMode")!= null) app.writeMode = cmd.getOptionValue("writeMode");
+        if(cmd.getOptionValue("format")!= null) app.format = cmd.getOptionValue("format");
 
         app.run(jobName);
     }
@@ -104,19 +117,18 @@ public class SparkDataBatch implements Serializable{
         switch (jobName){
             case "sparkData":
                 sparkData();
+                break;
             case "splitData":
                 if(startDate != null) {
-                    if(writeMode.equals("overwrite")){
-                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Overwrite);
-                    } else{
+                    if("append".equals(writeMode)){
                         splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Append);
+                    } else{
+                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Overwrite);
                     }
                 } else {
                     splitData(intputPath, "conv,metrics,locus");
                 }
                 break;
-            case "splitDataText":
-                splitDataText(intputPath, "conv,metrics,locus");
             case "details":
                 details();
                 break;
@@ -166,13 +178,15 @@ public class SparkDataBatch implements Serializable{
                 topPoorQuality("callQuality");
                 break;
             default:
-                System.out.println("Invalid input for job name");
-                System.exit(0);
+                throw new IllegalArgumentException("Invalid input for job name");
         }
     }
 
     private void sparkData() throws Exception{
-        splitData(intputPath, "conv,metrics,locus");
+        if(startDate == null){
+            throw new IllegalArgumentException("startDate parameter is required when running sparkData job");
+        }
+        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Overwrite);
         details();
         aggregates();
     }
@@ -203,31 +217,22 @@ public class SparkDataBatch implements Serializable{
             Dataset<Tuple2<String, String>> splitedData = inputData
                     .filter(new Functions.AppFilter(s))
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-            sinkToFileByKey(splitedData.toDF("key", "value"), "parquet", s, SaveMode.Append);
-        }
-    }
-
-
-    private void splitDataText(String input, String applist) throws Exception{
-        Dataset<String> inputData = spark.read().textFile(input).cache();
-        for (String s : applist.split(",")) {
-            Dataset<Tuple2<String, String>> splitedData = inputData
-                    .filter(new Functions.AppFilter(s))
-                    .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-            splitedData.coalesce(1).write()
-                    .mode(SaveMode.Append)
-                    .format("text")
-                    .save(constants.outputLocation() + s + "_textfile");
+            sinkToFileByKey(splitedData.toDF("key", "value"), format, s, SaveMode.Append);
         }
     }
 
     private void splitDataWithStartDate(String input, String applist, String startDate, SaveMode saveMode) throws Exception{
-        Dataset<String> inputData = spark.read().textFile(input).repartition(500).cache();
+        String[] inputs = input.split(",");
+        Dataset<String> inputData = spark.read().textFile(inputs[0]);
+        for(int i=1; i<inputs.length; i++){
+            inputData = inputData.union(spark.read().textFile(inputs[i]));
+        }
+        inputData.cache();
         for (String s : applist.split(",")) {
             Dataset<Tuple2<String, String>> splitedData = inputData
                     .filter(new Functions.AppFilter(s))
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
-            sinkToFile(splitedData.toDF("key", "value").filter(col("key").equalTo(startDate)), "parquet", s, saveMode);
+            sinkToFile(splitedData.toDF("key", "value").filter(col("key").equalTo(startDate)), format, s, saveMode);
         }
     }
 
@@ -235,31 +240,32 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> callQuality = tableProcessor.callQuality(raw);
 
-        sinkToFile(callQuality.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callQuality", SaveMode.Overwrite);
-
-        writeToCassandra(callQuality, constants.CassandraTableData());
+        saveDetails(callQuality, "callQuality");
     }
 
     private void callDuration(String input) throws Exception{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> callDuration = tableProcessor.callDuration(raw);
 
-        sinkToFile(callDuration.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "callDuration", SaveMode.Overwrite);
+        saveDetails(callDuration, "callDuration");
+    }
 
-        writeToCassandra(callDuration, constants.CassandraTableData());
+    private void registeredEndpoint(String input) throws Exception{
+        Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
+        Dataset<Row> registeredEndpoint = tableProcessor.registeredEndpoint(raw);
 
+        saveDetails(registeredEndpoint, "registeredEndpoint");
     }
 
     private void fileUsed(String input) throws Exception{
         Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> fileUsed = tableProcessor.fileUsed(raw);
 
-        sinkToFile(fileUsed.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "fileUsed", SaveMode.Overwrite);
-
-        writeToCassandra(fileUsed, constants.CassandraTableData());
+        saveDetails(fileUsed, "fileUsed");
     }
 
     private void activeUserRollUp(String input) throws Exception{
+        if("file".equals(outputType)) return;
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> activeUserRollUp = tableProcessor.activeUserRollUp(activeUser);
 
@@ -267,6 +273,7 @@ public class SparkDataBatch implements Serializable{
     }
 
     private void rtUser(String input) throws Exception{
+        if("file".equals(outputType)) return;
         Dataset<Row> activeUser = readDetails(input);
         Dataset<Row> rtUser = tableProcessor.rtUser(activeUser);
 
@@ -279,16 +286,7 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> raw = convRaw.union(locusRaw);
         Dataset<Row> activeUser = tableProcessor.activeUser(raw);
 
-        sinkToFile(activeUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "activeUser", SaveMode.Overwrite);
-    }
-
-    private void registeredEndpoint(String input) throws Exception{
-        Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/metrics.json"));
-        Dataset<Row> registeredEndpoint = tableProcessor.registeredEndpoint(raw);
-
-        sinkToFile(registeredEndpoint.selectExpr("pdate as key","to_json(struct(*)) AS value"), "parquet", "registeredEndpoint", SaveMode.Overwrite);
-
-        writeToCassandra(registeredEndpoint, constants.CassandraTableData());
+        sinkToFile(activeUser.selectExpr("pdate as key","to_json(struct(*)) AS value"), format, "activeUser", SaveMode.Overwrite);
     }
 
     private void callQualityCount(String input) throws Exception{
@@ -348,6 +346,11 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> topPoorQuality = tableProcessor.topPoorQuality(callQuality);
 
         writeToCassandra(topPoorQuality,  constants.CassandraTableAgg());
+    }
+
+    private void saveDetails(Dataset dataset, String datasetName){
+        if(outputType==null || "file".equals(outputType)) sinkToFile(dataset.selectExpr("pdate as key","to_json(struct(*)) AS value"), format, datasetName, SaveMode.Overwrite);
+        if(outputType==null || "db".equals(outputType)) writeToCassandra(dataset, constants.CassandraTableData());
     }
 
     private void sinkToFileByKey(Dataset<Row> dataset, String format, String datasetName, SaveMode saveMode){
@@ -425,8 +428,8 @@ public class SparkDataBatch implements Serializable{
         calendar.set(Calendar.MONTH, date.getMonth());
 
         int aggregateDuration=1;
-        if(period.equals("weekly")) aggregateDuration = 7;
-        if(period.equals("monthly")) aggregateDuration = calendar.getActualMaximum(Calendar.DATE);
+        if("weekly".equals(period)) aggregateDuration = 7;
+        if("monthly".equals(period)) aggregateDuration = calendar.getActualMaximum(Calendar.DATE);
 
         calendar.setTime(date);
 

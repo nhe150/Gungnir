@@ -181,8 +181,7 @@ public class SparkDataStreaming implements Serializable {
                 callDurationCount("callDuration");
                 break;
             default:
-                System.out.println("Invalid input for job name");
-                System.exit(0);
+                throw new IllegalArgumentException("Invalid input for job name");
         }
     }
 
