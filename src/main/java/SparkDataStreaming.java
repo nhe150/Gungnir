@@ -326,7 +326,7 @@ public class SparkDataStreaming implements Serializable {
                 .writeStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", constants.kafkaOutputBroker())
-                .option("topic", topic)
+                .option("topic", getKafkaTopicNames(topic))
                 .option("kafka.retries", constants.kafkaProducerRetries())
                 .option("kafka.retry.backoff.ms", constants.kafkaRetryBackoffMs())
                 .option("kafka.metadata.fetch.timeout.ms", constants.kafkaMetadataFetchTimeoutMs())
@@ -343,7 +343,7 @@ public class SparkDataStreaming implements Serializable {
     }
 
     private Dataset<Row> readFromKafka(String topics){
-        return readFromKafka(topics, constants.kafkaOutputBroker());
+        return readFromKafka(getKafkaTopicNames(topics), constants.kafkaOutputBroker());
     }
 
     private Dataset<Row> readFromKafka(String topics, String bootstrap_ervers){
@@ -366,6 +366,14 @@ public class SparkDataStreaming implements Serializable {
     private Dataset<Row> readFromKafkaWithSchema(String topics, StructType schema){
         return readFromKafka(topics)
                 .select(from_json(col("value"), schema).as("data")).select("data.*");
+    }
+
+    private String getKafkaTopicNames(String topics) {
+        String[] topicNames = topics.split(",");
+        for(int i=0; i < topicNames.length; i++){
+            topicNames[i] = constants.kafkaTopicPrefix() + topicNames[i] + constants.kafkaTopicPostfix();
+        }
+        return String.join(",", topicNames);
     }
 
     private StreamingQuery sinkToFileByKey(Dataset<Row> dataset, String format, String queryName){
