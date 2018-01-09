@@ -43,5 +43,6 @@ class Constants(confFile: String) extends Serializable {
   def kafkaTimeoutMs = conf.getString("kafka.timeoutMs")
   def kafkaRequestTimeoutMs = conf.getString("kafka.requestTimeoutMs")
   def kafkaMaxRequestSize = conf.getString("kafka.maxRequestSize")
-
+  def kafkaTopicPrefix = conf.getString("kafka.topicPrefix")
+  def kafkaTopicPostfix = conf.getString("kafka.topicPostfix")
 }
