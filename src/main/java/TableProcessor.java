@@ -283,13 +283,20 @@ public class TableProcessor implements Serializable {
             DateTime dateTime = new DateTime(timeStamp);
             switch (period){
                 case "weekly":
-                    return new Timestamp(dateTime.withDayOfWeek(1).withMillisOfDay(0).getMillis());
+                    return new Timestamp(getFirstDayOfWeek(dateTime).withMillisOfDay(0).getMillis());
                 case "monthly":
                     return new Timestamp(dateTime.withDayOfMonth(1).withMillisOfDay(0).getMillis());
                 default:
                     return new Timestamp(dateTime.withMillisOfDay(0).getMillis());
             }
         }
+    }
+
+    public DateTime getFirstDayOfWeek(DateTime other) {
+        if(other.getDayOfWeek() == 7)
+            return other;
+        else
+            return other.minusWeeks(1).withDayOfWeek(7);
     }
 
     private class TimeConverter implements UDF1<Timestamp, String> {
