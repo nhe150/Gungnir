@@ -1,6 +1,7 @@
 import org.apache.commons.cli.*;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.StructType;
+import org.joda.time.DateTime;
 import scala.Tuple2;
 
 import java.io.Serializable;
@@ -375,7 +376,7 @@ public class SparkDataBatch implements Serializable{
     private Dataset<Row> readDetails(String source) throws Exception {
         Dataset<Row> details = spark.createDataFrame(new ArrayList<>(), Schemas.schema.get(source));
 
-        for(String date: aggregateDates(startDate, period)){
+        for(String date: aggregateDates(getAggregateStartDate(startDate), period)){
             details = details.union(readFromParquet(constants.outputLocation() + source + "/key=" + date, Schemas.schema.get(source)));
         }
         return details;
@@ -415,6 +416,14 @@ public class SparkDataBatch implements Serializable{
         cassandraConfig.put("table", table);
         cassandraConfig.put("keyspace", keyspace);
         return cassandraConfig;
+    }
+
+    private String getAggregateStartDate(String otherDate) throws Exception {
+        final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        final DateTime dateTime = new DateTime(format.parse(startDate));
+        if("weekly".equals(period)) return tableProcessor.getFirstDayOfWeek(dateTime).toString("yyyy-MM-dd");
+        if("monthly".equals(period)) return dateTime.withDayOfMonth(1).toString("yyyy-MM-dd");
+        return otherDate;
     }
 
     private List<String> aggregateDates(String  startDate, String period) throws Exception {
