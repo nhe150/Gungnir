@@ -140,6 +140,7 @@ public class TableProcessor implements Serializable {
     public Dataset fileUsedCount(Dataset fileUsed){
         fileUsed
                 .withWatermark("time_stamp", watermarkDelayThreshold)
+                .dropDuplicates("dataid")
                 .createOrReplaceTempView("fileUsed");
         return spark.sql(sql.Queries.fileUsedCount());
     }
