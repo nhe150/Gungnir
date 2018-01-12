@@ -8,7 +8,8 @@ object DeleteRecords {
     implicit val rowWriter = SqlRowWriter.Factory
     val configFile = args(0)
     val constants = new Constants(configFile)
-    val spark = SparkSession.builder.config("spark.cassandra.connection.host", constants.CassandraHosts)
+    val spark = SparkSession.builder
+      .config("spark.cassandra.connection.host", constants.CassandraHosts)
       .config("spark.cassandra.auth.username", constants.CassandraUsername)
       .config("spark.cassandra.auth.password", constants.CassandraPassword)
       .appName("delete weekly records").getOrCreate
