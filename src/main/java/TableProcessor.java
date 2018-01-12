@@ -160,13 +160,13 @@ public class TableProcessor implements Serializable {
         activeUserWithWatermark.createOrReplaceTempView("activeUser");
         datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
         datasets.add(activeUserCount(activeUserWithWatermark,"userId", "userCountByOrg"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"rtUser", "allUser"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOneUser", "oneToOneUser"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"groupUser", "spaceUser"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"teamUser", "teamUser"));
+//        datasets.add(activeUserCount(activeUserWithWatermark,"rtUser", "allUser"));
+//        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOneUser", "oneToOneUser"));
+//        datasets.add(activeUserCount(activeUserWithWatermark,"groupUser", "spaceUser"));
+//        datasets.add(activeUserCount(activeUserWithWatermark,"teamUser", "teamUser"));
         datasets.add(activeUserCount(activeUserWithWatermark,"oneToOne", "oneToOneCount"));
         datasets.add(activeUserCount(activeUserWithWatermark,"group", "spaceCount"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"team", "teamCount"));
+//        datasets.add(activeUserCount(activeUserWithWatermark,"team", "teamCount"));
         return datasets;
     }
 
