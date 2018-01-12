@@ -12,6 +12,7 @@ object DeleteRecords {
       .config("spark.cassandra.connection.host", constants.CassandraHosts)
       .config("spark.cassandra.auth.username", constants.CassandraUsername)
       .config("spark.cassandra.auth.password", constants.CassandraPassword)
+      .config("spark.cassandra.output.consistency.level", "ALL")
       .appName("delete weekly records").getOrCreate
 
     spark.sparkContext.setLogLevel(constants.logLevel)
