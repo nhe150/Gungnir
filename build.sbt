@@ -15,8 +15,6 @@ libraryDependencies ++= Seq(
   "com.datastax.spark" %% "spark-cassandra-connector" % "2.0.2",
   "org.spark-project.spark" % "unused" % "1.0.0" % "provided",
   "com.typesafe" % "config" % "1.3.0",
-  "com.opencsv" % "opencsv" % "3.8",
-
   //Test dependencies
   "com.holdenkarau" %% "spark-testing-base" % "2.2.0_0.8.0" % "test",
   "org.apache.spark" %% "spark-hive"       % "2.0.0" % "test",
