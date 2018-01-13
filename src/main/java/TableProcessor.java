@@ -1,5 +1,3 @@
-import com.opencsv.CSVParser;
-import com.opencsv.CSVReader;
 import org.apache.commons.io.IOUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -321,31 +319,24 @@ public class TableProcessor implements Serializable {
         public Map<String, String> parseUsingOpenCSV(String fileName) {
             Map<String, String> orgExcludeMap = new HashMap();
             InputStream inputStream = getClass().getResourceAsStream(fileName);
-            List<String[]> records = null;
 
-            CSVReader reader =
-                    new CSVReader(
-                            new InputStreamReader(inputStream),
-                            CSVParser.DEFAULT_SEPARATOR,
-                            CSVParser.DEFAULT_QUOTE_CHARACTER, 1);
-
-            try {
-                records = reader.readAll();
-            } catch (IOException e) {
+            try{
+                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+                for(String line = br.readLine(); line != null; line = br.readLine()){
+                    String[] record = line.split(",");
+                    String orgId = record[0].replaceAll("\"", "");
+                    orgExcludeMap.put(orgId, record[7]);
+                }
+                br.close();
+            } catch (Exception e){
                 e.printStackTrace();
-            }
-            Iterator<String[]> iterator = records.iterator();
-
-            while (iterator.hasNext()) {
-                String[] record = iterator.next();
-                orgExcludeMap.put(record[0], record[7]);
             }
 
             return orgExcludeMap;
         }
 
         public String call(String orgId) throws Exception {
-            return orgExcludeMap.get(orgId);
+            return orgExcludeMap.get(orgId) == null ? "0" : orgExcludeMap.get(orgId);
         }
     }
 
