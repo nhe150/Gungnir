@@ -178,6 +178,19 @@ public class SparkDataBatch implements Serializable{
             case "topPoorQuality":
                 topPoorQuality("callQuality");
                 break;
+            case "rawDataCount":
+                convCount("conv");
+                metricsCount("metrics");
+                locusCount("locus");
+            case "convCount":
+                convCount("conv");
+                break;
+            case "metricsCount":
+                metricsCount("metrics");
+                break;
+            case "locusCount":
+                locusCount("locus");
+                break;
             default:
                 throw new IllegalArgumentException("Invalid input for job name");
         }
@@ -347,6 +360,24 @@ public class SparkDataBatch implements Serializable{
         Dataset<Row> topPoorQuality = tableProcessor.topPoorQuality(callQuality);
 
         writeToCassandra(topPoorQuality,  constants.CassandraTableAgg());
+    }
+
+    private void convCount(String input) throws Exception{
+        Dataset<Row> conv = readDetails(input);
+        Dataset<Row> convCount = tableProcessor.convCount(conv);
+        writeToCassandra(convCount, constants.CassandraTableAgg());
+    }
+
+    private void metricsCount(String input) throws Exception{
+        Dataset<Row> metrics = readDetails(input);
+        Dataset<Row> metricsCount = tableProcessor.metricsCount(metrics);
+        writeToCassandra(metricsCount, constants.CassandraTableAgg());
+    }
+
+    private void locusCount(String input) throws Exception{
+        Dataset<Row> locus = readDetails(input);
+        Dataset<Row> locusCount = tableProcessor.locusCount(locus);
+        writeToCassandra(locusCount, constants.CassandraTableAgg());
     }
 
     private void saveDetails(Dataset dataset, String datasetName){

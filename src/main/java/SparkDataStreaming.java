@@ -180,6 +180,19 @@ public class SparkDataStreaming implements Serializable {
             case "callDurationCount":
                 callDurationCount("callDuration");
                 break;
+            case "rawDataCount":
+                convCount("conv");
+                metricsCount("metrics");
+                locusCount("locus");
+            case "convCount":
+                convCount("conv");
+                break;
+            case "metricsCount":
+                metricsCount("metrics");
+                break;
+            case "locusCount":
+                locusCount("locus");
+                break;
             default:
                 throw new IllegalArgumentException("Invalid input for job name");
         }
@@ -318,6 +331,24 @@ public class SparkDataStreaming implements Serializable {
         Dataset<Row> activeUser = readFromKafkaWithSchema(input);
         Dataset<Row> rtUser = tableProcessor.rtUser(activeUser);
         sinkToCassandra(rtUser, constants.CassandraTableData(), "append", "rtUser");
+    }
+
+    private void convCount(String input) throws Exception{
+        Dataset<Row> conv = readFromKafkaWithSchema(input);
+        Dataset<Row> convCount = tableProcessor.convCount(conv);
+        sinkToCassandra(convCount, constants.CassandraTableAgg(), "update", "convCount_" + tableProcessor.getAggregatePeriod());
+    }
+
+    private void metricsCount(String input) throws Exception{
+        Dataset<Row> metrics = readFromKafkaWithSchema(input);
+        Dataset<Row> metricsCount = tableProcessor.metricsCount(metrics);
+        sinkToCassandra(metricsCount, constants.CassandraTableAgg(), "update", "metricsCount_" + tableProcessor.getAggregatePeriod());
+    }
+
+    private void locusCount(String input) throws Exception{
+        Dataset<Row> locus = readFromKafkaWithSchema(input);
+        Dataset<Row> locusCount = tableProcessor.locusCount(locus);
+        sinkToCassandra(locusCount, constants.CassandraTableAgg(), "update", "locusCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private StreamingQuery sinkToKafka(Dataset<Row> dataset, String topic){
