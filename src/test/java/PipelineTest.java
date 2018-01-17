@@ -183,7 +183,7 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
 
         expected = read("src/test/data/activeUserCount.json", Schemas.activeUserCountSchema);
 
-        result = tableProcessor.activeUserCounts(input).get(1);
+        result = tableProcessor.activeUserCounts(input).get(0);
 
         assertDatasetEquals(expected, result);
     }

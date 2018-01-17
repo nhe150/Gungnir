@@ -156,7 +156,7 @@ public class TableProcessor implements Serializable {
         List<Dataset> datasets = new ArrayList<>();
         Dataset activeUserWithWatermark = activeUser.withWatermark("time_stamp", watermarkDelayThreshold);
         activeUserWithWatermark.createOrReplaceTempView("activeUser");
-        datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
+//        datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
         datasets.add(activeUserCount(activeUserWithWatermark,"userId", "userCountByOrg"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"rtUser", "allUser"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOneUser", "oneToOneUser"));
