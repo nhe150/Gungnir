@@ -184,6 +184,7 @@ public class SparkDataStreaming implements Serializable {
                 convCount("conv");
                 metricsCount("metrics");
                 locusCount("locus");
+                break;
             case "convCount":
                 convCount("conv");
                 break;
