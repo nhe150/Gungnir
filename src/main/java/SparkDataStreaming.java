@@ -365,6 +365,7 @@ public class SparkDataStreaming implements Serializable {
 
     private Dataset<Row> readFromKafkaWithSchema(String topics, StructType schema){
         return readFromKafka(topics)
+                .filter(col("key").notEqual(Functions.PreProcess.BAD_DATA_LABLE))
                 .select(from_json(col("value"), schema).as("data")).select("data.*");
     }
 
