@@ -334,19 +334,19 @@ public class SparkDataStreaming implements Serializable {
     }
 
     private void convCount(String input) throws Exception{
-        Dataset<Row> conv = readFromKafkaWithSchema(input);
+        Dataset<Row> conv = readFromKafkaWithSchema(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> convCount = tableProcessor.convCount(conv);
         sinkToCassandra(convCount, constants.CassandraTableAgg(), "update", "convCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private void metricsCount(String input) throws Exception{
-        Dataset<Row> metrics = readFromKafkaWithSchema(input);
+        Dataset<Row> metrics = readFromKafkaWithSchema(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> metricsCount = tableProcessor.metricsCount(metrics);
         sinkToCassandra(metricsCount, constants.CassandraTableAgg(), "update", "metricsCount_" + tableProcessor.getAggregatePeriod());
     }
 
     private void locusCount(String input) throws Exception{
-        Dataset<Row> locus = readFromKafkaWithSchema(input);
+        Dataset<Row> locus = readFromKafkaWithSchema(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> locusCount = tableProcessor.locusCount(locus);
         sinkToCassandra(locusCount, constants.CassandraTableAgg(), "update", "locusCount_" + tableProcessor.getAggregatePeriod());
     }
