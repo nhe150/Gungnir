@@ -27,6 +27,8 @@ public class Functions {
     public static final class PreProcess implements FlatMapFunction<String, Tuple2<String, String>> {
         private transient ObjectMapper objectMapper;
         private transient TimeConverter timeConverter;
+        public static final String BAD_DATA_LABLE = "BAD_DATA";
+
         public Iterator<Tuple2<String, String>> call(String value) throws Exception {
             List<Tuple2<String, String>> out = new ArrayList<>();
             if (objectMapper == null) {
@@ -45,10 +47,12 @@ public class Functions {
                     JsonNode metric = objectMapper.readTree(jsonMessages[1].trim());
                     objectNode.set("SM", metric);
                     objectNode.remove("@message");
+                    out.add(new Tuple2(timeConverter.convert(timestamp), objectNode.toString()));
+                } else {
+                    out.add(new Tuple2(BAD_DATA_LABLE, value));
                 }
-                out.add(new Tuple2(timeConverter.convert(timestamp), objectNode.toString()));
             } catch (Exception e){
-
+                out.add(new Tuple2(BAD_DATA_LABLE, value));
             }
             return out.iterator();
         }
