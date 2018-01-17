@@ -183,7 +183,40 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
 
         expected = read("src/test/data/activeUserCount.json", Schemas.activeUserCountSchema);
 
-        result = tableProcessor.activeUserCounts(input).get(1);
+        result = tableProcessor.activeUserCounts(input).get(0);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testConvCount() throws Exception {
+        Dataset input = read("src/test/data/conv.json", tableProcessor.getSchema("/conv.json"));
+
+        expected = read("src/test/data/convCount.json", Schemas.activeUserCountSchema);
+
+        result = tableProcessor.convCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testMetricsCount() throws Exception {
+        Dataset input = read("src/test/data/metrics.json", tableProcessor.getSchema("/metrics.json"));
+
+        expected = read("src/test/data/metricsCount.json", Schemas.activeUserCountSchema);
+
+        result = tableProcessor.metricsCount(input);
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
+    public void testLocusCount() throws Exception {
+        Dataset input = read("src/test/data/locus.json", tableProcessor.getSchema("/locus.json"));
+
+        expected = read("src/test/data/locusCount.json", Schemas.activeUserCountSchema);
+
+        result = tableProcessor.locusCount(input);
 
         assertDatasetEquals(expected, result);
     }

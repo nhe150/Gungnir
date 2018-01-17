@@ -138,7 +138,7 @@ public class TableProcessor implements Serializable {
     public Dataset fileUsedCount(Dataset fileUsed){
         fileUsed
                 .withWatermark("time_stamp", watermarkDelayThreshold)
-                .dropDuplicates("dataid")
+                .dropDuplicates("time_stamp","dataid")
                 .createOrReplaceTempView("fileUsed");
         return spark.sql(sql.Queries.fileUsedCount());
     }
@@ -156,7 +156,7 @@ public class TableProcessor implements Serializable {
         List<Dataset> datasets = new ArrayList<>();
         Dataset activeUserWithWatermark = activeUser.withWatermark("time_stamp", watermarkDelayThreshold);
         activeUserWithWatermark.createOrReplaceTempView("activeUser");
-        datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
+//        datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
         datasets.add(activeUserCount(activeUserWithWatermark,"userId", "userCountByOrg"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"rtUser", "allUser"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOneUser", "oneToOneUser"));
@@ -205,6 +205,30 @@ public class TableProcessor implements Serializable {
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", aggregateColumn)
                 .dropDuplicates("time_stamp", "orgId", aggregateColumn).createOrReplaceTempView(resultColumn);
         return spark.sql(sql.Queries.activeUserCountQuery(aggregateColumn, resultColumn));
+    }
+
+    public Dataset convCount(Dataset conv){
+        conv
+                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId")
+                .withWatermark("time_stamp", watermarkDelayThreshold)
+                .createOrReplaceTempView("conv");
+        return spark.sql(sql.Queries.orgIdCountQuery("conv"));
+    }
+
+    public Dataset metricsCount(Dataset metrics){
+        metrics
+                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(`@fields`.orgId, 'unknown') AS orgId")
+                .withWatermark("time_stamp", watermarkDelayThreshold)
+                .createOrReplaceTempView("metrics");
+        return spark.sql(sql.Queries.orgIdCountQuery("metrics"));
+    }
+
+    public Dataset locusCount(Dataset locus){
+        locus
+                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId")
+                .withWatermark("time_stamp", watermarkDelayThreshold)
+                .createOrReplaceTempView("locus");
+        return spark.sql(sql.Queries.orgIdCountQuery("locus"));
     }
 
     private void setPeriod(String period){

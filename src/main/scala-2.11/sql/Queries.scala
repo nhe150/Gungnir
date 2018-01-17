@@ -576,4 +576,17 @@ object Queries {
       |FROM activeUser
     """.stripMargin
 
+  def orgIdCountQuery(relationName: String) =
+    s"""
+       |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', '${relationName}', '^', periodTag(orgId)) AS eventKey,
+       |       aggregateStartDate(time_stamp) as time_stamp,
+       |       orgId,
+       |       COUNT(orgId) AS userCountByOrg,
+       |       periodTag(orgId) AS period,
+       |       '${relationName}' AS relation_name
+       |FROM ${relationName}
+       |GROUP BY orgId,
+       |         aggregateStartDate(time_stamp)
+    """.stripMargin
+
 }
