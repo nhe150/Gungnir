@@ -34,3 +34,4 @@ assemblyMergeStrategy in assembly := {
 }
 
 jacocoExcludes ++= Seq("SparkDataStreaming", "SparkDataBatch")
+coverageExcludedPackages := "<empty>;util.Constants;DeleteRocords;"
