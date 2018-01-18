@@ -95,3 +95,11 @@ CREATE INDEX index_agg_model ON ks_global_pda.spark_agg (model);
 
 DROP TABLE ks_global_pda.spark_agg;
 DESCRIBE spark_agg;
+
+
+CREATE TABLE ks_global_pda.region_ks_mapping (
+region text primary key,
+ks text
+);
+DROP TABLE ks_global_pda.region_ks_mapping;
+DESCRIBE region_ks_mapping;
