@@ -364,19 +364,19 @@ public class SparkDataBatch implements Serializable{
     }
 
     private void convCount(String input) throws Exception{
-        Dataset<Row> conv = readDetails(input);
+        Dataset<Row> conv = readRaw(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> convCount = tableProcessor.convCount(conv);
         writeToCassandra(convCount, constants.CassandraTableAgg());
     }
 
     private void metricsCount(String input) throws Exception{
-        Dataset<Row> metrics = readDetails(input);
+        Dataset<Row> metrics = readRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> metricsCount = tableProcessor.metricsCount(metrics);
         writeToCassandra(metricsCount, constants.CassandraTableAgg());
     }
 
     private void locusCount(String input) throws Exception{
-        Dataset<Row> locus = readDetails(input);
+        Dataset<Row> locus = readRaw(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> locusCount = tableProcessor.locusCount(locus);
         writeToCassandra(locusCount, constants.CassandraTableAgg());
     }
