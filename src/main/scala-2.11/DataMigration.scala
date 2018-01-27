@@ -10,7 +10,8 @@ object DataMigration {
       .config("spark.cassandra.connection.host", constants.CassandraHosts)
       .config("spark.cassandra.auth.username", constants.CassandraUsername)
       .config("spark.cassandra.auth.password", constants.CassandraPassword)
-      .config("spark.cassandra.output.consistency.level", "ALL")
+      .config("spark.cassandra.read.timeout_ms", "3600000")
+      .config("spark.cassandra.output.consistency.level", "ANY")
       .appName("Migration of Spark Data").getOrCreate
 
     spark.sparkContext.setLogLevel(constants.logLevel)
@@ -23,7 +24,7 @@ object DataMigration {
 
     results
       .write
-      .mode(SaveMode)
+      .mode(SaveMode.Overwrite)
       .cassandraFormat(constants.CassandraTableData,constants.CassandraKeySpaceAmer)
       .save()
 
