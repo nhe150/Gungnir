@@ -9,7 +9,11 @@ class Constants(confFile: String) extends Serializable {
   val conf =  ConfigFactory.parseFile(myConfigFile)
 
   def CassandraHosts    = conf.getString("cassandra.host")
-  def CassandraKeySpace = conf.getString("cassandra.keyspace")
+  def CassandraKeySpace       = conf.getString("cassandra.keyspace")
+  def CassandraKeySpaceGlobal = conf.getString("cassandra.keyspace_global")
+  def CassandraKeySpaceAmer   = conf.getString("cassandra.keyspace_amer")
+  def CassandraKeySpaceEmea   = conf.getString("cassandra.keyspace_emea")
+  def CassandraKeySpaceApac   = conf.getString("cassandra.keyspace_apac")
   def CassandraCluster  = conf.getString("cassandra.cluster")
   def CassandraUsername = conf.getString("cassandra.username")
   def CassandraPassword = conf.getString("cassandra.password")
