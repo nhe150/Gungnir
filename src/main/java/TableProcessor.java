@@ -10,6 +10,7 @@ import org.apache.spark.sql.types.StructType;
 import org.joda.time.DateTime;
 import scala.collection.JavaConversions;
 import scala.collection.mutable.WrappedArray;
+import util.UDFUtil;
 
 import java.io.*;
 
@@ -129,8 +130,8 @@ public class TableProcessor implements Serializable {
     public Dataset totalCallCount(Dataset callDuration){
         callDuration
                 .withWatermark("time_stamp", watermarkDelayThreshold)
-                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id")
-                .dropDuplicates("time_stamp", "orgId", "call_id")
+                .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id", "uaType", "deviceType", "ep1(deviceType, uaType) as ep1")
+                .dropDuplicates("time_stamp", "orgId", "call_id", "ep1")
                 .createOrReplaceTempView("callDuration");
         return spark.sql(sql.Queries.totalCallCount());
     }
@@ -251,6 +252,10 @@ public class TableProcessor implements Serializable {
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
 
         spark.udf().register("shortUuid", new shortUuid(), DataTypes.StringType);
+
+        UDFUtil.register(spark.sqlContext());
+
+
     }
 
     private class calcAvgFromHistMin implements UDF1<WrappedArray<GenericRowWithSchema>, Float> {

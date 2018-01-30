@@ -387,6 +387,7 @@ public class SparkDataStreaming implements Serializable {
                 .option("maxOffsetsPerTrigger", constants.kafkaMaxOffsetsPerTrigger())
                 .option("fetchOffset.numRetries", constants.kafkaFetchOffsetNumRetries())
                 .option("fetchOffset.retryIntervalMs", constants.kafkaFetchOffsetRetryIntervalMs())
+                .option("failOnDataLoss", constants.streamingKafkaFailOnDataLoss())
                 .load()
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)");
     }

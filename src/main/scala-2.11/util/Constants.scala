@@ -26,6 +26,7 @@ class Constants(confFile: String) extends Serializable {
   def kafkaMonitorBroker = conf.getString("kafka.monitor.broker")
   def kafkaMonitorTopic = conf.getString("kafka.monitor.topic")
 
+  def streamingKafkaFailOnDataLoss = if (conf.hasPath("spark.streamingKafkaFailOnDataLoss")) conf.getString("spark.streamingKafkaFailOnDataLoss") else "true"
   def streamngKafkaMaxRatePerPartition = conf.getString("spark.streamngKafkaMaxRatePerPartition")
   def streamingBackpressureInitialRate = conf.getString("spark.streamingBackpressureInitialRate")
   def streamingBackpressureEnabled = conf.getString("spark.streamingBackpressureEnabled")

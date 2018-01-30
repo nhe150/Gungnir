@@ -1,1 +1,78 @@
-{"@timestamp":"2017-11-19T00:00:01.822Z","@fields":{"logger_name":"com.cisco.wx2.server.locus.metrics.LocusMetricClient","thread_name":"executor.locus-maintenance.1-0","level":"INFO","level_value":20000,"caller_class_name":"com.cisco.wx2.server.util.MetricsWriter","caller_method_name":"writeMetricsToSplunk","caller_file_name":"MetricsWriter.java","caller_line_number":40,"locusSessionId":"08628911-4021-e0ea-bf34-7e777b97ceff","WEBEX_TRACKINGID":"ITCLIENT_ECPHC_be7e47d6-714e-4ff8-a7bd-c30059df5519_0","LOCUS_ID":"705dc8ae-589f-37b4-9944-011ffce25610","locusStartTime":"2017-11-18T23:54:30.249Z","build":"20171116213454c5ea03dz41at1510968370"},"tags":["locus","splunk"],"@environment":"a6","@version":"1","type":"udp_json_event","host":"172.18.215.61","logs_broker":"logstash-logsachm-742-achm","_appname":"locus","SM":{"metricType":"OPERATION","time":1511049601822,"locusId":"705dc8ae-589f-37b4-9944-011ffce25610","apiStartTime":"2017-11-19T00:00:01.812Z","apiEndTime":"2017-11-19T00:00:01.822Z","apiDurationMillis":10,"wasActionSuccessful":true,"trackingId":"ITCLIENT_ECPHC_be7e47d6-714e-4ff8-a7bd-c30059df5519_0","errorInfo":{"component":"UNKNOWN","httpStatusCode":0,"errorCode":0,"responseHttpStatusCode":0,"responseErrorCode":0,"sev":0},"operationType":"UNKNOWN","callStartTime":"2017-11-18T23:54:30.249Z","callId":"08628911-4021-e0ea-bf34-7e777b97ceff","callAction":"JOURNAL_RESET","participant":{"wasActionSuccessful":true},"activeParticipantCount":0,"isGroupCall":false,"isMultiDevice":false,"isClientSupported":true,"numLocusJournalRowsDeleted":15,"journalReadBeforeArchiveWriteTime":0,"journalArchiveWriteTime":3,"journalReadAfterArchiveWriteTime":0,"deleteInactiveLocusFromUsersJournalTime":4,"needsLocusInactiveMarker":false,"journalRowsRead":0,"journalRowsWritten":0,"journalInactiveCount":0,"journalRowsUsed":0,"numJoined":0,"locusType":"SPARK","isArchiveAsync":false}}
+[
+  {
+  "@timestamp": "2017-11-19T00:00:01.822Z",
+  "@fields": {
+    "logger_name": "com.cisco.wx2.server.locus.metrics.LocusMetricClient",
+    "thread_name": "executor.locus-maintenance.1-0",
+    "level": "INFO",
+    "level_value": 20000,
+    "caller_class_name": "com.cisco.wx2.server.util.MetricsWriter",
+    "caller_method_name": "writeMetricsToSplunk",
+    "caller_file_name": "MetricsWriter.java",
+    "caller_line_number": 40,
+    "locusSessionId": "08628911-4021-e0ea-bf34-7e777b97ceff",
+    "WEBEX_TRACKINGID": "ITCLIENT_ECPHC_be7e47d6-714e-4ff8-a7bd-c30059df5519_0",
+    "LOCUS_ID": "705dc8ae-589f-37b4-9944-011ffce25610",
+    "locusStartTime": "2017-11-18T23:54:30.249Z",
+    "build": "20171116213454c5ea03dz41at1510968370"
+  },
+  "tags": [
+    "locus",
+    "splunk"
+  ],
+  "@environment": "a6",
+  "@version": "1",
+  "type": "udp_json_event",
+  "host": "172.18.215.61",
+  "logs_broker": "logstash-logsachm-742-achm",
+  "_appname": "locus",
+  "SM": {
+    "time": 1511049601822,
+    "env": "TEST",
+    "locusId": "705dc8ae-589f-37b4-9944-011ffce25610",
+    "apiStartTime": "2017-11-19T00:00:01.812Z",
+    "apiEndTime": "2017-11-19T00:00:01.822Z",
+    "apiDurationMillis": 10,
+    "wasActionSuccessful": true,
+    "trackingId": "ITCLIENT_ECPHC_be7e47d6-714e-4ff8-a7bd-c30059df5519_0",
+    "errorInfo": {
+      "component": "UNKNOWN",
+      "httpStatusCode": 0,
+      "errorCode": 0,
+      "responseHttpStatusCode": 0,
+      "responseErrorCode": 0,
+      "sev": 0
+    },
+    "operationType": "UNKNOWN",
+    "callStartTime": "2017-11-18T23:54:30.249Z",
+    "callId": "08628911-4021-e0ea-bf34-7e777b97ceff",
+    "callAction": "JOURNAL_RESET",
+    "deviceType": "ANDROID",
+    "participant": {
+      "wasActionSuccessful": true
+
+    },
+
+    "activeParticipantCount": 0,
+    "isGroupCall": false,
+    "isMultiDevice": false,
+    "isClientSupported": true,
+    "numLocusJournalRowsDeleted": 15,
+    "journalReadBeforeArchiveWriteTime": 0,
+    "journalArchiveWriteTime": 3,
+    "journalReadAfterArchiveWriteTime": 0,
+    "deleteInactiveLocusFromUsersJournalTime": 4,
+    "needsLocusInactiveMarker": false,
+    "journalRowsRead": 0,
+    "journalRowsWritten": 0,
+    "journalInactiveCount": 0,
+    "journalRowsUsed": 0,
+    "numJoined": 0,
+    "locusType": "SPARK",
+    "uaType": "Novum",
+    "callType": "TERMINATED",
+    "metricType":"CALL_LEG",
+    "isArchiveAsync": false
+  }
+}
+]

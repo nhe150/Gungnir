@@ -1,1 +1,10 @@
-{"eventKey":"2017-11-08 00:00:00^1eb65fdf-9643-417f-9974-ad72cae0e10f^callQuality^daily","time_stamp":"2017-11-08T00:00:00.000","orgId":"1eb65fdf-9643-417f-9974-ad72cae0e10f","number_of_bad_calls":0,"period":"daily","relation_name":"callQuality"}
+[
+  {
+  "eventKey": "2017-11-08 00:00:00^1eb65fdf-9643-417f-9974-ad72cae0e10f^callQuality^daily",
+  "time_stamp": "2017-11-08T00:00:00.000",
+  "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+  "number_of_bad_calls": 0,
+  "period": "daily",
+  "relation_name": "callQuality"
+ }
+]

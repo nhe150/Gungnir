@@ -70,7 +70,9 @@ object Queries {
       |     AND SM.value.callWasJoined=true
       |     AND SM.value.clientCallDuration>10000
       |     AND (SM.key='callEnd_audio'
-      |          OR SM.key='callEnd_video'))
+      |          OR SM.key='callEnd_video')
+      |     AND (`@fields`.uaType='sparkwindows'
+      |            OR `@fields`.uaType='sparkmac'))
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
@@ -103,6 +105,7 @@ object Queries {
 
     """.stripMargin
 
+  //ToDo: Not Used instead of using callDuration
   def callVolume =
     """
       |SELECT time_stamp,
@@ -147,6 +150,7 @@ object Queries {
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
 
+  //ToDo: Not Used instead of using callDuration
   def callVolumeCount =
     """
       |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'callVolume', '^', periodTag(orgId)) AS eventKey,
@@ -161,6 +165,8 @@ object Queries {
       |         aggregateStartDate(time_stamp)
     """.stripMargin
 
+  //spark sql NULL compare with anything is False except itself---- 2/16/2018 Norman He /Dayou Jiang
+  //NULL in SQL is equivalent to "unknown". It means that any comparison with NULL, other than IS NULL / IS NOT NULL is undefined and returns NULL.
   def callDuration =
     """
       |SELECT time_stamp,
@@ -172,6 +178,7 @@ object Queries {
       |       uaType,
       |       legDuration,
       |       'Spark' AS SOURCE,
+      |       deviceType,
       |       call_id,
       |       'callDuration' AS relation_name
       |FROM
@@ -181,12 +188,13 @@ object Queries {
       |          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
       |          `@fields`.uaVersion AS uaVersion,
       |          CONCAT(`@fields`.LOCUS_ID , '^', `@fields`.locusStartTime) AS call_id,
-      |          SM.uaType AS uaType
+      |          SM.uaType AS uaType,
+      |          SM.deviceType as deviceType
       |   FROM callDurationRaw
       |   WHERE _appname='locus'
+      |     AND SM.uaType <> 'UCConnector'
+      |     AND (SM.env is NULL OR SM.env <> 'TEST')
       |     AND SM.metricType='CALL_LEG'
-      |     AND (SM.uaType='sparkwindows'
-      |          OR SM.uaType='sparkmac')
       |     AND SM.callType='TERMINATED')
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
@@ -194,27 +202,33 @@ object Queries {
 
   def callDurationCount =
     """
-      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
+      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', ep1(deviceType, uaType), '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
       |       aggregateStartDate(time_stamp) AS time_stamp,
       |       orgId,
+      |       ep1(deviceType, uaType) as ep1,
       |       CAST(round(sum(legDuration)/60) AS BIGINT) AS number_of_minutes,
       |       periodTag(orgId) AS period,
       |       'callDuration' AS relation_name
       |FROM callDuration
+      |Where (deviceType is NULL OR deviceType <> 'SPARK_SHARE' )
       |GROUP BY orgId,
+      |         ep1(deviceType, uaType),
       |         aggregateStartDate(time_stamp)
     """.stripMargin
 
   def totalCallCount =
     """
-      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
+      |SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', ep1, '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
       |       aggregateStartDate(time_stamp) AS time_stamp,
       |       orgId,
+      |       ep1,
       |       count(call_id) AS number_of_successful_calls,
       |       periodTag(orgId) AS period,
       |       'callDuration' AS relation_name
       |FROM callDuration
+      |Where (deviceType is NULL OR deviceType <> 'SPARK_SHARE' )
       |GROUP BY orgId,
+      |         ep1,
       |         aggregateStartDate(time_stamp)
     """.stripMargin
 

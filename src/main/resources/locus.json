@@ -1,1 +1,33 @@
-{"@timestamp":"2017-11-08T22:30:47.892Z","userId":"","_appname":"locus", "@fields": {"uaVersion":"","USER_ID":"", "LOCUS_ID":"", "locusStartTime":""},"SM":{"onBoardedUser":"","uid":"","locusId":"","callStartTime":"","legDuration":33,"sessionType":"","actor":{"id":""},"participant": {"orgId":"","userId":""},"orgId":"","userId":"","metricType":"","callType":"","uaType":"sparkwindows"}}
+{
+  "@timestamp": "2017-11-08T22:30:47.892Z",
+  "userId": "",
+  "_appname": "locus",
+  "@fields": {
+    "uaVersion": "",
+    "USER_ID": "",
+    "LOCUS_ID": "",
+    "locusStartTime": ""
+  },
+  "SM": {
+    "onBoardedUser": "",
+    "uid": "",
+    "env":"",
+    "locusId": "",
+    "callStartTime": "",
+    "legDuration": 33,
+    "sessionType": "",
+    "actor": {
+      "id": ""
+    },
+    "participant": {
+      "orgId": "",
+      "userId": ""
+    },
+    "orgId": "",
+    "userId": "",
+    "metricType": "",
+    "callType": "",
+    "deviceType": "",
+    "uaType": "sparkwindows"
+  }
+}
