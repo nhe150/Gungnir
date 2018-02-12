@@ -20,7 +20,8 @@ node ("Linux") {
        //builds['scala'] = {
       try {
            // assumes you have the sbt plugin installed and created an sbt installation named 'sbt-0.13.13'
-           sh "${tool name: 'sbt-1.0.3', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/sbt compile test"
+           //sh "${tool name: 'sbt-1.0.3', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/sbt compile test"
+         sh "${tool name: 'sbt-1.0.3', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/sbt clean assembly coverage test coverageReport jacoco"
       } catch (err) {
           echo "Caught: ${err}"
           currentBuild.result = 'FAILURE'
@@ -45,7 +46,44 @@ node ("Linux") {
        //}
      //parallel builds
    }
-   stage('Results') {
+   stage('Upload Test Results') {
       junit '**/target/test-reports/*.xml'
+      jacoco exclusionPattern: '**/SparkDataStreaming.class, **/SparkDataBatch.class'
    }
+  stage('Package') {
+    try {
+           // assumes you have the sbt plugin installed and created an sbt installation named 'sbt-0.13.13'
+           sh "${tool name: 'sbt-1.0.3', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/sbt package"
+      } catch (err) {
+          echo "Caught: ${err}"
+          currentBuild.result = 'FAILURE'
+      } finally {
+          stage ('Notification') {
+              if (currentBuild.result == 'FAILURE') {
+                  message = "Package failed."
+              } else {
+                  message = "Package success."
+              }
+
+              if (isPRBuild() || isMaterBranch()) {
+                  sparkSend(roomId: SparkRoom, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
+              } else {
+                  sparkSend(toPersonEmail: latestCommitUser, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
+              }
+          }
+      }
+  }
+  stage('Upload Artifacts') {
+    archive "target/scala-2.11/gungnir_*.jar"
+    if (isMaterBranch()) {        
+        //sh """
+        //        cd target/
+        //        tar cvf [Gungnir].tar [Gungnir].jar
+        //    """
+        //    sh """
+        //        sha256sum target/[Gungnir]-1.0-${env.BUILD_NUMBER}.tar >> [Gungnir].sha
+        //        curl -F "file=@target/[Gungnir]-1.0-${env.BUILD_NUMBER}.tar" -F "sha256=<[Gungnir].sha" https://rmc.webex.com/api/package/SparkKafka/centos7.2_64
+        //    """
+    }       
+  }
 }
