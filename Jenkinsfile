@@ -1,6 +1,7 @@
-node {
+node ("Linux") {
    stage('Git') {
-      git 'https://sqbu-github.cisco.com/SAP/Gungnir.git'
+      //git 'https://sqbu-github.cisco.com/SAP/Gungnir.git'
+      checkout scm
    }
    stage('Build') {
        def builds = [:]
