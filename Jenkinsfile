@@ -3,7 +3,7 @@
 
 def repoHTMLUrl = "https://sqbu-github.cisco.com/SAP/Gungnir"
 def repoName = "Gungnir"
-def SparkRoom = "Y2lzY29zcGFyazovL3VzL1JPT00vN2FiYzYxNjAtMDQ2YS0xMWU3LTkxNjMtZjExOTM1MWRjNWIx"
+def SparkRoom = "Y2lzY29zcGFyazovL3VzL1JPT00vMjY1ZjI5YzAtOWQxZS0xMWU3LWIwZjYtMTc0NjBiNmY4N2Nk"
 def latestCommitUser
 node ("Linux") {
   initializeEnv(repoName) 
