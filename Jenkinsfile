@@ -10,7 +10,8 @@ def repoName = "Gungnir"
 def SparkRoom = "Y2lzY29zcGFyazovL3VzL1JPT00vN2FiYzYxNjAtMDQ2YS0xMWU3LTkxNjMtZjExOTM1MWRjNWIx"
 
 node ("Linux") {
-   stage('Git') {
+  initializeEnv(repoName) 
+  stage('Git') {
       //git 'https://sqbu-github.cisco.com/SAP/Gungnir.git'
       checkout scm
    }
