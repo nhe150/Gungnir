@@ -1,20 +1,20 @@
 #!groovy
 @Library('sapPipeline') _
 
-def isMasterBranch() {
-  return env.BRANCH_NAME.contains('master')
-}
-
 def repoHTMLUrl = "https://sqbu-github.cisco.com/SAP/Gungnir"
 def repoName = "Gungnir"
 def SparkRoom = "Y2lzY29zcGFyazovL3VzL1JPT00vN2FiYzYxNjAtMDQ2YS0xMWU3LTkxNjMtZjExOTM1MWRjNWIx"
-
+def latestCommitUser
 node ("Linux") {
   initializeEnv(repoName) 
   stage('Git') {
       //git 'https://sqbu-github.cisco.com/SAP/Gungnir.git'
       checkout scm
    }
+  
+  if (!isPRBuild() && !isMaterBranch()) {
+    latestCommitUser = getLatestCommitUser()
+  }
    stage('Build') {
        //def builds = [:]
        //builds['scala'] = {
@@ -35,7 +35,7 @@ node ("Linux") {
               if (isPRBuild() || isMaterBranch()) {
                   sparkSend(roomId: SparkRoom, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
               } else {
-                  sparkSend(toPersonEmail: env.CHANGE_AUTHOR_EMAIL, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
+                  sparkSend(toPersonEmail: latestCommitUser, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
               }
           }
       }
