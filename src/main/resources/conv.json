@@ -1,1 +1,45 @@
-{"@timestamp":"2017-11-08T22:30:47.892Z","orgId":"","userId":"","@fields":{"teamId":"","orgId":"","userId":"","USER_ID":"42ff21ff-d041-4968-9974-3660a0920400"},"_appname":"conv,locus","SM":{"teamId":"","metricType":"","callType":"","squared":true,"locusType":"","participant": {"orgId":"","userId":""},"orgId":"","userId":"","uid":"","onBoardedUser":"","objectType":"activity","verb":"acknowledge","actor":{"objectType":"person","orgId":"7cc93e58-2470-45e3-9812-856fed12c26e","id":"42ff21ff-d041-4968-9974-3660a0920400"},"object":{"id":"1127b280-c4d2-11e7-b009-91d37e9f5200","objectType":"activity","contentSize":12342},"target":{"objectType":"conversation","id":"148488a6-cf22-3726-8a63-285395ac93ae"},"convOneOnOne":true,"uaType":"sparkwindows"}}
+{
+  "@timestamp": "2017-11-08T22:30:47.892Z",
+  "orgId": "",
+  "userId": "",
+  "@fields": {
+    "teamId": "",
+    "orgId": "",
+    "userId": "",
+    "USER_ID": "42ff21ff-d041-4968-9974-3660a0920400"
+  },
+  "_appname": "conv,locus",
+  "SM": {
+    "teamId": "",
+    "metricType": "",
+    "callType": "",
+    "squared": true,
+    "locusType": "",
+    "participant": {
+      "orgId": "",
+      "userId": ""
+    },
+    "orgId": "",
+    "userId": "",
+    "uid": "",
+    "onBoardedUser": "",
+    "objectType": "activity",
+    "verb": "acknowledge",
+    "actor": {
+      "objectType": "person",
+      "orgId": "7cc93e58-2470-45e3-9812-856fed12c26e",
+      "id": "42ff21ff-d041-4968-9974-3660a0920400"
+    },
+    "object": {
+      "id": "1127b280-c4d2-11e7-b009-91d37e9f5200",
+      "objectType": "activity",
+      "contentSize": 12342
+    },
+    "target": {
+      "objectType": "conversation",
+      "id": "148488a6-cf22-3726-8a63-285395ac93ae"
+    },
+    "convOneOnOne": true,
+    "uaType": "sparkwindows"
+  }
+}

@@ -21,13 +21,14 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     public void createTableProcessor(){
         this.spark = spark();
         this.tableProcessor = new TableProcessor(spark);
+        spark.sparkContext().setLogLevel("WARN");
     }
 
     @Test
     public void testPreProcess() throws Exception {
-        Dataset input = spark.read().textFile("src/test/data/raw.json");
+        Dataset input = spark.read().textFile("src/test/data/beforePreprocess.json");
 
-        expected = spark.read().text("src/test/data/conv.json");
+        expected = spark.read().text("src/test/data/afterPreprocess.json");
 
         result = input.filter(new Functions.AppFilter("conv")).flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING())).toDF("key", "value").select("value");
 
@@ -297,6 +298,9 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     private Dataset read(String input, StructType schema){
         return spark
                 .read()
+                //PERMISSIVE mode -> save malformed cells in a row as "null" to be filtered out later.
+                //DROPMALFORMED mode -> toss the bad rows.
+                .option("multiline", true).option("mode", "PERMISSIVE")
                 .schema(schema)
                 .json(input);
     }

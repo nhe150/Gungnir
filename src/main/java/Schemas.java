@@ -56,6 +56,7 @@ public class Schemas {
             new StructField("userId", DataTypes.StringType, false, Metadata.empty()),
             new StructField("uaVersion", DataTypes.StringType, true, Metadata.empty()),
             new StructField("uaType", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("deviceType", DataTypes.StringType, true, Metadata.empty()),
             new StructField("legDuration", DataTypes.LongType, true, Metadata.empty()),
             new StructField("source", DataTypes.StringType, true, Metadata.empty()),
             new StructField("call_id", DataTypes.StringType, false, Metadata.empty()),
@@ -126,6 +127,8 @@ public class Schemas {
             new StructField("eventKey", DataTypes.StringType, true, Metadata.empty()),
             new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
             new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("uaType", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("deviceType", DataTypes.StringType, true, Metadata.empty()),
             new StructField("number_of_minutes", DataTypes.LongType, true, Metadata.empty()),
             new StructField("period", DataTypes.StringType, true, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
@@ -174,6 +177,8 @@ public class Schemas {
             new StructField("eventKey", DataTypes.StringType, true, Metadata.empty()),
             new StructField("time_stamp", DataTypes.TimestampType, true, Metadata.empty()),
             new StructField("orgId", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("uaType", DataTypes.StringType, true, Metadata.empty()),
+            new StructField("deviceType", DataTypes.StringType, true, Metadata.empty()),
             new StructField("number_of_successful_calls", DataTypes.LongType, true, Metadata.empty()),
             new StructField("period", DataTypes.StringType, true, Metadata.empty()),
             new StructField("relation_name", DataTypes.StringType, true, Metadata.empty())}
