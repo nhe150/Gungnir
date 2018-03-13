@@ -18,7 +18,8 @@ libraryDependencies ++= Seq(
   //Test dependencies
   "com.holdenkarau" %% "spark-testing-base" % "2.2.0_0.8.0" % "test",
   "org.apache.spark" %% "spark-hive"       % "2.0.0" % "test",
-  "com.novocode" % "junit-interface" % "0.10" % "test"
+  "com.novocode" % "junit-interface" % "0.10" % "test",
+   "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )
 
 testOptions += Tests.Argument(TestFrameworks.JUnit)
