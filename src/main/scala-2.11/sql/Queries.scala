@@ -392,6 +392,7 @@ object Queries {
       |FROM activeUsersFiltered
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
+      |  AND testUser(userId) = 0
     """.stripMargin
 
   def activeUserData =
