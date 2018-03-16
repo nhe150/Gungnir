@@ -63,6 +63,11 @@ public class TableProcessor implements Serializable {
         return data.schema();
     }
 
+    public Dataset autoLicense(Dataset raw){
+        raw.createOrReplaceTempView("autoLicenseRaw");
+        return spark.sql(sql.Queries.autoLicense());
+    }
+
     public Dataset callQuality(Dataset raw){
         raw.createOrReplaceTempView("callQualityRaw");
         return spark.sql(sql.Queries.callQuality());

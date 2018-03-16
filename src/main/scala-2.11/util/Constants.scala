@@ -19,6 +19,7 @@ class Constants(confFile: String) extends Serializable {
   def CassandraPassword = conf.getString("cassandra.password")
   def CassandraTableData = conf.getString("cassandra.detailsTableName")
   def CassandraTableAgg = conf.getString("cassandra.aggregatesTableName")
+  def CassandraTableLic = conf.getString("cassandra.licenseTableName")
 
   def kafkaInputTopic = conf.getString("kafka.input.topic")
   def kafkaInputBroker = conf.getString("kafka.input.broker")

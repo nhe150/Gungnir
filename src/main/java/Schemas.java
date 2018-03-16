@@ -227,6 +227,21 @@ public class Schemas {
             new StructField("relation_name", DataTypes.StringType, false, Metadata.empty())}
     );
 
+    public static final StructType autoLicenseSchema = new StructType(new StructField[]{
+            new StructField("time_stamp", DataTypes.TimestampType, false, Metadata.empty()),
+            new StructField("pdate", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("dataid", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("relation_name", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("licenses", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("adminid", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("onboardmethod", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("licensesassign", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("status", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("errormessage", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("userid", DataTypes.StringType, false, Metadata.empty()),
+            new StructField("orgid", DataTypes.StringType, false, Metadata.empty())}
+        );
+
     static
     {
         schema = new HashMap<>();
@@ -236,6 +251,7 @@ public class Schemas {
         schema.put("fileUsed", fileUsedSchema);
         schema.put("activeUser", activeUserSchema);
         schema.put("registeredEndpoint", registeredEndpointSchema);
+        schema.put("autoLicenseSchema", autoLicenseSchema);
     }
 
 }

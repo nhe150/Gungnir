@@ -1,0 +1,28 @@
+[
+  {
+    "time_stamp": "2018-03-14T02:16:38.000Z",
+    "pdate": "2018-03-14",
+    "dataid": "a6646d25-2189-4556-9fb2-531468f8fec4",
+    "relation_name": "license",
+    "licenses": "MS",
+    "adminid": "36977995-7898-4df4-a8f2-275c25aa1bf5",
+    "onboardmethod": "CSV",
+    "licensesassign": "MANUAL",
+    "status": "SUCCESS",
+    "userid": "95c3b544-caea-4150-9c1f-6f8caa46d55c",
+    "orgid": "4cae56d0-9f81-4bb3-a961-e9758cd43d96"
+  },
+  {
+    "time_stamp": "2018-03-14T02:16:38.000Z",
+    "pdate": "2018-03-14",
+    "dataid": "05d96d57-7e60-4eb0-a822-e3764fdbc492",
+    "relation_name": "license",
+    "licenses": "CF",
+    "adminid": "36977995-7898-4df4-a8f2-275c25aa1bf5",
+    "onboardmethod": "CSV",
+    "licensesassign": "MANUAL",
+    "status": "SUCCESS",
+    "userid": "95c3b544-caea-4150-9c1f-6f8caa46d55c",
+    "orgid": "4cae56d0-9f81-4bb3-a961-e9758cd43d96"
+  }
+]

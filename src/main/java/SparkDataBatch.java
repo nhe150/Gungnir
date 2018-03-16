@@ -106,6 +106,7 @@ public class SparkDataBatch implements Serializable{
                 .config("spark.cassandra.connection.host", constants.CassandraHosts())
                 .config("spark.cassandra.auth.username", constants.CassandraUsername())
                 .config("spark.cassandra.auth.password", constants.CassandraPassword())
+                .config("spark.sql.session.timeZone", "GMT")
 //                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
                 .config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzoCodec")
                 .appName(appName).getOrCreate();
@@ -122,12 +123,12 @@ public class SparkDataBatch implements Serializable{
             case "splitData":
                 if(startDate != null) {
                     if("append".equals(writeMode)){
-                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Append);
+                        splitDataWithStartDate(intputPath, "conv,metrics,locus,atlas", startDate, SaveMode.Append);
                     } else{
-                        splitDataWithStartDate(intputPath, "conv,metrics,locus", startDate, SaveMode.Overwrite);
+                        splitDataWithStartDate(intputPath, "conv,metrics,locus,atlas", startDate, SaveMode.Overwrite);
                     }
                 } else {
-                    splitData(intputPath, "conv,metrics,locus");
+                    splitData(intputPath, "conv,metrics,locus,atlas");
                 }
                 break;
             case "details":
@@ -192,6 +193,9 @@ public class SparkDataBatch implements Serializable{
             case "locusCount":
                 locusCount("locus");
                 break;
+            case "autoLicense":
+                autoLicense("atlas");
+                break;
             default:
                 throw new IllegalArgumentException("Invalid input for job name");
         }
@@ -249,6 +253,12 @@ public class SparkDataBatch implements Serializable{
                     .flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING()));
             sinkToFile(splitedData.toDF("key", "value").filter(col("key").equalTo(startDate)), format, s, saveMode);
         }
+    }
+
+    private void autoLicense(String input) throws Exception{
+        Dataset<Row> raw = readRaw(input, tableProcessor.getSchema("/atlas.json"));
+        Dataset<Row> autoLicense = tableProcessor.autoLicense(raw);
+        writeToCassandra(autoLicense, constants.CassandraTableLic());
     }
 
     private void callQuality(String input) throws Exception{

@@ -98,6 +98,7 @@ public class SparkDataStreaming implements Serializable {
                 .config("spark.cassandra.connection.host", constants.CassandraHosts())
                 .config("spark.cassandra.auth.username", constants.CassandraUsername())
                 .config("spark.cassandra.auth.password", constants.CassandraPassword())
+                .config("spark.sql.session.timeZone", "GMT")            
 //                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
                 .config("spark.sql.streaming.checkpointLocation", constants.checkpointLocation())
                 .config("spark.streaming.stopGracefullyOnShutdown", constants.streamingStopGracefullyOnShutdown())
@@ -112,10 +113,10 @@ public class SparkDataStreaming implements Serializable {
     private void run(String jobName) throws Exception {
         switch (jobName){
             case "splitData":
-                splitData(constants.kafkaInputTopic(), "conv,metrics,locus");
+                splitData(constants.kafkaInputTopic(), "conv,metrics,locus,atlas");
                 break;
             case "saveToFile":
-                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callDuration", "parquet");
+                sinkTopicsToFile("conv,metrics,locus,fileUsed,activeUser,registeredEndpoint,callQuality,callDuration,atlas", "parquet");
                 break;
             case "saveToCassandra":
                 sinkDetailsToCassandra("fileUsed,registeredEndpoint,callQuality,callDuration");
@@ -194,6 +195,9 @@ public class SparkDataStreaming implements Serializable {
             case "locusCount":
                 locusCount("locus");
                 break;
+            case "autoLicense":
+                autoLicense("atlas");
+                break;
             default:
                 throw new IllegalArgumentException("Invalid input for job name");
         }
@@ -227,6 +231,12 @@ public class SparkDataStreaming implements Serializable {
             Dataset<Row> inputStream = readFromKafkaWithSchema(s);
             sinkToCassandra(inputStream, constants.CassandraTableData(), "append", s);
         }
+    }
+
+    private void autoLicense(String input) throws Exception{
+        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/atlas.json"));
+        Dataset<Row> autoLicense = tableProcessor.autoLicense(raw);
+        sinkToCassandra(autoLicense, constants.CassandraTableLic(), "update", "autoLicense");
     }
 
     private void callQuality(String input) throws Exception{

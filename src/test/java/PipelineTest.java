@@ -20,6 +20,7 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     @Before
     public void createTableProcessor(){
         this.spark = spark();
+        spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
         this.tableProcessor = new TableProcessor(spark);
         spark.sparkContext().setLogLevel("WARN");
     }
@@ -34,6 +35,24 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
 
         assertDatasetEquals(expected, result);
     }
+
+    @Test
+    public void testPreProcessAtlasData() throws Exception {
+        Dataset input = spark.read().textFile("src/test/data/rawAtlas.json");
+        expected = spark.read().text("src/test/data/atlas.json");
+        result = input.filter(new Functions.AppFilter("atlas")).flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING())).toDF("key", "value").select("value");
+        assertDatasetEquals(expected, result);
+    }
+
+
+    @Test
+    public void testProcessAtlasData() throws Exception {
+        Dataset input = read("src/test/data/atlas.json", tableProcessor.getSchema("/atlas.json"));
+        expected = read("src/test/data/atlasOutput.json", Schemas.autoLicenseSchema).drop("dataid");
+        result = tableProcessor.autoLicense(input).drop("dataid");
+        assertDatasetEquals(expected, result);
+    }
+
 
     @Test
     public void testCallQuality() throws Exception {

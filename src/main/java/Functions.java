@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
 
 public class Functions {
     public static final class AppFilter implements FilterFunction<String> {
@@ -64,10 +65,13 @@ public class Functions {
         public TimeConverter(String fromPattern, String toPattern){
             this.fromFormat = new SimpleDateFormat(fromPattern);
             this.toFormat = new SimpleDateFormat(toPattern);
+            toFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            fromFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
         public TimeConverter(String toPattern){
             this.toFormat = new SimpleDateFormat(toPattern);
+            toFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
         public String convert(String timeStamp) throws Exception {
