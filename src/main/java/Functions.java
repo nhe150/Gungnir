@@ -65,13 +65,10 @@ public class Functions {
         public TimeConverter(String fromPattern, String toPattern){
             this.fromFormat = new SimpleDateFormat(fromPattern);
             this.toFormat = new SimpleDateFormat(toPattern);
-            toFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-            fromFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
         public TimeConverter(String toPattern){
             this.toFormat = new SimpleDateFormat(toPattern);
-            toFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
         public String convert(String timeStamp) throws Exception {

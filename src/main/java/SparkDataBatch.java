@@ -106,7 +106,6 @@ public class SparkDataBatch implements Serializable{
                 .config("spark.cassandra.connection.host", constants.CassandraHosts())
                 .config("spark.cassandra.auth.username", constants.CassandraUsername())
                 .config("spark.cassandra.auth.password", constants.CassandraPassword())
-                .config("spark.sql.session.timeZone", "GMT")
 //                .config("spark.cassandra.output.consistency.level", constants.cassandraOutputConsistencyLevel())
                 .config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzoCodec")
                 .appName(appName).getOrCreate();

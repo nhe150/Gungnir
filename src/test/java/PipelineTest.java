@@ -20,7 +20,6 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     @Before
     public void createTableProcessor(){
         this.spark = spark();
-        spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
         this.tableProcessor = new TableProcessor(spark);
         spark.sparkContext().setLogLevel("WARN");
     }
