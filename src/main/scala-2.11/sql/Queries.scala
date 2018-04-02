@@ -35,44 +35,43 @@ object Queries {
       |       END AS video_is_good,
       |       'callQuality' AS relation_name
       |FROM
-      |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-      |          SM.value.clientCallDuration AS duration,
-      |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
-      |          SM.key AS mediaType,
-      |          coalesce(`@fields`.userId, "unknown") AS userId,
-      |          CONCAT(SM.value.locusId , '^', SM.value.locusTimestamp) AS call_id,
-      |          SM.sessionId as confId,
-      |          SM.value.correlationId as meetingId,
+      |  (SELECT to_timestamp(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+      |          SM_C.value.clientCallDuration AS duration,
+      |          coalesce(orgId, 'unknown') AS orgId,
+      |          SM_C.key AS mediaType,
+      |          coalesce(userId, "unknown") AS userId,
+      |          CONCAT(SM_C.value.locusId , '^', SM_C.value.locusTimestamp) AS call_id,
+      |          SM_C.sessionId as confId,
+      |          SM_C.value.correlationId as meetingId,
       |
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.jitter)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
       |          END AS audio_jitter,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.jitter)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
       |          END AS video_jitter,
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.rtt)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
       |          END AS audio_rtt,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.rtt)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
       |          END AS video_rtt,
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.lossRatio)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
       |          END AS audio_packetloss,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.lossRatio)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
       |          END AS video_packetloss,
-      |          `@fields`.uaType AS uaType,
-      |          `@fields`.uaVersion AS uaVersion,
+      |          uaType AS uaType,
+      |          uaVersion AS uaVersion,
       |          'Spark' AS SOURCE
       |   FROM callQualityRaw
-      |   WHERE _appname='metrics'
-      |     AND SM.value.callWasJoined=true
-      |     AND SM.value.clientCallDuration>10000
-      |     AND (SM.key='callEnd_audio'
-      |          OR SM.key='callEnd_video')
-      |     AND (`@fields`.uaType='sparkwindows'
-      |            OR `@fields`.uaType='sparkmac'))
+      |   WHERE appname='metrics'
+      |     AND SM_C.value.clientCallDuration>10000
+      |     AND (SM_C.key='callEnd_audio'
+      |          OR SM_C.key='callEnd_video')
+      |     AND (uaType='sparkwindows'
+      |            OR uaType='sparkmac'))
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
@@ -447,22 +446,22 @@ object Queries {
       |       model,
       |       'registeredEndpoint' AS relation_name
       |FROM
-      |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-      |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
-      |          SM.value.deviceIdentifier AS deviceId,
+      |  (SELECT to_timestamp(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+      |          coalesce(orgId, 'unknown') AS orgId,
+      |          SM_C.value.deviceIdentifier AS deviceId,
       |          coalesce(
       |             CASE
-      |                 WHEN (SM.value.model='Room 70D') THEN 'Undefined'
-      |                 WHEN (SM.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
-      |                 ELSE SM.value.model
+      |                 WHEN (SM_C.value.model='Room 70D') THEN 'Undefined'
+      |                 WHEN (SM_C.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
+      |                 ELSE SM_C.value.model
       |             END, 'unknown') AS model,
       |          'NA' AS userId
       |   FROM registeredEndpointRaw
-      |   WHERE _appname='metrics'
-      |     AND (`@fields`.uaType='ce'
-      |          OR `@fields`.uaType='SparkBoard')
-      |     AND (SM.key='sysinfo_darling'
-      |          OR SM.key='sysinfo'))
+      |   WHERE appname='metrics'
+      |     AND (uaType='ce'
+      |          OR uaType='SparkBoard')
+      |     AND (SM_C.key='sysinfo_darling'
+      |          OR SM_C.key='sysinfo'))
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
     """.stripMargin

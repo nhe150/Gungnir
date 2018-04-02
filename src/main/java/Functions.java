@@ -17,7 +17,7 @@ public class Functions {
     public static final class AppFilter implements FilterFunction<String> {
         private String tag;
         public AppFilter(String appName){
-            this.tag = "\"_appname\":" + '"' + appName + '"';
+            this.tag = "appname\":" + '"' + appName + '"';
         }
 
         public boolean call(String line){
@@ -41,16 +41,25 @@ public class Functions {
             }
             try{
                 ObjectNode objectNode = (ObjectNode) objectMapper.readTree(value);
-                String message = objectNode.get("@message").asText();
-                String timestamp = objectNode.get("@timestamp").asText();
-                String[] jsonMessages = message.split(":", 2);
-                if(jsonMessages.length == 2){
-                    JsonNode metric = objectMapper.readTree(jsonMessages[1].trim());
-                    objectNode.set("SM", metric);
-                    objectNode.remove("@message");
+                JsonNode appname = objectNode.get("appname");
+                JsonNode _appname = objectNode.get("_appname");
+                if(_appname!=null && "metrics".equals(_appname.asText())) {
+                    return out.iterator();
+                } else if(appname!=null && "metrics".equals(appname.asText())){
+                    String timestamp = objectNode.get("timestamp").asText();
                     out.add(new Tuple2(timeConverter.convert(timestamp), objectNode.toString()));
                 } else {
-                    out.add(new Tuple2(BAD_DATA_LABLE, value));
+                    String message = objectNode.get("@message").asText();
+                    String timestamp = objectNode.get("@timestamp").asText();
+                    String[] jsonMessages = message.split(":", 2);
+                    if(jsonMessages.length == 2){
+                        JsonNode metric = objectMapper.readTree(jsonMessages[1].trim());
+                        objectNode.set("SM", metric);
+                        objectNode.remove("@message");
+                        out.add(new Tuple2(timeConverter.convert(timestamp), objectNode.toString()));
+                    } else {
+                        out.add(new Tuple2(BAD_DATA_LABLE, value));
+                    }
                 }
             } catch (Exception e){
                 out.add(new Tuple2(BAD_DATA_LABLE, value));

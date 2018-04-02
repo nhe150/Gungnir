@@ -36,6 +36,17 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
     }
 
     @Test
+    public void testPreProcessMetrics() throws Exception {
+        Dataset input = spark.read().textFile("src/test/data/beforePreprocess.json");
+
+        expected = spark.read().text("src/test/data/afterPreprocessMetrics.json");
+
+        result = input.filter(new Functions.AppFilter("metrics")).flatMap(new Functions.PreProcess(), Encoders.tuple(Encoders.STRING(), Encoders.STRING())).toDF("key", "value").select("value");
+
+        assertDatasetEquals(expected, result);
+    }
+
+    @Test
     public void testPreProcessAtlasData() throws Exception {
         Dataset input = spark.read().textFile("src/test/data/rawAtlas.json");
         expected = spark.read().text("src/test/data/atlas.json");
@@ -64,16 +75,16 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         assertDatasetEquals(expected, result);
     }
 
-    @Test
-    public void testCallVolume() throws Exception {
-        Dataset input = read("src/test/data/metrics.json", tableProcessor.getSchema("/metrics.json"));
-
-        expected = read("src/test/data/callVolume.json", Schemas.callVolumeSchema).drop("dataid");
-
-        result = tableProcessor.callVolume(input).drop("dataid");
-
-        assertDatasetEquals(expected, result);
-    }
+//    @Test
+//    public void testCallVolume() throws Exception {
+//        Dataset input = read("src/test/data/metrics.json", tableProcessor.getSchema("/metrics.json"));
+//
+//        expected = read("src/test/data/callVolume.json", Schemas.callVolumeSchema).drop("dataid");
+//
+//        result = tableProcessor.callVolume(input).drop("dataid");
+//
+//        assertDatasetEquals(expected, result);
+//    }
 
     @Test
     public void testCallDuration() throws Exception {
@@ -119,16 +130,16 @@ public class PipelineTest extends JavaDatasetSuiteBase implements Serializable {
         assertDatasetEquals(expected, result);
     }
 
-    @Test
-    public void testCallVolumeCount() throws Exception {
-        Dataset input = read("src/test/data/callVolume.json", Schemas.callVolumeSchema);
-
-        expected = read("src/test/data/callVolumeCount.json", Schemas.callVolumeCountSchema);
-
-        result = tableProcessor.callVolumeCount(input);
-
-        assertDatasetEquals(expected, result);
-    }
+//    @Test
+//    public void testCallVolumeCount() throws Exception {
+//        Dataset input = read("src/test/data/callVolume.json", Schemas.callVolumeSchema);
+//
+//        expected = read("src/test/data/callVolumeCount.json", Schemas.callVolumeCountSchema);
+//
+//        result = tableProcessor.callVolumeCount(input);
+//
+//        assertDatasetEquals(expected, result);
+//    }
 
     @Test
     public void testCallQualityBadCount() throws Exception {

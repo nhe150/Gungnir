@@ -1,13 +1,11 @@
 [{
-  "@timestamp": "2017-11-08T22:30:47.892Z",
-  "@fields": {
-    "uaType": "sparkwindows",
-    "uaVersion": "2.0.6199.0",
-    "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
-    "userId": ""
-  },
-  "_appname": "metrics",
-  "SM": {
+  "timestamp": "2017-11-08T22:30:47.892Z",
+  "uaType": "sparkwindows",
+  "uaVersion": "2.0.6199.0",
+  "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+  "userId": "",
+  "appname": "metrics",
+  "SM_C": {
     "value": {
       "deviceIdentifier": "",
       "model": "",
@@ -44,8 +42,7 @@
         }
       }
     },
-    "key": "callEnd_audio",
-    "uuid": ""
+    "key": "callEnd_audio"
   }
 }
 ]
