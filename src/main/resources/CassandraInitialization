@@ -1,9 +1,8 @@
-CREATE TABLE spark_data (
+CREATE TABLE ks_global_pda.spark_data (
     pdate text,
     relation_name text,
     time_stamp timestamp,
     dataid text,
-
     orgId text,
     duration float,
     mediaType text,
@@ -40,6 +39,7 @@ CREATE TABLE spark_data (
     meetingId text,
     callLeg text,
     associated_key text,
+    devicetype text,
     primary key((pdate, relation_name), time_stamp, dataid)
 );
 
@@ -81,6 +81,9 @@ CREATE TABLE ks_global_pda.spark_agg (
     period text,
     associated_key text,
     relation_name text,
+    ep1 text,
+    devicetype text,
+    uatype text,
     primary key(eventKey, time_stamp)
 
 );
@@ -103,3 +106,21 @@ ks text
 );
 DROP TABLE ks_global_pda.region_ks_mapping;
 DESCRIBE region_ks_mapping;
+
+
+create table ks_global_pda.license (
+    pdate text,
+    relation_name text,
+    time_stamp timestamp,
+    dataid text,
+    associated_key text,
+    orgid text,
+    userId text,
+    adminId text,
+    onboardMethod text,
+    licensesAssign text,
+    licenses text,
+    status text,
+    errormessage text,
+    primary key ( (orgid, relation_name), pdate, dataid)
+);
