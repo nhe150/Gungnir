@@ -35,7 +35,7 @@ object Queries {
       |       END AS video_is_good,
       |       'callQuality' AS relation_name
       |FROM
-      |  (SELECT to_timestamp(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+      |  (SELECT to_timestamp(timeRcvd, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          SM_C.value.clientCallDuration AS duration,
       |          coalesce(orgId, 'unknown') AS orgId,
       |          SM_C.key AS mediaType,
@@ -43,7 +43,6 @@ object Queries {
       |          CONCAT(SM_C.value.locusId , '^', SM_C.value.locusTimestamp) AS call_id,
       |          SM_C.sessionId as confId,
       |          SM_C.value.correlationId as meetingId,
-      |
       |          CASE
       |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
       |          END AS audio_jitter,
@@ -446,7 +445,7 @@ object Queries {
       |       model,
       |       'registeredEndpoint' AS relation_name
       |FROM
-      |  (SELECT to_timestamp(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+      |  (SELECT to_timestamp(timeRcvd, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
       |          coalesce(orgId, 'unknown') AS orgId,
       |          SM_C.value.deviceIdentifier AS deviceId,
       |          coalesce(

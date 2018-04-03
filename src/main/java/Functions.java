@@ -46,7 +46,7 @@ public class Functions {
                 if(_appname!=null && "metrics".equals(_appname.asText())) {
                     return out.iterator();
                 } else if(appname!=null && "metrics".equals(appname.asText())){
-                    String timestamp = objectNode.get("timestamp").asText();
+                    String timestamp = objectNode.get("timeRcvd").asText();
                     out.add(new Tuple2(timeConverter.convert(timestamp), objectNode.toString()));
                 } else {
                     String message = objectNode.get("@message").asText();

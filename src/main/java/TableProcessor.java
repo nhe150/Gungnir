@@ -223,7 +223,7 @@ public class TableProcessor implements Serializable {
 
     public Dataset metricsCount(Dataset metrics){
         metrics
-                .selectExpr("to_timestamp(timestamp, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(orgId, 'unknown') AS orgId")
+                .selectExpr("to_timestamp(timeRcvd, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(orgId, 'unknown') AS orgId")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("metrics");
         return spark.sql(sql.Queries.orgIdCountQuery("metrics"));
