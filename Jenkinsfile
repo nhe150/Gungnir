@@ -48,7 +48,8 @@ node ("Linux") {
    }
    stage('Upload Test Results') {
       junit '**/target/test-reports/*.xml'
-      jacoco exclusionPattern: '**/SparkDataStreaming.class, **/SparkDataBatch.class'
+      //jacoco exclusionPattern: '**/SparkDataStreaming.class, **/SparkDataBatch.class'
+     jacoco exclusionPattern: '**/SparkDataMonitor.class,**/SparkDataStreaming.class, **/SparkDataBatch.class, **/util/*, **/DataMigration$.class, **/DataMigration.class, **/DeleteRecords$.class,  **/DeleteRecords.class,**/DataMigrationCassandra$.class,  **/DataMigrationCassandra'
    }
   stage('Package') {
     try {
