@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Schemas {
-    public static final Map<String, StructType> schema;
+    protected static final Map<String, StructType> schema;
 
     public static final StructType callQualitySchema = new StructType(new StructField[]{
             new StructField("time_stamp", DataTypes.TimestampType, false, Metadata.empty()),
