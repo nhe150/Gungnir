@@ -1,0 +1,25 @@
+SELECT  to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+        convertTime(to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) as pdate,
+        uuid(orgId) as dataid,
+        "license" as relation_name,
+        split(license, '_')[0] as licenses,
+        SM.adminId as adminid,
+        SM.onboardMethod as onboardmethod,
+        CASE
+             WHEN (SM.autoTemplate="true") THEN "AUTO"
+             ELSE "MANUAL"
+        END as licensesassign,
+        CASE
+           WHEN (SM.provStatus IS NOT NULL) THEN SM.provStatus
+           ELSE SM.inviteStatus
+        END AS status,
+        SM.errTxt as errormessage,
+        CASE
+           WHEN (SM.inviteeID IS NOT NULL) THEN SM.inviteeID
+           ELSE SM.userId
+        END AS userid,
+        SM.orgId as orgid
+FROM SOURCE_VIEW
+LATERAL VIEW explode(SM.licenses) t AS license
+where  ((SM.classname="ProvisioningMetricEvent" AND (SM.provAction="ADD" OR (SM.autoTemplate="true" and SM.provAction="PATCH"))) OR
+ (SM.classname="InviteMetricEvent" AND (SM.inviteType="ADMIN_INVITE" OR SM.autoTemplate="true")))

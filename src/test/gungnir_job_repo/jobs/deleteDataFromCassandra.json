@@ -1,0 +1,32 @@
+{
+  "name": "deleteDataFromCassandra",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"selectDataToDeleteFromCassandra"
+      }
+    ],
+    [
+      {
+        "queryName":"deleteFromCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda"
+          }
+        }
+      }
+    ]
+  ]
+}

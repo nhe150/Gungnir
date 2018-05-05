@@ -1,0 +1,90 @@
+{
+  "name": "callDuration",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "locus"
+          },
+          "timeStampField": "@timestamp",
+          "schemaName": "locus"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callDuration",
+        "parameters": {
+          "output": "callDuration"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      },
+      {
+        "queryName":"writeToKafka"
+      }
+    ],
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "callDuration"
+          },
+          "timeStampField": "time_stamp",
+          "schemaName": "callDuration"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callDurationCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callDurationCount"
+        }
+      },
+      {
+        "queryName":"totalCallCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "totalCallCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      }
+    ]
+  ]
+}

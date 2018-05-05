@@ -1,0 +1,49 @@
+[{
+  "timestamp": "2017-11-08T22:30:47.892Z",
+  "timeRcvd": "2017-11-08T22:30:47.892Z",
+  "uaType": "sparkwindows",
+  "uaVersion": "2.0.6199.0",
+  "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+  "userId": "",
+  "appname": "metrics",
+  "SM_C": {
+    "value": {
+      "deviceIdentifier": "",
+      "model": "",
+      "callWasJoined": true,
+      "clientCallDuration": 130000.0,
+      "system_status_code": 12007,
+      "error_name": "",
+      "error_code": 2003,
+      "locusTimestamp": "",
+      "locusId": "",
+      "mediaStatistics": {
+        "stats": {
+          "lossRatio": [
+            {
+              "duration": 56,
+              "max": 0,
+              "min": -1
+            }
+          ],
+          "rtt": [
+            {
+              "duration": 56,
+              "max": 0,
+              "min": -1
+            }
+          ],
+          "jitter": [
+            {
+              "duration": 56,
+              "max": 0,
+              "min": -1
+            }
+          ]
+        }
+      }
+    },
+    "key": "callEnd_audio"
+  }
+}
+]

@@ -1,0 +1,65 @@
+{
+  "name": "activeUserFile",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "conv, locus",
+          "timeStampField": "@timestamp",
+          "schemaName": "conv",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUser"
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "output": "activeUser",
+          "format": "csv",
+          "saveMode": "overwrite",
+          "partitionKey": "relation_name"
+        }
+      },
+      {
+        "queryName":"activeUserRollUp",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "activeUserRollUp"
+        }
+      },
+      {
+        "queryName":"rtUser",
+        "parameters":{
+          "output": "rtUser"
+        }
+      },
+      {
+        "queryName":"activeUserCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "activeUserCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "overwrite",
+          "partitionKey": "relation_name"
+        }
+      }
+    ]
+  ]
+}

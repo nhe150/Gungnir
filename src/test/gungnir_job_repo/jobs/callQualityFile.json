@@ -1,0 +1,59 @@
+{
+  "name": "callQualityFile",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "metrics",
+          "timeStampField": "timeRcvd",
+          "schemaName": "metrics",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callQuality"
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "output": "callQuality",
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "relation_name"
+        }
+      },
+      {
+        "queryName":"callQualityBadCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callQualityBadCount"
+        }
+      },
+      {
+        "queryName":"callQualityTotalCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callQualityTotalCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "relation_name"
+        }
+      }
+    ]
+  ]
+}

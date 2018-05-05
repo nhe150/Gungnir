@@ -1,0 +1,37 @@
+{
+  "name": "autoLicenseBatch",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "atlas",
+          "timeStampField": "@timestamp",
+          "schemaName": "atlas",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"autoLicense",
+        "parameters":{
+          "output": "autoLicense"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "license",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      }
+    ]
+  ]
+}

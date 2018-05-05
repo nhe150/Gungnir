@@ -1,0 +1,101 @@
+SELECT time_stamp,
+       convertTime(time_stamp) as pdate,
+       uuid(orgId) as dataid,
+       orgId,
+       userId,
+       isMessage,
+       isCall,
+       isCreate,
+       CASE
+           WHEN (isOneToOneRoom=1
+                 OR isGroupRoom=1
+                 OR isTeamRoom=1) THEN userId
+       END AS rtUser,
+       CASE
+           WHEN (isOneToOneRoom=1) THEN userId
+       END AS oneToOneUser,
+       CASE
+           WHEN (isGroupRoom=1) THEN userId
+       END AS groupUser,
+       CASE
+           WHEN (isTeamRoom=1) THEN userId
+       END AS teamUser,
+       CASE
+           WHEN (isOneToOneRoom=1) THEN isOneToOneRoomId
+       END AS oneToOne,
+       CASE
+           WHEN (isGroupRoom=1) THEN isGroupRoomId
+       END AS group,
+       CASE
+           WHEN (isTeamRoom=1) THEN isTeamRoomId
+       END AS team,
+       'activeUser' AS relation_name
+FROM (SELECT CASE
+               WHEN (SM.verb='create'
+                   AND (SM.object.objectType='team'
+                      OR SM.object.objectType='conversation')) THEN 1
+               ELSE 0
+               END AS isCreate,
+             CASE
+               WHEN (SM.convOneOnOne=true) THEN 1
+               ELSE 0
+               END AS isOneToOneRoom,
+             CASE
+               WHEN (`@fields`.teamId IS NULL
+                 AND SM.convOneOnOne=false) THEN 1
+               ELSE 0
+               END AS isGroupRoom,
+             CASE
+               WHEN `@fields`.teamId IS NOT NULL THEN 1
+               ELSE 0
+               END AS isTeamRoom,
+             CASE
+               WHEN (`@fields`.teamId IS NULL
+                 AND SM.convOneOnOne=false) THEN SM.target.id
+               END AS isGroupRoomId,
+             CASE
+               WHEN (SM.convOneOnOne=true) THEN SM.target.id
+               END AS isOneToOneRoomId,
+             CASE
+               WHEN `@fields`.teamId IS NOT NULL THEN SM.target.id
+               END AS isTeamRoomId,
+             CASE
+               WHEN SM.verb='post'
+                AND SM.object.objectType='comment' THEN 1
+               ELSE 0
+               END AS isMessage,
+             CASE
+               WHEN SM.metricType='PARTICIPANT'
+                 AND SM.callType='TERMINATED' THEN 1
+               ELSE 0
+               END AS isCall,
+             coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
+             coalesce(userId, `@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+             `@timestamp` AS time_stamp
+       FROM SOURCE_VIEW
+       WHERE _appname='conv'
+           AND SM.uaType<>'Messenger'
+           AND SM.uaType<>'Hydra'
+           AND SM.uaType<>'UCConnector'
+           AND ((SM.verb='acknowledge'
+           AND SM.object.objectType='activity')
+               OR (SM.verb='post'
+           AND SM.object.objectType='comment')
+               OR (SM.verb='share'
+           AND SM.object.objectType='content')
+               OR (SM.verb='create'
+           AND (SM.object.objectType='conversation'
+                OR SM.object.objectType='team'))
+               OR (SM.verb='add'
+           AND SM.object.objectType='person'
+           AND (SM.target.objectType='conversation'
+                OR SM.object.objectType='team')))
+           OR (_appname='locus'
+           AND (SM.metricType='PARTICIPANT'
+           AND SM.callType='TERMINATED'
+           AND SM.squared=true
+           AND SM.locusType<>'JABBER'))
+)
+WHERE orgId<>'unknown'
+  AND validOrg(orgId)<>'1'
+  AND testUser(userId) = 0

@@ -1,0 +1,59 @@
+{
+  "name": "callDurationFile",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "locus",
+          "timeStampField": "@timestamp",
+          "schemaName": "locus",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callDuration"
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "output": "callDuration",
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "relation_name"
+        }
+      },
+      {
+        "queryName":"callDurationCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callDurationCount"
+        }
+      },
+      {
+        "queryName":"totalCallCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "totalCallCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "relation_name"
+        }
+      }
+    ]
+  ]
+}

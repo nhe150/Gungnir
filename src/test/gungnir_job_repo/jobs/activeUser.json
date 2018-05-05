@@ -1,0 +1,112 @@
+{
+  "name": "activeUser",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "conv, locus"
+          },
+          "timeStampField": "@timestamp",
+          "schemaName": "conv"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUser",
+        "parameters": {
+          "output": "activeUser"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToKafka"
+      }
+    ],
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "activeUser"
+          },
+          "timeStampField": "time_stamp",
+          "schemaName": "activeUser"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUserRollUp",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "activeUserRollUp"
+        }
+      },
+      {
+        "queryName":"rtUser",
+        "parameters":{
+          "output": "rtUser"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "activeUser"
+          },
+          "timeStampField": "time_stamp",
+          "schemaName": "activeUser"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUserCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "activeUserCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      }
+    ]
+  ]
+}

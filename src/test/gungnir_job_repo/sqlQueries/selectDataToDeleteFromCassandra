@@ -1,0 +1,1 @@
+SELECT pdate, relation_name, time_stamp, dataid from SOURCE_VIEW;

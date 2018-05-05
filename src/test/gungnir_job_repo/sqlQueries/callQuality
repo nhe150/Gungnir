@@ -1,0 +1,70 @@
+SELECT time_stamp,
+       convertTime(time_stamp) as pdate,
+       uuid(orgId) as dataid,
+       orgId,
+       userId,
+       duration,
+       mediaType,
+       call_id,
+       audio_jitter,
+       video_jitter,
+       audio_rtt,
+       video_rtt,
+       audio_packetloss,
+       video_packetloss,
+       uaVersion,
+       uaType,
+       source,
+       confId,
+       meetingId,
+       CASE
+           WHEN (mediaType='callEnd_audio'
+                 AND audio_jitter<=150
+                 AND audio_rtt<=400
+                 AND audio_packetloss<=5) THEN 1
+           ELSE 0
+       END AS audio_is_good,
+       CASE
+           WHEN (mediaType='callEnd_video') THEN 1
+           ELSE 0
+       END AS video_is_good,
+       'callQuality' AS relation_name
+FROM
+  (SELECT to_timestamp(timeRcvd, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+          SM_C.value.clientCallDuration AS duration,
+          coalesce(orgId, 'unknown') AS orgId,
+          SM_C.key AS mediaType,
+          coalesce(userId, "unknown") AS userId,
+          CONCAT(SM_C.value.locusId , '^', SM_C.value.locusTimestamp) AS call_id,
+          SM_C.sessionId as confId,
+          SM_C.value.correlationId as meetingId,
+          CASE
+              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
+          END AS audio_jitter,
+          CASE
+              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
+          END AS video_jitter,
+          CASE
+              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
+          END AS audio_rtt,
+          CASE
+              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
+          END AS video_rtt,
+          CASE
+              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
+          END AS audio_packetloss,
+          CASE
+              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
+          END AS video_packetloss,
+          uaType AS uaType,
+          uaVersion AS uaVersion,
+          'Spark' AS SOURCE
+   FROM SOURCE_VIEW
+   WHERE appname='metrics'
+     AND SM_C.value.clientCallDuration>10000
+     AND (SM_C.key='callEnd_audio'
+          OR SM_C.key='callEnd_video')
+     AND (uaType='sparkwindows'
+            OR uaType='sparkmac'))
+WHERE orgId<>'unknown'
+  AND validOrg(orgId)<>'1'

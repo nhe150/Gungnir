@@ -1,0 +1,37 @@
+{
+  "name": "topUserFile",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "activeUser",
+          "timeStampField": "time_stamp",
+          "schemaName": "activeUser",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"topUser",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "topUser"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "overwrite",
+          "partitionKey": "relation_name"
+        }
+      }
+    ]
+  ]
+}

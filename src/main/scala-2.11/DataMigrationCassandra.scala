@@ -1,6 +1,10 @@
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone}
+
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql._
 import _root_.util.Constants
+import org.apache.spark.sql.api.java.UDF1
 
 
 object DataMigrationCassandra {
@@ -46,7 +50,7 @@ object DataMigrationCassandra {
 
     spark.conf.set("spark.sql.session.timeZone", "GMT")
 
-    spark.udf.register("convertTime", new SparkDataMonitor.TimeConverter, DataTypes.StringType)
+    spark.udf.register("convertTime", new TimeConverter, DataTypes.StringType)
 
     val sqlContext = spark.sqlContext
     // set params for the particular cluster
@@ -117,5 +121,15 @@ object DataMigrationCassandra {
     }
 
     result
+  }
+
+  class TimeConverter extends UDF1[Long, String] {
+    @throws[Exception]
+    override def call(unixtimeStamp: Long): String = {
+      val date = new Date(unixtimeStamp * 1000L)
+      val sdf = new SimpleDateFormat("yyyy-MM-dd")
+      sdf.setTimeZone(TimeZone.getTimeZone("GMT"))
+      sdf.format(date)
+    }
   }
 }

@@ -1,0 +1,29 @@
+SELECT time_stamp,
+       convertTime(time_stamp) as pdate,
+       uuid(orgId) as dataid,
+       orgId,
+       userId,
+       uaVersion,
+       uaType,
+       legDuration,
+       'Spark' AS SOURCE,
+       deviceType,
+       call_id,
+       'callDuration' AS relation_name
+FROM
+  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
+          to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+          SM.legDuration AS legDuration,
+          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+          `@fields`.uaVersion AS uaVersion,
+          CONCAT(`@fields`.LOCUS_ID , '^', `@fields`.locusStartTime) AS call_id,
+          SM.uaType AS uaType,
+          SM.deviceType as deviceType
+   FROM SOURCE_VIEW
+   WHERE _appname='locus'
+     AND SM.uaType <> 'UCConnector'
+     AND (SM.env is NULL OR SM.env <> 'TEST')
+     AND SM.metricType='CALL_LEG'
+     AND SM.callType='TERMINATED')
+WHERE orgId<>'unknown'
+  AND validOrg(orgId)<>'1'

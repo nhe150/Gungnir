@@ -1,0 +1,16 @@
+[
+  {
+    "time_stamp": "2017-11-08T22:30:47.000Z",
+    "pdate": "2017-11-08",
+    "dataid": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+    "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+    "userId": "",
+    "uaVersion": "2.0.6199.0",
+    "uaType": "sparkwindows",
+    "deviceType": "deviceType",
+    "legDuration": 1,
+    "source": "Spark",
+    "call_id": "^",
+    "relation_name": "callDuration"
+  }
+]

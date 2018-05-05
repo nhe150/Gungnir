@@ -1,0 +1,22 @@
+SELECT eventKey,time_stamp, orgId,userId,messages, calls, period, relation_name
+FROM
+(
+ SELECT eventKey,time_stamp, orgId,userId,messages, calls, period, relation_name,
+ dense_rank() OVER (PARTITION BY orgId ORDER BY messages + calls DESC) as rank
+ FROM
+ (
+    SELECT CONCAT(aggregateStartDate(time_stamp), '^', orgId, '^', userId, '^', 'topUser', '^', periodTag(orgId)) AS eventKey,
+     aggregateStartDate(time_stamp) as time_stamp,
+     orgId,
+     userId,
+     sum(isMessage) AS messages,
+     sum(isCall) AS calls,
+     periodTag(orgId) AS period,
+     'topUser' AS relation_name
+    FROM SOURCE_VIEW
+    GROUP BY orgId,
+     userId,
+     aggregateStartDate(time_stamp)
+ ) dataSet
+) randDataSet
+where rank <= 30

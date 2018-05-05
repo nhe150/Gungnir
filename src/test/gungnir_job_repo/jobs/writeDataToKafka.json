@@ -1,0 +1,26 @@
+{
+  "name": "writeDataToKafka",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "conv",
+          "timeStampField": "@timestamp",
+          "schemaName": "conv",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToKafka",
+        "parameters":{
+          "output": "conv",
+          "bootstrap_servers": "localhost:9092"
+        }
+      }
+    ]
+  ]
+}

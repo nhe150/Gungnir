@@ -1,0 +1,16 @@
+CREATE TEMP_VIEW TEMP AS SELECT endOfDay(time_stamp) as time_stamp,
+       orgId,
+       userId,
+       oneToOne,
+       group
+FROM  SOURCE_VIEW;
+
+SELECT time_stamp,
+       convertTime(time_stamp) as pdate,
+       CONCAT(convertTime(time_stamp), '^', orgId, '^rtUser^', CASE WHEN oneToOne IS NOT NULL THEN oneToOne ELSE 0 END, '^', CASE WHEN group IS NOT NULL THEN group ELSE 0 END) as dataid,
+       orgId,
+       userId,
+       oneToOne,
+       group,
+       'rtUser' AS relation_name
+FROM TEMP

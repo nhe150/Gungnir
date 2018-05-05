@@ -1,0 +1,16 @@
+CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+       orgId,
+       call_id
+FROM  SOURCE_VIEW;
+
+CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, call_id;
+
+SELECT CONCAT(time_stamp, '^', orgId, '^', 'callQuality', '^', periodTag(orgId)) AS eventKey,
+       time_stamp,
+       orgId,
+       count(call_id) AS number_of_total_calls,
+       periodTag(orgId) AS period,
+       'callQuality' AS relation_name
+FROM TEMP1
+GROUP BY time_stamp,
+         orgId;

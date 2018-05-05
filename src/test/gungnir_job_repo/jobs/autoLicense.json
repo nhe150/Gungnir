@@ -1,0 +1,37 @@
+{
+  "name": "autoLicense",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromKafka",
+        "parameters":{
+          "kafka":{
+            "topic": "atlas"
+          },
+          "timeStampField": "@timestamp",
+          "schemaName": "atlas"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"autoLicense",
+        "parameters":{
+          "output": "autoLicense"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "license",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      }
+    ]
+  ]
+}

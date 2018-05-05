@@ -1,0 +1,82 @@
+{
+  "name": "fileUsed",
+  "queryPlan":[
+    [
+      {
+        "queryName": "readFromKafka",
+        "parameters": {
+          "kafka": {
+            "topic": "conv"
+          },
+          "timeStampField": "@timestamp",
+          "schemaName": "conv"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"fileUsed",
+        "parameters":{
+          "output": "fileUsed"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      },
+      {
+        "queryName":"writeToKafka"
+      }
+    ],
+    [
+      {
+        "queryName": "readFromKafka",
+        "parameters": {
+          "kafka": {
+            "topic": "fileUsed"
+          },
+          "timeStampField": "time_stamp",
+          "schemaName": "fileUsed"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"fileUsedCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "fileUsedCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      }
+    ]
+  ]
+}

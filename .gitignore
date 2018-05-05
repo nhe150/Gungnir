@@ -4,4 +4,5 @@
 target/*
 project/*
 classes/*
+src/test/output
 .DS_Store

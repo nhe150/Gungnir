@@ -1,0 +1,33 @@
+{
+  "name": "autoLicenseFile",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "atlas",
+          "timeStampField": "@timestamp",
+          "schemaName": "atlas",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"autoLicense"
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "output": "autoLicense",
+          "format": "csv",
+          "saveMode": "append",
+          "partitionKey": "relation_name"
+        }
+      }
+    ]
+  ]
+}

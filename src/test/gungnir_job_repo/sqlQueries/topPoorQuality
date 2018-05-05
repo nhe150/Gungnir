@@ -1,0 +1,30 @@
+CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+       orgId,
+       userId,
+       CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad
+FROM SOURCE_VIEW;
+
+SELECT eventKey,time_stamp, orgId,userId,number_of_bad_calls, period, relation_name
+FROM
+(
+  SELECT eventKey,time_stamp, orgId,userId,number_of_bad_calls, period, relation_name,
+  dense_rank() OVER (PARTITION BY orgId ORDER BY number_of_bad_calls DESC) as rank
+  FROM
+  (
+      SELECT CONCAT(time_stamp, '^', orgId, '^', userId, '^', 'topPoorQuality', '^', periodTag(orgId)) AS eventKey,
+             time_stamp,
+             orgId,
+             userId,
+             sum(quality_is_bad) AS number_of_bad_calls,
+             periodTag(orgId) AS period,
+             'topPoorQuality' AS relation_name
+      FROM TEMP
+      GROUP BY orgId,
+               userId,
+               time_stamp
+      ORDER BY number_of_bad_calls DESC
+
+  ) dataSet
+  where number_of_bad_calls > 0
+) randDataSet
+where rank <= 30

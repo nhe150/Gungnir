@@ -1,0 +1,38 @@
+{
+  "name": "cassandraDataMigration",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"fileUsedCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "fileUsedCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      }
+    ]
+  ]
+}

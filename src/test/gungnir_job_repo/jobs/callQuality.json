@@ -1,0 +1,90 @@
+{
+  "name": "callQuality",
+  "queryPlan":[
+    [
+      {
+        "queryName": "readFromKafka",
+        "parameters": {
+          "kafka": {
+            "topic": "metrics"
+          },
+          "timeStampField": "timeRcvd",
+          "schemaName": "metrics"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callQuality",
+        "parameters": {
+          "output": "callQuality"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "parquet",
+          "saveMode": "append",
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      },
+      {
+        "queryName":"writeToKafka"
+      }
+    ],
+    [
+      {
+        "queryName": "readFromKafka",
+        "parameters": {
+          "kafka": {
+            "topic": "callQuality"
+          },
+          "timeStampField": "time_stamp",
+          "schemaName": "callQuality"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"callQualityBadCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callQualityBadCount"
+        }
+      },
+      {
+        "queryName":"callQualityTotalCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "callQualityTotalCount"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      }
+    ]
+  ]
+}

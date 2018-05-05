@@ -1,0 +1,29 @@
+{
+  "name": "writeDataToCassandra",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "fileUsed",
+          "timeStampField": "time_stamp",
+          "schemaName": "fileUsed",
+          "format": "json",
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      }
+    ]
+  ]
+}
