@@ -9,7 +9,8 @@
           "timeStampField": "time_stamp",
           "schemaName": "fileUsed",
           "format": "json",
-          "dataLocation": "src/test/gungnir_job_repo/testData/"
+          "dataLocation": "src/test/gungnir_job_repo/testData/",
+          "output": "fileUsedTest"
         }
       }
     ],

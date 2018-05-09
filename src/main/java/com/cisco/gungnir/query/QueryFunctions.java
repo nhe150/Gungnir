@@ -1,11 +1,10 @@
 package com.cisco.gungnir.query;
 
 import com.cisco.gungnir.config.ConfigProvider;
-import com.cisco.gungnir.utils.Cassandra;
-import com.cisco.gungnir.utils.Kafka;
-import com.cisco.gungnir.utils.File;
-import com.cisco.gungnir.utils.SqlFunctions;
+import com.cisco.gungnir.utils.*;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataTypes;
 
 import java.io.Serializable;
 
@@ -25,6 +24,14 @@ public class QueryFunctions implements Serializable {
         this.file = new File(spark, configProvider);
         setSparkConfig();
         SqlFunctions.registerFunctions(spark);
+    }
+
+    public Dataset splitData(Dataset dataset, JsonNode providedConfig) throws Exception{
+        spark.udf().register("getTimestampField", new SqlFunctions.RawTimestampField(), DataTypes.StringType);
+        spark.udf().register("preprocess", new SqlFunctions.Preprocess(), DataTypes.StringType);
+        spark.udf().register("appFilter", new SqlFunctions.AppFilter(ConfigProvider.retrieveConfigValue(providedConfig, "appName")), DataTypes.BooleanType);
+
+        return dataset.selectExpr("appFilter(value) as included", "value").where("included=true").selectExpr("convertTimeString(getTimestampField(value)) as pdate", "preprocess(value) as value");
     }
 
     private void setSparkConfig() throws Exception{

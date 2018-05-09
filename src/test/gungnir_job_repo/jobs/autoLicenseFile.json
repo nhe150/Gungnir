@@ -15,15 +15,27 @@
     ],
     [
       {
-        "queryName":"autoLicense"
+        "queryName":"autoLicense",
+        "parameters":{
+          "output": "autoLicense"
+        }
       }
     ],
     [
       {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "license",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      },
+      {
         "queryName":"writeToFile",
         "parameters":{
-          "output": "autoLicense",
-          "format": "csv",
+          "format": "json",
           "saveMode": "append",
           "partitionKey": "relation_name"
         }

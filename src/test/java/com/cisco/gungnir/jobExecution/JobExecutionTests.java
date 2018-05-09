@@ -34,48 +34,53 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     }
 
     @Test
-    public void testCassandraDataMigrationBatch() throws Exception {
-        jobExecutor.execute("cassandraDataMigration", "batch");
+    public void testSplitDataBatch() throws Exception {
+        jobExecutor.execute("splitData", "batch");
+    }
+
+    @Test
+    public void testSplitDataStream() throws Exception {
+        jobExecutor.execute("splitData", "stream");
     }
 
     @Test
     public void testCallQualityBatch() throws Exception {
-        jobExecutor.execute("callQualityBatch", "batch");
+        jobExecutor.execute("callQuality", "batch");
     }
 
     @Test
     public void testCallDurationBatch() throws Exception {
-        jobExecutor.execute("callDurationBatch", "batch");
+        jobExecutor.execute("callDuration", "batch");
     }
 
     @Test
     public void testFileUsedBatch() throws Exception {
-        jobExecutor.execute("fileUsedBatch", "batch");
+        jobExecutor.execute("fileUsed", "batch");
     }
 
     @Test
     public void testActiveUserBatch() throws Exception {
-        jobExecutor.execute("activeUserBatch", "batch");
+        jobExecutor.execute("activeUser", "batch");
     }
 
     @Test
     public void testRegisteredEndpointBatch() throws Exception {
-        jobExecutor.execute("registeredEndpointBatch", "batch");
+        jobExecutor.execute("registeredEndpoint", "batch");
     }
 
     @Test
     public void testAutoLicenseBatch() throws Exception {
-        jobExecutor.execute("autoLicenseBatch", "batch");
+        jobExecutor.execute("autoLicense", "batch");
     }
 
     @Test
     public void testTopPoorQualityBatch() throws Exception {
-        jobExecutor.execute("topPoorQualityBatch", "batch");
+        jobExecutor.execute("topPoorQuality", "batch");
     }
 
     @Test
     public void testTopUserBatch() throws Exception {
-        jobExecutor.execute("topUserBatch", "batch");
+        jobExecutor.execute("topUser", "batch");
     }
 
     @Test
@@ -139,6 +144,11 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     }
 
     @Test
+    public void testSplitDataFileBatch() throws Exception {
+        jobExecutor.execute("splitDataFile", "batch");
+    }
+
+    @Test
     public void testWriteDataToKafkaBatch() throws Exception {
         jobExecutor.execute("writeDataToKafka", "batch");
     }
@@ -146,6 +156,21 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     @Test
     public void testWriteDataToKafkaStream() throws Exception {
         jobExecutor.execute("writeDataToKafka", "stream");
+    }
+
+    @Test
+    public void testWriteDataToCassandraBatch() throws Exception {
+        jobExecutor.execute("writeDataToCassandra", "batch");
+    }
+
+    @Test
+    public void testWriteDataToCassandraStream() throws Exception {
+        jobExecutor.execute("writeDataToCassandra", "stream");
+    }
+
+    @Test
+    public void testCassandraDataMigrationBatch() throws Exception {
+        jobExecutor.execute("cassandraDataMigration", "batch");
     }
 
     @Test

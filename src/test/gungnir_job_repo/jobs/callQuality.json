@@ -25,7 +25,7 @@
       {
         "queryName":"writeToFile",
         "parameters":{
-          "format": "parquet",
+          "format": "json",
           "saveMode": "append",
           "partitionKey": "pdate"
         }

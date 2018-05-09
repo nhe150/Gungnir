@@ -45,6 +45,4 @@ assemblyMergeStrategy in assembly := {
 
 unmanagedResourceDirectories in Test += baseDirectory.value / "src" / "main" / "resources"
 
-jacocoExcludes ++= Seq("SparkDataStreaming", "SparkDataBatch", "SparkDataMonitor")
-coverageExcludedPackages := "<empty>;util.Constants;DeleteRocords;"
-
+jacocoExcludes ++= Seq("com.cisco.gungnir.pipelines.*")

@@ -1,8 +1,8 @@
 package com.cisco.gungnir.utils;
 
-import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.spark.sql.Dataset;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
@@ -33,6 +33,7 @@ public class SqlFunctions implements Serializable {
         spark.udf().register("endOfDay", new EndOfDay(), DataTypes.TimestampType);
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
         spark.udf().register("shortUuid", new shortUuid(), DataTypes.StringType);
+        spark.udf().register("convertTimeString", new ConvertTimeString("yyyy-MM-dd"), DataTypes.StringType);
 
         spark.udf()
                 .register("get_only_file_name", (String fullPath) -> {
@@ -172,6 +173,17 @@ public class SqlFunctions implements Serializable {
         }
     }
 
+    private static class ConvertTimeString implements UDF1<String, String> {
+        private TimeConverter timeConverter;
+        public ConvertTimeString(String toPattern){
+            this.timeConverter = new TimeConverter(toPattern);
+        }
+
+        public String call(String timeStampString) throws Exception {
+            return timeConverter.convert(timeStampString);
+        }
+    }
+
     private static class ValidOrgLookup implements UDF1<String, String> {
         private Map<String, String> orgExcludeMap;
 
@@ -200,6 +212,70 @@ public class SqlFunctions implements Serializable {
 
         public String call(String orgId) throws Exception {
             return orgExcludeMap.get(orgId) == null ? "0" : orgExcludeMap.get(orgId);
+        }
+    }
+
+    public static class AppFilter implements UDF1<String, Boolean> {
+        private String tag;
+
+        public AppFilter(String appName) {
+            this.tag = "appname\":" + '"' + appName + '"';
+        }
+
+        public Boolean call(String line) {
+            return line.contains(tag);
+        }
+    }
+
+
+    public static class RawTimestampField implements UDF1<String, String> {
+        private transient ObjectMapper objectMapper;
+
+        public String call(String value) {
+            if (objectMapper == null) {
+                objectMapper = new ObjectMapper();
+            }
+            try {
+                ObjectNode objectNode = (ObjectNode) objectMapper.readTree(value);
+                if(objectNode.has("timeRcvd")){
+                    return objectNode.get("timeRcvd").asText();
+                }
+                if(objectNode.has("@timestamp")){
+                    return objectNode.get("@timestamp").asText();
+                }
+                return Constants.BAD_DATA_LABLE;
+            } catch (Exception e) {
+                return Constants.BAD_DATA_LABLE;
+            }
+        }
+    }
+
+    public static class Preprocess implements UDF1<String, String> {
+        private transient ObjectMapper objectMapper;
+
+        public String call(String value) {
+            if (objectMapper == null) {
+                objectMapper = new ObjectMapper();
+            }
+            try {
+                ObjectNode objectNode = (ObjectNode) objectMapper.readTree(value);
+                if (objectNode.get("appname") != null) {
+                    return objectNode.toString();
+                } else {
+                    String message = objectNode.get("@message").asText();
+                    String[] jsonMessages = message.split(":", 2);
+                    if (jsonMessages.length == 2) {
+                        JsonNode metric = objectMapper.readTree(jsonMessages[1].trim());
+                        objectNode.set("SM", metric);
+                        objectNode.remove("@message");
+                        return objectNode.toString();
+                    } else {
+                        return value;
+                    }
+                }
+            } catch (Exception e) {
+                return value;
+            }
         }
     }
 }

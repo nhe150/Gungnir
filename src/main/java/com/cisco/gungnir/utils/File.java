@@ -45,11 +45,19 @@ public class File implements Serializable {
                             ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"));
                 }
-                return readFileBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
+                if(!ConfigProvider.hasConfigValue(fileConfig, "schemaName")){
+                    return readFileBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
+                            ConfigProvider.retrieveConfigValue(fileConfig, "input"), ConfigProvider.retrieveConfigValue(fileConfig, "format"), "*");
+                }
+                return readFileBatchWithSchema(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                         ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                         configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")), ConfigProvider.retrieveConfigValue(fileConfig, "format"), "*");
             case "stream":
-                return readFileStream(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
+                if(!ConfigProvider.hasConfigValue(fileConfig, "schemaName")){
+                    return readFileStream(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
+                            ConfigProvider.retrieveConfigValue(fileConfig, "input"), ConfigProvider.retrieveConfigValue(fileConfig, "format"));
+                }
+                return readFileStreamWithSchema(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                         ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                         configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")), ConfigProvider.retrieveConfigValue(fileConfig, "format"));
             default:
@@ -108,7 +116,23 @@ public class File implements Serializable {
         }
     }
 
-    public Dataset readFileStream(String dataLocation, String input, StructType schema, String format){
+    public Dataset readFileStream(String dataLocation, String input, String format){
+        input = input.replaceAll("\\s","");
+        String[] inputs = input.split(",");
+        Dataset dataset= spark
+                .readStream()
+                .format(format)
+                .load(dataLocation + inputs[0]);
+        for(int i=1; i<inputs.length; i++){
+            dataset = dataset.union(spark
+                    .readStream()
+                    .format(format)
+                    .load(dataLocation + inputs[i]));
+        }
+        return dataset.selectExpr("CAST(value AS STRING)");
+    }
+
+    public Dataset readFileStreamWithSchema(String dataLocation, String input, StructType schema, String format){
         input = input.replaceAll("\\s","");
         String[] inputs = input.split(",");
         Dataset dataset= spark
@@ -144,7 +168,20 @@ public class File implements Serializable {
 
     }
 
-    public Dataset readFileBatch(String dataLocation, String input, StructType schema, String format, String regex){
+    public Dataset readFileBatch(String dataLocation, String input, String format, String regex){
+        input = input.replaceAll("\\s","");
+        String[] inputs = input.split(",");
+        Dataset dataset = spark.read().format(format).load(dataLocation + inputs[0] + "/" + regex );
+        for(int i=1; i<inputs.length; i++){
+            dataset = dataset.union(spark
+                    .read()
+                    .format(format)
+                    .load(dataLocation + inputs[i] + "/" + regex ));
+        }
+        return dataset.selectExpr("CAST(value AS STRING)");
+    }
+
+    public Dataset readFileBatchWithSchema(String dataLocation, String input, StructType schema, String format, String regex){
         input = input.replaceAll("\\s","");
         String[] inputs = input.split(",");
         Dataset dataset = spark.createDataFrame(new ArrayList<>(), schema);
@@ -163,7 +200,7 @@ public class File implements Serializable {
         Dataset<Row> dataset = spark.createDataFrame(new ArrayList<>(), schema);
 
         for(String d: aggregateDates(getPeriodStartDate(date, period), period)){
-            dataset = dataset.union(readFileBatch(dataLocation,input, schema, format, partitionKey + "=" + d));
+            dataset = dataset.union(readFileBatchWithSchema(dataLocation,input, schema, format, partitionKey + "=" + d));
         }
         return dataset;
     }

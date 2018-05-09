@@ -1,5 +1,5 @@
 {
-  "name": "topPoorQualityBatch",
+  "name": "topPoorQuality",
   "queryPlan":[
     [
       {
@@ -32,6 +32,14 @@
             "keyspace": "ks_global_pda",
             "saveMode": "update"
           }
+        }
+      },
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "json",
+          "saveMode": "overwrite",
+          "partitionKey": "relation_name"
         }
       }
     ]

@@ -6,7 +6,9 @@
         "queryName":"readFromKafka",
         "parameters":{
           "kafka":{
-            "topic": "conv, locus"
+            "topic": "conv, locus",
+            "startingOffsets": {"conv":{"0":-2},"locus":{"0":-2}},
+            "endingOffsets": {"conv":{"0":-1},"locus":{"0":-1}}
           },
           "timeStampField": "@timestamp",
           "schemaName": "conv"
@@ -25,7 +27,7 @@
       {
         "queryName":"writeToFile",
         "parameters":{
-          "format": "csv",
+          "format": "json",
           "saveMode": "append",
           "partitionKey": "pdate"
         }

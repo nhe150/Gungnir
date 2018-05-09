@@ -1,0 +1,56 @@
+{
+  "name": "splitDataFile",
+  "queryPlan":[
+    [
+      {
+        "queryName": "readFromKafka",
+        "parameters": {
+          "kafka": {
+            "topic": "raw"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"splitData",
+        "parameters":{
+          "appName": "conv",
+          "output": "conv"
+        }
+      },
+      {
+        "queryName":"splitData",
+        "parameters":{
+          "appName": "metrics",
+          "output": "metrics"
+        }
+      },
+      {
+        "queryName":"splitData",
+        "parameters":{
+          "appName": "locus",
+          "output": "locus"
+        }
+      },
+      {
+        "queryName":"splitData",
+        "parameters":{
+          "appName": "atlas",
+          "output": "atlas"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToKafka",
+        "parameters": {
+          "kafka": {
+            "topicKey": "pdate",
+            "topicValue": "value"
+          }
+        }
+      }
+    ]
+  ]
+}

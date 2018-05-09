@@ -15,17 +15,29 @@
     ],
     [
       {
-        "queryName":"activeUser"
+        "queryName":"activeUser",
+        "parameters": {
+          "output": "activeUser"
+        }
       }
     ],
     [
       {
         "queryName":"writeToFile",
         "parameters":{
-          "output": "activeUser",
-          "format": "csv",
-          "saveMode": "overwrite",
-          "partitionKey": "relation_name"
+          "format": "json",
+          "saveMode": "append",
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
         }
       },
       {
@@ -41,7 +53,32 @@
         "parameters":{
           "output": "rtUser"
         }
-      },
+      }
+    ],
+    [
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "activeUser",
+          "timeStampField": "time_stamp",
+          "schemaName": "activeUser",
+          "format": "json"
+        }
+      }
+    ],
+    [
       {
         "queryName":"activeUserCount",
         "parameters":{
@@ -53,10 +90,20 @@
     ],
     [
       {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      },
+      {
         "queryName":"writeToFile",
         "parameters":{
-          "format": "csv",
-          "saveMode": "overwrite",
+          "format": "json",
+          "saveMode": "append",
           "partitionKey": "relation_name"
         }
       }

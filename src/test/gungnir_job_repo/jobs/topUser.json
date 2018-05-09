@@ -1,13 +1,13 @@
 {
-  "name": "topPoorQualityFile",
+  "name": "topUser",
   "queryPlan":[
     [
       {
         "queryName":"readFromFile",
         "parameters":{
-          "input": "callQuality",
+          "input": "activeUser",
           "timeStampField": "time_stamp",
-          "schemaName": "callQuality",
+          "schemaName": "activeUser",
           "format": "json",
           "dataLocation": "src/test/gungnir_job_repo/testData/"
         }
@@ -15,19 +15,29 @@
     ],
     [
       {
-        "queryName":"topPoorQuality",
+        "queryName":"topUser",
         "parameters":{
           "aggregatePeriod": "daily",
           "timeStampField": "time_stamp",
-          "output": "topPoorQuality"
+          "output": "topUser"
         }
       }
     ],
     [
       {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      },
+      {
         "queryName":"writeToFile",
         "parameters":{
-          "format": "csv",
+          "format": "json",
           "saveMode": "overwrite",
           "partitionKey": "relation_name"
         }

@@ -59,6 +59,9 @@ public class QueryExecutor implements Serializable {
             case "writeToFile":
                 queryFunctions.file.writeToFile(previous, queryType, parameters);
                 break;
+            case "splitData":
+                result = queryFunctions.splitData(previous, parameters);
+                break;
             default:
                 result = executeSqlQueries(previous, queryName, parameters);
         }

@@ -73,7 +73,7 @@ public class DataVolumeMonitor implements Serializable {
 
         Dataset messages = app.createMessages(dataWithFlag);
 
-        app.queryFunctions.kafka.batchToKafka(messages, mergedConfigProvider.retrieveAppConfigValue("kafka.sparkDataMonitoringTopic"), mergedConfigProvider.retrieveAppConfigValue("kafka.broker"));
+        app.queryFunctions.kafka.batchToKafka(messages, mergedConfigProvider.getAppConfig());
 
     }
 

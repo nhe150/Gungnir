@@ -9,7 +9,8 @@
           "timeStampField": "@timestamp",
           "schemaName": "conv",
           "format": "json",
-          "dataLocation": "src/test/gungnir_job_repo/testData/"
+          "dataLocation": "src/test/gungnir_job_repo/testData/",
+          "output": "convTest"
         }
       }
     ],
@@ -17,8 +18,10 @@
       {
         "queryName":"writeToKafka",
         "parameters":{
-          "output": "conv",
-          "bootstrap_servers": "localhost:9092"
+          "kafka":{
+            "topic": "conv",
+            "bootstrap_servers": "localhost:9092"
+          }
         }
       }
     ]

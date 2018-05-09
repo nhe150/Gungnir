@@ -15,17 +15,29 @@
     ],
     [
       {
-        "queryName":"registeredEndpoint"
+        "queryName":"registeredEndpoint",
+        "parameters":{
+          "output": "registeredEndpoint"
+        }
       }
     ],
     [
       {
         "queryName":"writeToFile",
         "parameters":{
-          "output": "registeredEndpoint",
-          "format": "csv",
+          "format": "json",
           "saveMode": "append",
-          "partitionKey": "relation_name"
+          "partitionKey": "pdate"
+        }
+      },
+      {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_data",
+            "keyspace": "ks_global_pda",
+            "saveMode": "append"
+          }
         }
       },
       {
@@ -39,9 +51,19 @@
     ],
     [
       {
+        "queryName":"writeToCassandra",
+        "parameters":{
+          "cassandra":{
+            "table": "spark_agg",
+            "keyspace": "ks_global_pda",
+            "saveMode": "update"
+          }
+        }
+      },
+      {
         "queryName":"writeToFile",
         "parameters":{
-          "format": "csv",
+          "format": "json",
           "saveMode": "append",
           "partitionKey": "relation_name"
         }
