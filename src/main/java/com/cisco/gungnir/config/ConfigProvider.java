@@ -60,7 +60,6 @@ public class ConfigProvider implements Serializable {
         Dataset queries = spark.read().textFile(retrieveConfigValue(appConfig, "queryLocation"))
                 .withColumn("filename", input_file_name()).selectExpr("get_only_file_name(filename) as name", "value")
                 .groupBy("name").agg(collect_list("value").as("value")).selectExpr("name", "concat_ws(' ', value) as query");
-        queries.show(false);
         Dataset query = queries.select( "query").where("name='"+ sqlName + "'");
         if(query.rdd().isEmpty()) throw new IllegalArgumentException("Can find query with query name "+ sqlName);
         return query.as(Encoders.STRING()).collectAsList().get(0).toString();

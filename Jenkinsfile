@@ -48,7 +48,7 @@ node ("Linux") {
    }
    stage('Upload Test Results') {
       junit '**/target/test-reports/*.xml'
-      jacoco exclusionPattern: 'com.cisco.gungnir.pipelines.*'
+      jacoco exclusionPattern: '**/com/cisco/gungnir/pipelines/**/*'
    }
   stage('Package') {
     try {

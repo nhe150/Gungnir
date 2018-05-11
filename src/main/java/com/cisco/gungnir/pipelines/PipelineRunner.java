@@ -43,7 +43,6 @@ public class PipelineRunner implements Serializable {
 
 
         SparkSession spark = SparkSession.builder()
-                .config("spark.cassandra.connection.port", "9142")
                 .appName(jobName).getOrCreate();
 
         ConfigProvider configProvider = new ConfigProvider(spark, configFile);

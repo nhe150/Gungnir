@@ -66,11 +66,6 @@ public class QueryExecutor implements Serializable {
                 result = executeSqlQueries(previous, queryName, parameters);
         }
 
-        if(result!=null){
-            if("batch".equals(queryType)) result.show(false);
-//            if("stream".equals(queryType)) result.writeStream().format("console").start();
-        }
-
         if(parameters!= null && parameters.has("timeStampField") && result != null && result.columns().length!=0) {
             result = setTimestampField(result, parameters.get("timeStampField").asText());
         }
@@ -193,6 +188,7 @@ public class QueryExecutor implements Serializable {
         for(int i=0; i<queryList.length; i++){
             setWatermark(ds, parameters).createOrReplaceTempView(view);
             String query = queryList[i].trim();
+            System.out.println("executing spark sql query: " + query);
             view = StringUtils.substringBetween(query, "TEMP_VIEW", "AS");
             if(query.contains("TEMP_VIEW")){
                 if (query.contains("DropDuplicates")){

@@ -63,11 +63,12 @@ public class Kafka implements Serializable {
     }
 
     public Dataset<Row> readKafkaStream(JsonNode kafkaConfig) throws Exception {
+        boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
         return spark
                 .readStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("subscribe", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"))
+                .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"), useTopicPrefix))
                 .option("maxOffsetsPerTrigger", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.maxOffsetsPerTrigger"))
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
@@ -85,11 +86,13 @@ public class Kafka implements Serializable {
     }
 
     public Dataset<Row> readKafkaBatch(JsonNode kafkaConfig) throws Exception {
+        boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
+
         return spark
                 .read()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("subscribe", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"))
+                .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"), useTopicPrefix))
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
                 .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
@@ -108,13 +111,13 @@ public class Kafka implements Serializable {
 
     public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
         String topic = constructKafkaTopic(kafkaConfig);
-        String output = ConfigProvider.hasConfigValue(kafkaConfig, "output")? ConfigProvider.retrieveConfigValue(kafkaConfig, "output"): "";
+        boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
 
         return  constructKafkaKeyValue(dataset, kafkaConfig)
                 .writeStream()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(topic))
+                .option("topic", getKafkaTopicNames(topic, useTopicPrefix))
                 .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.retries"))
                 .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.retryBackoffMs"))
                 .option("kafka.metadata.fetch.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.metadataFetchTimeoutMs"))
@@ -126,16 +129,18 @@ public class Kafka implements Serializable {
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
                 .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamngTriggerWindow")))
-                .queryName("streamToKafka_" + topic + output)
+                .queryName("sinkToKafka_" + topic)
                 .start();
     }
 
     public void batchToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
+        boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
+
         constructKafkaKeyValue(dataset, kafkaConfig)
                 .write()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(constructKafkaTopic(kafkaConfig)))
+                .option("topic", getKafkaTopicNames(constructKafkaTopic(kafkaConfig), useTopicPrefix))
                 .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
                 .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
                 .save();
@@ -170,7 +175,8 @@ public class Kafka implements Serializable {
         return dataset;
     }
 
-    private String getKafkaTopicNames(String topics) throws Exception{
+    private String getKafkaTopicNames(String topics, Boolean useTopicPrefix) throws Exception{
+        if(!useTopicPrefix) return topics;
         String[] topicNames = topics.split(",");
         for(int i=0; i < topicNames.length; i++){
             topicNames[i] = configProvider.retrieveAppConfigValue("kafka.topicPrefix") + topicNames[i] + configProvider.retrieveAppConfigValue("kafka.topicPostfix");

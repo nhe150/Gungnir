@@ -85,21 +85,26 @@ public class File implements Serializable {
                     streamToFileByKey(dataset, outputPath,
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "saveMode"),
-                            ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"));
+                            ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"),
+                            ConfigProvider.retrieveConfigValue(fileConfig, "output"));
                     return;
                 }
-                streamToFileByKey(dataset, outputPath, ConfigProvider.retrieveConfigValue(fileConfig, "format"), ConfigProvider.retrieveConfigValue(fileConfig, "saveMode"), null);
+                streamToFileByKey(dataset, outputPath,
+                        ConfigProvider.retrieveConfigValue(fileConfig, "format"),
+                        ConfigProvider.retrieveConfigValue(fileConfig, "saveMode"),
+                        null,
+                        ConfigProvider.retrieveConfigValue(fileConfig, "output"));
                 break;
             default:
                 throw new IllegalArgumentException("Invalid process type: " + processType + " for writeToFile");
         }
     }
 
-    public StreamingQuery streamToFileByKey(Dataset<Row> dataset, String outputPath, String format, String saveMode, String partitionKey) throws Exception{
+    public StreamingQuery streamToFileByKey(Dataset<Row> dataset, String outputPath, String format, String saveMode, String partitionKey, String queryName) throws Exception{
         if(partitionKey != null){
             return dataset
                     .writeStream()
-                    .queryName("streamToFile_" + outputPath)
+                    .queryName("sinkToFile_" + queryName)
                     .partitionBy(partitionKey)
                     .outputMode(saveMode)
                     .trigger(ProcessingTime(configProvider.retrieveAppConfigValue("spark.streamngTriggerWindow")))
@@ -108,7 +113,7 @@ public class File implements Serializable {
         } else{
             return dataset
                     .writeStream()
-                    .queryName("streamToFile_" + outputPath)
+                    .queryName("sinkToFile_" + queryName)
                     .outputMode(saveMode)
                     .trigger(ProcessingTime(configProvider.retrieveAppConfigValue("spark.streamngTriggerWindow")))
                     .format(format)
