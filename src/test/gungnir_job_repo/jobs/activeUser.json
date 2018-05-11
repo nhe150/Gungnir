@@ -8,7 +8,8 @@
           "kafka":{
             "topic": "conv, locus",
             "startingOffsets": {"conv":{"0":-2},"locus":{"0":-2}},
-            "endingOffsets": {"conv":{"0":-1},"locus":{"0":-1}}
+            "endingOffsets": {"conv":{"0":-1},"locus":{"0":-1}},
+            "useTopicPrefix": false
           },
           "timeStampField": "@timestamp",
           "schemaName": "conv"
