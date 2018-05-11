@@ -1,14 +1,14 @@
 CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
     orgId,
-    userId
+    oneToOne
 FROM  SOURCE_VIEW;
 
-CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, userId;
+CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, oneToOne;
 
 SELECT CONCAT(time_stamp, '^', orgId, '^', 'activeUser', '^', periodTag(orgId)) AS eventKey,
        time_stamp,
        orgId,
-       COUNT(userId) AS userCountByOrg,
+       COUNT(oneToOne) AS oneToOneCount,
        periodTag(orgId) AS period,
        'activeUser' AS relation_name
 FROM TEMP1

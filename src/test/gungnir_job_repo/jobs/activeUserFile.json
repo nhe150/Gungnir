@@ -86,6 +86,22 @@
           "timeStampField": "time_stamp",
           "output": "activeUserCount"
         }
+      },
+      {
+        "queryName":"oneToOneCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "oneToOneCount"
+        }
+      },
+      {
+        "queryName":"spaceCount",
+        "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
+          "output": "spaceCount"
+        }
       }
     ],
     [
