@@ -1,8 +1,13 @@
 package com.cisco.gungnir.utils;
 
+import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
@@ -12,22 +17,25 @@ import scala.collection.JavaConversions;
 import scala.collection.mutable.WrappedArray;
 import util.UDFUtil;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static com.cisco.gungnir.utils.CommonFunctions.TimeConverter;
 import static com.cisco.gungnir.utils.CommonFunctions.getFirstDayOfWeek;
 
 public class SqlFunctions implements Serializable {
-    public static void registerFunctions(SparkSession spark){
-        spark.udf().register("validOrg", new ValidOrgLookup("/officialOrgList.csv"), DataTypes.StringType);
+    private SparkSession spark;
+    private ConfigProvider configProvider;
+
+    public SqlFunctions(SparkSession spark, ConfigProvider configProvider) throws Exception{
+        this.spark = spark;
+        this.configProvider = configProvider;
+    }
+    public void registerFunctions() throws Exception{
+        spark.udf().register("validOrg", new ValidOrgLookup(configProvider.retrieveAppConfigValue("configLocation") + "officialOrgList.csv"), DataTypes.StringType);
+        spark.udf().register("testUser", new TestUser(configProvider.retrieveAppConfigValue("configLocation") + "testUserList.json"), DataTypes.IntegerType);
         spark.udf().register("convertTime", new ConvertTime("yyyy-MM-dd"), DataTypes.StringType);
         spark.udf().register("calcAvgFromHistMin", new calcAvgFromHistMin(), DataTypes.FloatType);
         spark.udf().register("endOfDay", new EndOfDay(), DataTypes.TimestampType);
@@ -184,34 +192,32 @@ public class SqlFunctions implements Serializable {
         }
     }
 
-    private static class ValidOrgLookup implements UDF1<String, String> {
-        private Map<String, String> orgExcludeMap;
-
-        public ValidOrgLookup(String fileName){
-            this.orgExcludeMap = parseUsingOpenCSV(fileName);
+    private class TestUser implements UDF1<String, Integer> {
+        private List<String> testUserList;
+        public TestUser(String configPath){
+            Dataset testUser = spark.read().option("multiline", true).json(configPath).selectExpr("explode(testUsers) as testUser");
+            testUserList = testUser.map((MapFunction<Row, String>) row -> row.<String>getString(0), Encoders.STRING()).collectAsList();
         }
+        public Integer call(String userId) throws Exception {
+            return testUserList.contains(userId)? 1:0;
+        }
+    }
 
-        public Map<String, String> parseUsingOpenCSV(String fileName) {
-            Map<String, String> orgExcludeMap = new HashMap();
-            InputStream inputStream = getClass().getResourceAsStream(fileName);
+    private class ValidOrgLookup implements UDF1<String, String> {
+        private List<String> excludedOrgList;
 
-            try{
-                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-                for(String line = br.readLine(); line != null; line = br.readLine()){
-                    String[] record = line.split(",");
-                    String orgId = record[0].replaceAll("\"", "");
-                    orgExcludeMap.put(orgId, record[7]);
-                }
-                br.close();
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-
-            return orgExcludeMap;
+        public ValidOrgLookup(String configPath){
+            Dataset orgList = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            Dataset excludedOrg = orgList.where("exclude=1").selectExpr("org_id");
+            excludedOrgList = excludedOrg.map((MapFunction<Row, String>) row -> row.<String>getString(0), Encoders.STRING()).collectAsList();
         }
 
         public String call(String orgId) throws Exception {
-            return orgExcludeMap.get(orgId) == null ? "0" : orgExcludeMap.get(orgId);
+            return excludedOrgList.contains(orgId) ? "1" : "0";
         }
     }
 

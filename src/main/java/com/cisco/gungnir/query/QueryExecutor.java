@@ -182,7 +182,6 @@ public class QueryExecutor implements Serializable {
     }
 
     public Dataset executeSqlQueries(Dataset ds, String queryName, JsonNode parameters) throws Exception {
-        SqlFunctions.registerFunctions(spark);
         String[] queryList = configProvider.readSql(queryName).split(";");
         String view = "SOURCE_VIEW";
         for(int i=0; i<queryList.length; i++){

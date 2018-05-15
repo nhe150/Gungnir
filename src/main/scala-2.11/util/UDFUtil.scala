@@ -2,27 +2,7 @@ package util
 
 import org.apache.spark.sql.SQLContext
 
-import scala.collection.mutable
-import org.apache.spark.sql.functions._
-
 object UDFUtil {
-  lazy val testUsers = loadTestUser
-
-  def loadTestUser = {
-    var testUsers = mutable.HashSet[String]()
-    val stream = getClass.getResourceAsStream("/testuser.txt")
-    for (line <- scala.io.Source.fromInputStream(stream).getLines)
-      testUsers.add(line.trim())
-    testUsers
-  }
-
-
-  def testUser_(uid: String) = {
-    if (testUsers.contains(uid)) 1 else 0
-  }
-
-  def testUser = udf[Int, String](testUser_)
-
   val ep1 = (device: String, ua: String) => {
     (Option(device).getOrElse("") + "|" + Option(ua).getOrElse("UA")) match {
 
@@ -50,7 +30,6 @@ object UDFUtil {
 
   def register(sqlContext: SQLContext) = {
     sqlContext.udf.register("ep1", ep1)
-    sqlContext.udf.register("testUser", testUser)
   }
 }
 

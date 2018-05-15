@@ -23,7 +23,8 @@ public class QueryFunctions implements Serializable {
         this.cassandra = new Cassandra(spark, configProvider);
         this.file = new File(spark, configProvider);
         setSparkConfig();
-        SqlFunctions.registerFunctions(spark);
+        SqlFunctions sqlFunctions = new SqlFunctions(spark, configProvider);
+        sqlFunctions.registerFunctions();
     }
 
     public Dataset splitData(Dataset dataset, JsonNode providedConfig) throws Exception{

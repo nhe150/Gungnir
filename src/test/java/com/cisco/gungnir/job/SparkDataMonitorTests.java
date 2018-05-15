@@ -1,7 +1,6 @@
-package com.cisco.gungnir.jobExecution;
+package com.cisco.gungnir.job;
 
 import com.cisco.gungnir.config.ConfigProvider;
-import com.cisco.gungnir.job.SparkDataMonitor;
 import com.cisco.gungnir.util.kafka.EmbeddedSingleNodeKafkaCluster;
 import com.holdenkarau.spark.testing.JavaDatasetSuiteBase;
 import org.apache.spark.sql.SparkSession;

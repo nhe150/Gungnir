@@ -5,4 +5,5 @@ target/*
 project/*
 classes/*
 src/test/output
+src/test/checkpoint
 .DS_Store
