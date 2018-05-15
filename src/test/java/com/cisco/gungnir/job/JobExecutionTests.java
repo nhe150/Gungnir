@@ -182,6 +182,13 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
         assertEquals(null, resultAfterDelete.iterator().next());
     }
 
+    @Test
+    public void testSparkDataMonitor() throws Exception {
+        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/sparkDataMonitor.conf");
+        SparkDataMonitor sparkDataMonitor = new SparkDataMonitor(spark, configProvider);
+        sparkDataMonitor.run("2018-05-11", "0.3", "*");
+    }
+
     @After
     public void after()throws Exception{
 
