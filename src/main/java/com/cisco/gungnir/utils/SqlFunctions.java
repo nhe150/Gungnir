@@ -249,9 +249,9 @@ public class SqlFunctions implements Serializable {
                 if(objectNode.has("@timestamp")){
                     return objectNode.get("@timestamp").asText();
                 }
-                return Constants.BAD_DATA_LABLE;
+                return "";
             } catch (Exception e) {
-                return Constants.BAD_DATA_LABLE;
+                return "";
             }
         }
     }

@@ -48,6 +48,7 @@ public class Kafka implements Serializable {
     }
 
     public void writeToKafka(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
+        if(dataset==null) throw new IllegalArgumentException("can't write to kafka: the input dataset is NULL, please check previous query");
         JsonNode kafkaConfig = getKafkaConfig(providedConfig);
 
         switch (processType) {
@@ -73,7 +74,7 @@ public class Kafka implements Serializable {
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
                 .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
-                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString(): "earliest")
+                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", ""): "latest")
                 .load()
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
                 .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
@@ -81,7 +82,6 @@ public class Kafka implements Serializable {
 
     public Dataset<Row> readKafkaStreamWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaStream(kafkaConfig)
-                .filter(col("key").notEqual(Constants.BAD_DATA_LABLE))
                 .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data")).select("data.*");
     }
 
@@ -96,8 +96,8 @@ public class Kafka implements Serializable {
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
                 .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
-                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString(): "earliest")
-                .option("endingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.endingOffsets")? kafkaConfig.get("kafka").get("endingOffsets").toString(): "latest")
+                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", ""): "earliest")
+                .option("endingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.endingOffsets")? kafkaConfig.get("kafka").get("endingOffsets").toString().replaceAll("^\"|\"$", ""): "latest")
                 .load()
                 .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
                 .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
@@ -105,7 +105,6 @@ public class Kafka implements Serializable {
 
     public Dataset<Row> readKafkaBatchWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaBatch(kafkaConfig)
-                .filter(col("key").notEqual(Constants.BAD_DATA_LABLE))
                 .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data")).select("data.*");
     }
 
@@ -177,6 +176,7 @@ public class Kafka implements Serializable {
 
     private String getKafkaTopicNames(String topics, Boolean useTopicPrefix) throws Exception{
         if(!useTopicPrefix) return topics;
+        topics = topics.replaceAll("\\s","");
         String[] topicNames = topics.split(",");
         for(int i=0; i < topicNames.length; i++){
             topicNames[i] = configProvider.retrieveAppConfigValue("kafka.topicPrefix") + topicNames[i] + configProvider.retrieveAppConfigValue("kafka.topicPostfix");

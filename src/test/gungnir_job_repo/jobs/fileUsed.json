@@ -6,7 +6,8 @@
         "queryName": "readFromKafka",
         "parameters": {
           "kafka": {
-            "topic": "conv"
+            "topic": "conv",
+            "startingOffsets": "earliest"
           },
           "timeStampField": "@timestamp",
           "schemaName": "conv"

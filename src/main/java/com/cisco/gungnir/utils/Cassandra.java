@@ -65,6 +65,7 @@ public class Cassandra implements Serializable {
     }
 
     public void writeToCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
+        if(dataset==null) throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
         JsonNode mergedConfig = getCassandraConfig(providedConfig);
         switch (processType) {
             case "batch":
@@ -79,6 +80,8 @@ public class Cassandra implements Serializable {
     }
 
     public void deleteFromCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
+        if(dataset==null) throw new IllegalArgumentException("can't delete from cassandra: the input dataset is NULL, please check previous query");
+
         getCassandraConfig(providedConfig);
 
         switch (processType) {

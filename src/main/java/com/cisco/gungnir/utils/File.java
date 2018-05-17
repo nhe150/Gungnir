@@ -66,6 +66,8 @@ public class File implements Serializable {
     }
 
     public void writeToFile(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
+        if(dataset==null) throw new IllegalArgumentException("can't write to file: the input dataset is NULL, please check previous query");
+
         JsonNode fileConfig = getFileConfig(providedConfig);
         String outputPath = ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation") + ConfigProvider.retrieveConfigValue(fileConfig, "output");
 
@@ -163,7 +165,7 @@ public class File implements Serializable {
                     .mode(getSaveMode(saveMode))
                     .partitionBy(partitionKey)
                     .format(format)
-                    .save(outputPath + "/" + partitionKey);
+                    .save(outputPath);
         } else {
             dataset.write()
                     .mode(getSaveMode(saveMode))

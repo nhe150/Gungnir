@@ -61,6 +61,8 @@
       {
         "queryName":"rtUser",
         "parameters":{
+          "aggregatePeriod": "daily",
+          "timeStampField": "time_stamp",
           "output": "rtUser"
         }
       }
@@ -72,7 +74,7 @@
           "cassandra":{
             "table": "spark_data",
             "keyspace": "ks_global_pda",
-            "saveMode": "append"
+            "saveMode": "update"
           }
         }
       }

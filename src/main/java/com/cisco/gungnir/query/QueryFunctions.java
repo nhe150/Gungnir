@@ -28,6 +28,8 @@ public class QueryFunctions implements Serializable {
     }
 
     public Dataset splitData(Dataset dataset, JsonNode providedConfig) throws Exception{
+        if(dataset==null) throw new IllegalArgumentException("can't execute splitData query: the input dataset is NULL, please check previous query");
+
         spark.udf().register("getTimestampField", new SqlFunctions.RawTimestampField(), DataTypes.StringType);
         spark.udf().register("preprocess", new SqlFunctions.Preprocess(), DataTypes.StringType);
         spark.udf().register("appFilter", new SqlFunctions.AppFilter(ConfigProvider.retrieveConfigValue(providedConfig, "appName")), DataTypes.BooleanType);
