@@ -9,6 +9,7 @@
           "timeStampField": "@timestamp",
           "schemaName": "conv",
           "format": "json",
+          "multiline": true,
           "dataLocation": "src/test/gungnir_job_repo/testData/"
         }
       }
@@ -76,6 +77,7 @@
           "input": "activeUser",
           "timeStampField": "time_stamp",
           "schemaName": "activeUser",
+          "multiline": true,
           "format": "json"
         }
       }

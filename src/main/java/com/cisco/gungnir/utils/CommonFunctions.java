@@ -1,5 +1,6 @@
 package com.cisco.gungnir.utils;
 
+import org.apache.spark.sql.Dataset;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 
@@ -9,6 +10,15 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class CommonFunctions implements Serializable {
+    public static boolean hasColumn(Dataset dataset, String columnName){
+        for(String column: dataset.columns()){
+            if(columnName.equals(column)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Set<String> getPeriodStartDateList(String startDate, String endDate, String period) throws Exception{
         Set<String> dates = new HashSet<>();
         for(String date: getDaysBetweenDates(startDate, endDate)){
@@ -72,19 +82,19 @@ public class CommonFunctions implements Serializable {
         public static List<String> fromFormatStrings = Arrays.asList("yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         private SimpleDateFormat toFormat;
 
-        public TimeConverter() {
-        }
-
-        ;
+        public TimeConverter() {};
 
         public TimeConverter(String toPattern) {
             this.toFormat = new SimpleDateFormat(toPattern);
+            toFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         }
 
         public String convert(String timeStamp) throws Exception {
             for (String formatString : fromFormatStrings) {
                 try {
-                    return toFormat.format(new SimpleDateFormat(formatString).parse(timeStamp));
+                    SimpleDateFormat fromFormat = new SimpleDateFormat(formatString);
+                    fromFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+                    return toFormat.format(fromFormat.parse(timeStamp));
                 } catch (Exception e) {
 
                 }
@@ -98,7 +108,9 @@ public class CommonFunctions implements Serializable {
         public Timestamp toTimestamp(String timeStamp) throws Exception {
             for (String formatString : fromFormatStrings) {
                 try {
-                    return new Timestamp(new SimpleDateFormat(formatString).parse(timeStamp).getTime());
+                    SimpleDateFormat fromFormat = new SimpleDateFormat(formatString);
+                    fromFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+                    return new Timestamp(fromFormat.parse(timeStamp).getTime());
                 } catch (Exception e) {
                 }
             }

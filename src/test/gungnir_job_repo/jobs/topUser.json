@@ -9,6 +9,7 @@
           "timeStampField": "time_stamp",
           "schemaName": "activeUser",
           "format": "json",
+          "multiline": true,
           "dataLocation": "src/test/gungnir_job_repo/testData/"
         }
       }

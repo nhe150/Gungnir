@@ -116,15 +116,6 @@ public class ConfigProvider implements Serializable {
         return retrieveConfigValue(appConfig, field);
     }
 
-    private boolean hasColumn(Dataset dataset, String columnName){
-        for(String column: dataset.columns()){
-            if(columnName.equals(column)){
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void writeObject(ObjectOutputStream out) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         out.writeUTF(mapper.writeValueAsString(appConfig));
