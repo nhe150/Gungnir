@@ -28,7 +28,8 @@ SELECT time_stamp,
            WHEN (mediaType='callEnd_video') THEN 1
            ELSE 0
        END AS video_is_good,
-       'callQuality' AS relation_name
+       'callQuality' AS relation_name,
+       raw
 FROM
   (SELECT to_timestamp(timeRcvd, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
           SM_C.value.clientCallDuration AS duration,
@@ -58,7 +59,8 @@ FROM
           END AS video_packetloss,
           uaType AS uaType,
           uaVersion AS uaVersion,
-          'Spark' AS SOURCE
+          'Spark' AS SOURCE,
+          raw
    FROM SOURCE_VIEW
    WHERE appname='metrics'
      AND SM_C.value.clientCallDuration>10000

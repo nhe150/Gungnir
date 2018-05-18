@@ -29,7 +29,8 @@ SELECT time_stamp,
        CASE
            WHEN (isTeamRoom=1) THEN isTeamRoomId
        END AS team,
-       'activeUser' AS relation_name
+       'activeUser' AS relation_name,
+       raw
 FROM (SELECT CASE
                WHEN (SM.verb='create'
                    AND (SM.object.objectType='team'
@@ -71,7 +72,8 @@ FROM (SELECT CASE
                END AS isCall,
              coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
              coalesce(userId, `@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
-             `@timestamp` AS time_stamp
+             `@timestamp` AS time_stamp,
+             raw
        FROM SOURCE_VIEW
        WHERE _appname='conv'
            AND SM.uaType<>'Messenger'

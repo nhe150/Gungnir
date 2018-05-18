@@ -9,7 +9,8 @@ SELECT time_stamp,
        'Spark' AS SOURCE,
        deviceType,
        call_id,
-       'callDuration' AS relation_name
+       'callDuration' AS relation_name,
+       raw
 FROM
   (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
           to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
@@ -18,7 +19,8 @@ FROM
           `@fields`.uaVersion AS uaVersion,
           CONCAT(`@fields`.LOCUS_ID , '^', `@fields`.locusStartTime) AS call_id,
           SM.uaType AS uaType,
-          SM.deviceType as deviceType
+          SM.deviceType as deviceType,
+          raw
    FROM SOURCE_VIEW
    WHERE _appname='locus'
      AND SM.uaType <> 'UCConnector'

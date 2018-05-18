@@ -66,6 +66,7 @@ public class Cassandra implements Serializable {
 
     public void writeToCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
         if(dataset==null) throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
+        dataset = dataset.drop("raw");
         JsonNode mergedConfig = getCassandraConfig(providedConfig);
         switch (processType) {
             case "batch":

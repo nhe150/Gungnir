@@ -5,7 +5,8 @@ SELECT time_stamp,
        userId,
        deviceId,
        model,
-       'registeredEndpoint' AS relation_name
+       'registeredEndpoint' AS relation_name,
+       raw
 FROM
   (SELECT to_timestamp(timeRcvd, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
           coalesce(orgId, 'unknown') AS orgId,
@@ -16,7 +17,8 @@ FROM
                  WHEN (SM_C.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
                  ELSE SM_C.value.model
              END, 'unknown') AS model,
-          'NA' AS userId
+          'NA' AS userId,
+          raw
    FROM SOURCE_VIEW
    WHERE appname='metrics'
      AND (uaType='ce'

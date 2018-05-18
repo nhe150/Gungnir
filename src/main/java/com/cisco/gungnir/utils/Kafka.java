@@ -82,7 +82,7 @@ public class Kafka implements Serializable {
 
     public Dataset<Row> readKafkaStreamWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaStream(kafkaConfig)
-                .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data")).select("data.*");
+                .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
     public Dataset<Row> readKafkaBatch(JsonNode kafkaConfig) throws Exception {
@@ -105,7 +105,7 @@ public class Kafka implements Serializable {
 
     public Dataset<Row> readKafkaBatchWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaBatch(kafkaConfig)
-                .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data")).select("data.*");
+                .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
     public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {

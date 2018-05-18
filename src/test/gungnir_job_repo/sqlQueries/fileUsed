@@ -5,7 +5,8 @@ SELECT time_stamp,
        userId,
        isFile,
        contentSize,
-       'fileUsed' AS relation_name
+       'fileUsed' AS relation_name,
+       raw
 FROM
   (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
           coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
@@ -14,7 +15,8 @@ FROM
               WHEN SM.object.objectType='content' THEN 1
               ELSE 0
           END AS isFile,
-          SM.object.contentSize AS contentSize
+          SM.object.contentSize AS contentSize,
+          raw
    FROM SOURCE_VIEW
    WHERE _appname='conv'
      AND SM.verb='share')

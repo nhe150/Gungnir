@@ -7,10 +7,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.List;
 
 import static com.cisco.gungnir.utils.CommonFunctions.aggregateDates;
 import static com.cisco.gungnir.utils.CommonFunctions.getPeriodStartDate;
@@ -194,27 +195,36 @@ public class File implements Serializable {
 
     public Dataset withSchema(Dataset dataset, StructType schema){
         if(!CommonFunctions.hasColumn(dataset, "value")){
-            dataset = dataset.selectExpr("to_json(struct(*)) as value");
+            if(CommonFunctions.hasColumn(dataset, "raw")) {
+                schema = schema.add("raw", DataTypes.StringType);
+            }
+            dataset = dataset.selectExpr("to_json(struct(*)) as value")
+                    .select(from_json(col("value"), schema).as("data")).select("data.*");
+        }else {
+            dataset = dataset.select(from_json(col("value"), schema).as("data"), col("value").as("raw")).select("data.*", "raw");
         }
-        dataset = dataset.select(from_json(col("value"), schema).as("data")).select("data.*");
         return dataset;
     }
 
 
     public Dataset<Row> readDataByDateStream(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
-        Dataset<Row> dataset = spark.createDataFrame(new ArrayList<>(), schema);
+        List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
 
-        for(String d: aggregateDates(getPeriodStartDate(date, period), period)){
-            dataset = dataset.union(withSchema(readFileStream(dataLocation,input, format, multiline, partitionKey + "=" + d), schema));
+        Dataset dataset = withSchema(readFileStream(dataLocation,input, format, multiline, partitionKey + "=" + dateList.get(0)), schema);
+
+        for(int i=1; i< dateList.size(); i++){
+            dataset = dataset.union(withSchema(readFileStream(dataLocation,input, format, multiline, partitionKey + "=" + dateList.get(i)), schema));
         }
         return dataset;
     }
 
     public Dataset<Row> readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
-        Dataset<Row> dataset = spark.createDataFrame(new ArrayList<>(), schema);
+        List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
 
-        for(String d: aggregateDates(getPeriodStartDate(date, period), period)){
-            dataset = dataset.union(withSchema(readFileBatch(dataLocation,input, format, multiline, partitionKey + "=" + d), schema));
+        Dataset dataset = withSchema(readFileBatch(dataLocation,input, format, multiline, partitionKey + "=" + dateList.get(0)), schema);
+
+        for(int i=1; i< dateList.size(); i++){
+            dataset = dataset.union(withSchema(readFileBatch(dataLocation,input, format, multiline, partitionKey + "=" + dateList.get(i)), schema));
         }
         return dataset;
     }
