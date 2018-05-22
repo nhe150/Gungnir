@@ -7,7 +7,12 @@
         "parameters":{
           "input": "raw",
           "format": "text",
+          "period": "daily",
           "dataLocation": "src/test/gungnir_job_repo/testData/"
+        },
+        "dateRange": {
+          "startDate": "2018-03-06",
+          "endDate": "2018-03-07"
         }
       }
     ],

@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.Serializable;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializable {
     private SparkSession spark;
@@ -176,10 +178,10 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     public void testDeleteDataFromCassandra() throws Exception {
         jobExecutor.execute("writeDataToCassandra", "batch");
         ResultSet resultBeforeDelete = cassandra.session.execute("select * from spark_data");
-        assertEquals("2017-11-08", resultBeforeDelete.iterator().next().getString("pdate"));
+        assertNotNull(resultBeforeDelete.iterator().next().getString("pdate"));
         jobExecutor.execute("deleteDataFromCassandra", "batch");
         ResultSet resultAfterDelete = cassandra.session.execute("select * from spark_data");
-        assertEquals(null, resultAfterDelete.iterator().next());
+        assertNull(resultAfterDelete.iterator().next());
     }
 
     @Test

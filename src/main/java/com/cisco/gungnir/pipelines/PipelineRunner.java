@@ -43,6 +43,7 @@ public class PipelineRunner implements Serializable {
 
 
         SparkSession spark = SparkSession.builder()
+                .config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzoCodec")
                 .appName(jobName).getOrCreate();
 
         ConfigProvider configProvider = new ConfigProvider(spark, configFile);
