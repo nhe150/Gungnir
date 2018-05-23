@@ -13,7 +13,6 @@ import org.junit.*;
 import java.io.File;
 import java.io.Serializable;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 

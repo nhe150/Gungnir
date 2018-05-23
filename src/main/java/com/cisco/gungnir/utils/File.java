@@ -42,7 +42,7 @@ public class File implements Serializable {
                     return readDataByDateBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                             ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null,
-                            ConfigProvider.retrieveConfigValue(fileConfig, "date"),
+                            getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
                             ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period"): null,
                             ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"): null,
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"),
@@ -62,7 +62,7 @@ public class File implements Serializable {
                     return readDataByDateStream(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                             ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null,
-                            ConfigProvider.retrieveConfigValue(fileConfig, "date"),
+                            getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
                             ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period"): null,
                             ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"): null,
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"),
@@ -266,6 +266,14 @@ public class File implements Serializable {
             default:
                 throw new IllegalArgumentException("Invalid saveMode: " + mode);
         }
+    }
+
+    private String getDate(String date){
+        if(date.contains("days")){
+            int n = Integer.valueOf(date.replace("days", "").replaceAll("\\s",""));
+            return CommonFunctions.getPlusDays(n);
+        }
+        return date;
     }
 
 }

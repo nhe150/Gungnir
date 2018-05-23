@@ -2,6 +2,7 @@ package com.cisco.gungnir.utils;
 
 import org.apache.spark.sql.Dataset;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 
 import java.io.Serializable;
@@ -17,6 +18,11 @@ public class CommonFunctions implements Serializable {
             }
         }
         return false;
+    }
+
+    public static String getPlusDays(int n){
+        DateTime dateTime = new DateTime(DateTimeZone.UTC);
+        return dateTime.plusDays(n).toString("yyyy-MM-dd");
     }
 
     public static Set<String> getPeriodStartDateList(String startDate, String endDate, String period) throws Exception{
