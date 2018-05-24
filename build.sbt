@@ -3,7 +3,7 @@ name := "Gungnir"
 version := "0.2-SNAPSHOT"
 
 scalaVersion := "2.11.11"
-val sparkVersion = "2.2.0"
+val sparkVersion = "2.3.0"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
@@ -11,22 +11,20 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
-  "com.datastax.spark" %% "spark-cassandra-connector" % "2.0.7",
+  "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0",
   //Test dependencies
-  "com.holdenkarau" %% "spark-testing-base" % "2.2.0_0.8.0" % Test,
-  "org.apache.spark" %% "spark-hive"       % "2.0.0" % Test,
-  "com.novocode" % "junit-interface" % "0.10" % Test,
-   "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+  "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test,
+  "org.apache.spark" %% "spark-hive"       % "2.3.0" % Test,
+  "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.apache.kafka" % "kafka-clients" % "0.11.0.0" % Test,
   "org.apache.kafka" % "kafka-clients" % "0.11.0.0" % Test classifier "test",
   "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test classifier "test",
   "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test,
-  "org.cassandraunit" % "cassandra-unit" % "3.1.1.0" % Test classifier "shaded",
-  "org.hectorclient" % "hector-core" % "2.0-0" % Test
-)
+  "org.cassandraunit" % "cassandra-unit" % "3.1.1.0" % Test classifier "shaded")
+
+excludeDependencies += "net.jpountz.lz4"
 
 dependencyOverrides +=  "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test
-
 
 testOptions += Tests.Argument(TestFrameworks.JUnit)
 
