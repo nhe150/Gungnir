@@ -3,7 +3,6 @@ package com.cisco.gungnir.utils;
 import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
 
@@ -63,7 +62,7 @@ public class Kafka implements Serializable {
         }
     }
 
-    public Dataset<Row> readKafkaStream(JsonNode kafkaConfig) throws Exception {
+    public Dataset readKafkaStream(JsonNode kafkaConfig) throws Exception {
         boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
         return spark
                 .readStream()
@@ -80,12 +79,12 @@ public class Kafka implements Serializable {
                 .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
     }
 
-    public Dataset<Row> readKafkaStreamWithSchema(JsonNode kafkaConfig) throws Exception {
+    public Dataset readKafkaStreamWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaStream(kafkaConfig)
                 .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
-    public Dataset<Row> readKafkaBatch(JsonNode kafkaConfig) throws Exception {
+    public Dataset readKafkaBatch(JsonNode kafkaConfig) throws Exception {
         boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
 
         return spark
@@ -103,12 +102,12 @@ public class Kafka implements Serializable {
                 .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
     }
 
-    public Dataset<Row> readKafkaBatchWithSchema(JsonNode kafkaConfig) throws Exception {
+    public Dataset readKafkaBatchWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaBatch(kafkaConfig)
                 .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
-    public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
+    public StreamingQuery streamToKafka(Dataset dataset, JsonNode kafkaConfig) throws Exception {
         String topic = constructKafkaTopic(kafkaConfig);
         boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
 
@@ -132,7 +131,7 @@ public class Kafka implements Serializable {
                 .start();
     }
 
-    public void batchToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
+    public void batchToKafka(Dataset dataset, JsonNode kafkaConfig) throws Exception {
         boolean useTopicPrefix = !ConfigProvider.hasConfigValue(kafkaConfig, "kafka.useTopicPrefix") || kafkaConfig.get("kafka").get("useTopicPrefix").asBoolean();
 
         constructKafkaKeyValue(dataset, kafkaConfig)

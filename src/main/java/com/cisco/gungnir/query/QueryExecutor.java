@@ -1,11 +1,9 @@
 package com.cisco.gungnir.query;
 
 import com.cisco.gungnir.config.ConfigProvider;
-import com.cisco.gungnir.utils.SqlFunctions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
@@ -63,7 +61,7 @@ public class QueryExecutor implements Serializable {
                 result = queryFunctions.splitData(previous, parameters);
                 break;
             default:
-                result = executeSqlQueries(previous, queryName, parameters);
+                result = queryFunctions.executeSqlQueries(previous, queryName, parameters);
         }
 
         if(parameters!= null && parameters.has("timeStampField") && result != null && result.columns().length!=0) {
@@ -181,48 +179,6 @@ public class QueryExecutor implements Serializable {
         return expanded;
     }
 
-    public Dataset executeSqlQueries(Dataset ds, String queryName, JsonNode parameters) throws Exception {
-        if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
-
-        String[] queryList = configProvider.readSql(queryName).split(";");
-        String view = "SOURCE_VIEW";
-        for(int i=0; i<queryList.length; i++){
-            setWatermark(ds, parameters).createOrReplaceTempView(view);
-            String query = queryList[i].trim();
-            System.out.println("executing spark sql query: " + query);
-            view = StringUtils.substringBetween(query, "TEMP_VIEW", "AS");
-            if(query.contains("TEMP_VIEW")){
-                if (query.contains("DropDuplicates")){
-                    ds = dropDuplicates(ds, query);
-                } else {
-                    query = query.replaceAll("select", "SELECT");
-                    int index = Math.max(query.indexOf("SELECT"), 0);
-                    ds = spark.sql(query.substring(index));
-                }
-            }else {
-                ds = spark.sql(query);
-            }
-        }
-
-        return ds;
-    }
-
-    private Dataset setWatermark(Dataset ds, JsonNode parameters){
-        if(parameters != null && parameters.has("aggregatePeriod")){
-            SqlFunctions.AggregationUtil aggregationUtil = new SqlFunctions.AggregationUtil(parameters.get("aggregatePeriod").asText());
-            aggregationUtil.registerAggregationFunctions(spark);
-            String timestampField = parameters.has("timeStampField") ? parameters.get("timeStampField").asText(): "time_stamp";
-            ds = ds.withWatermark(timestampField, aggregationUtil.getWatermarkDelayThreshold());
-        }
-        return ds;
-    }
-
-    private Dataset dropDuplicates(Dataset ds, String query){
-        String f = query.split("DropDuplicates")[1].replaceAll("\\s+","");
-        String[] fields = f.split(",");
-        return ds.dropDuplicates(fields);
-    }
-
     private Dataset setTimestampField(Dataset ds, String timestampField) {
         for(StructField field: ds.schema().fields()){
             if(field.name().equals(timestampField)){
@@ -235,5 +191,4 @@ public class QueryExecutor implements Serializable {
         }
         throw new IllegalArgumentException("Could not find timestamp field name: " + timestampField);
     }
-
 }

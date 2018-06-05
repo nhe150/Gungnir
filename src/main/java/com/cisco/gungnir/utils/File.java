@@ -3,7 +3,6 @@ package com.cisco.gungnir.utils;
 import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
@@ -120,7 +119,7 @@ public class File implements Serializable {
         }
     }
 
-    public StreamingQuery streamToFileByKey(Dataset<Row> dataset, String outputPath, String format, String saveMode, String partitionKey, String queryName) throws Exception{
+    public StreamingQuery streamToFileByKey(Dataset dataset, String outputPath, String format, String saveMode, String partitionKey, String queryName) throws Exception{
         if(partitionKey != null){
             return dataset
                     .writeStream()
@@ -143,7 +142,7 @@ public class File implements Serializable {
         }
     }
 
-    public void batchToFileByKey(Dataset<Row> dataset, String outputPath, String format, String saveMode, String partitionKey) throws Exception{
+    public void batchToFileByKey(Dataset dataset, String outputPath, String format, String saveMode, String partitionKey) throws Exception{
         if(partitionKey != null){
             dataset.write()
                     .mode(getSaveMode(saveMode))
@@ -223,7 +222,7 @@ public class File implements Serializable {
     }
 
 
-    public Dataset<Row> readDataByDateStream(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
+    public Dataset readDataByDateStream(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
         List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
 
         String regex = partitionKey!=null? partitionKey + "=" + dateList.get(0): dateList.get(0);
@@ -236,7 +235,7 @@ public class File implements Serializable {
         return dataset;
     }
 
-    public Dataset<Row> readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
+    public Dataset readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
         List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
 
         String regex = partitionKey!=null? partitionKey + "=" + dateList.get(0): dateList.get(0);
