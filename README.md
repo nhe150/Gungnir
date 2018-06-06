@@ -10,7 +10,8 @@ approach for expressing such data processing DAG, thus remove code duplication a
 ## How to define a data processing job
 User can define a data processing pipeline with a JSON file that contains a list representation of a DAG. Within the concept of 
 Gungnir, each vertex of the DAG defines a query which can be input query (read data from a specific source), output 
-query (write data to a specific storage) or processing query (user logic that expressed as spark SQL).\
+query (write data to a specific storage) or processing query (user logic that expressed as spark SQL).
+
 Below is an example of job definition in Gungnir
 that reads data from kafka then processes it with the 'autoLicense' query and write the result to cassandra:
 
@@ -82,11 +83,11 @@ For more examples see the [Gungnir-Job](https://sqbu-github.cisco.com/SAP/Gungni
 | ------------- | ------------- | --- |
 | kafka.broker  | Kafka broker (overrides the property at application.conf) |  no   |
 | kafka.topic   | Kafka topic(s) to consume (comma separated list) | yes |
-| kafka.startingOffsets | startingOffsets (see [spark documentation](https://spark.apache.org/docs/2.2.0/structured-streaming-kafka-integration.html) |  no   |
-| kafka.endingOffsets   | endingOffsets (see [spark documentation](https://spark.apache.org/docs/2.2.0/structured-streaming-kafka-integration.html) |  no   |
+| kafka.startingOffsets | startingOffsets (see [spark documentation](https://spark.apache.org/docs/2.2.0/structured-streaming-kafka-integration.html)) |  no   |
+| kafka.endingOffsets   | endingOffsets (see [spark documentation](https://spark.apache.org/docs/2.2.0/structured-streaming-kafka-integration.html)) |  no   |
 | kafka.useTopicPrefix  | whether to use topicPrefix defined at application.conf (default true) |  no   |
 | timeStampField| The name of the field that is timeStamp type  |  no   |
-| schemaName    | The name of schema that used to parse message from kafka |  no     |
+| schemaName    | The name of schema that used to parse the messages from kafka |  no     |
 
 * writeToKafka
 ```json
@@ -106,9 +107,9 @@ For more examples see the [Gungnir-Job](https://sqbu-github.cisco.com/SAP/Gungni
 | property  | description | required? |
 | ------------- | ------------- | --- |
 | kafka.broker  | Kafka broker (overrides the property at application.conf) |  no   |
-| kafka.topic   | Kafka topic to save the result data | no (yes if there is not 'output' property in previous query) |
-| kafka.topicKey  | Kafka broker (overrides the property at application.conf |  no   |
-| kafka.topicValue  | Kafka broker (overrides the property at application.conf |  no   |
+| kafka.topic   | Kafka topic to save the result data | no (yes if there is not 'output' property set in previous query) |
+| kafka.topicKey  | The field to be store as message key in the topic |  no   |
+| kafka.topicValue  | The field to be store as message value in the topic |  no   |
 | kafka.useTopicPrefix  | whether to use topicPrefix defined at application.conf (default true) |  no   |
 
 #### Cassandra
@@ -165,7 +166,7 @@ Note: readFromCassandra dose not support streaming mode
 | cassandra.password  | cassandra password (overrides the property at application.conf) |  no   |
 | cassandra.keyspace  | cassandra keyspace (overrides the property at application.conf) |  no   |
 | cassandra.table  | cassandra table to write data to |  yes   |
-| cassandra.saveMode  | the cassandra saveMode (see [spark documentation](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#output-modes)  |  yes   |
+| cassandra.saveMode  | The saveMode for cassandra write (see [spark documentation](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#output-modes))  |  yes   |
 | cassandra.consistencyLevel  | cassandra write consistencyLevel |  no   |
 
 * deleteFromCassandra
@@ -219,7 +220,7 @@ Note: readFromCassandra dose not support streaming mode
 | property  | description | required? |
 | ------------- | ------------- | --- |
 | input  | input folder(s) or file(s) that contains data |  yes   |
-| dataLocation  | the path that input folder/file exists (overrides the property at application.conf)  |  no   |
+| dataLocation  | The path in which the input folder/file exists (overrides the property at application.conf)  |  no   |
 | timeStampField| The name of the field that is timeStamp type  |  no   |
 | schemaName    | The name of schema that used to parse messages from file |  no     |
 | format  | The format of input data (json, csv, text, parquet, etc.) |  yes   |
@@ -245,9 +246,9 @@ Note: readFromCassandra dose not support streaming mode
 | property  | description | required? |
 | ------------- | ------------- | --- |
 | format  | The format of output data (json, csv, text, parquet, etc.) |  yes   |
-| saveMode  | The file saveMode (see [spark documentation](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#output-modes)  |  yes   |
+| saveMode  | The file saveMode (see [spark documentation](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#output-modes))  |  yes   |
 | partitionKey  | The partitionKey used to save the data |  no   |
-| output  | Output folder to save the data  |  no (yes if there is not 'output' property in previous query)   |
+| output  | Output folder to save the data  |  no (yes if there is not 'output' property set in previous query)   |
 
 #### SQL Queries
 Gungnir relies on Spark SQL to express the user logic for data processing. All the SQL query files need to be located in the 'queryLocation' which is set in the Gungnir config.
@@ -267,7 +268,7 @@ Please reference [Gungnir-Job](https://sqbu-github.cisco.com/SAP/Gungnir-Job) re
 | property  | description | required? |
 | ------------- | ------------- | --- |
 | queryName  | The name of the sql query (need to match the query file name stored in the 'queryLocation') |  yes   |
-| output  | The output target for storing the query result (output folder/file name for file storage and output topic for kafka |  no   |
+| output  | The output target for storing the query result (output folder/file name for file storage and output topic for kafka) |  no   |
 | timeStampField| The name of the field that is timeStamp type  |  no   |
 | aggregatePeriod  | For time based aggregation only (daily/weekly/monthly)  |  no |
 
@@ -324,12 +325,11 @@ User can provides a json file (application.conf) that contains default values fo
 ```
 
 Most of the config properties can be overridden in the job definition file under 'parameters' block in a per
-query basis expect the properties in spark block.
+query basis.
 
 ## Building Gungnir
 * sbt compile. To compile this project
-* sbt package. To create jar, and then run with spark-submit
-* sbt assembly. To build fat jar. We still need run with spark-submit in this project.
+* sbt assembly. To build fat jar, and then run with spark-submit
 
 
 ## Run Gungnir
