@@ -1,5 +1,6 @@
 package com.cisco.gungnir.config;
 
+import com.cisco.gungnir.utils.CommonFunctions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,8 +40,7 @@ public class ConfigProvider implements Serializable {
     public JsonNode LoadConfig(String configPath) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         Dataset config = spark.read().option("multiline", true).json(configPath);
-        String configString = config.toJSON().first().toString();
-        if(configString.contains("_corrupt_record")){
+        if(CommonFunctions.hasColumn(config, "_corrupt_record")){
             throw new IllegalArgumentException("the provided config in "+ configPath + " is not a valid json");
         }
         return objectMapper.readTree(config.toJSON().first().toString());
@@ -52,6 +52,9 @@ public class ConfigProvider implements Serializable {
 
     public StructType readSchema(String schemaName) throws Exception {
         Dataset schema = spark.read().option("multiline", true).json(retrieveConfigValue(appConfig, "schemaLocation") + schemaName + ".json");
+        if(CommonFunctions.hasColumn(schema, "_corrupt_record")){
+            throw new IllegalArgumentException("the provided schema "+ schemaName + " is not a valid json");
+        }
         schema.printSchema();
         return schema.schema();
     }
