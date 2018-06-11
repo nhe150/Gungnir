@@ -329,7 +329,8 @@ query basis.
 
 ## Building Gungnir
 * sbt compile. To compile this project
-* sbt assembly. To build fat jar, and then run with spark-submit
+* sbt test. To run tests of this project
+* sbt "set test in assembly := {}" clean assembly. To build fat jar, and then run with spark-submit
 
 
 ## Run Gungnir
