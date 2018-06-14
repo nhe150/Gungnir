@@ -13,18 +13,20 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
   "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0",
   //Test dependencies
-  "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test,
+  "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test excludeAll( ExclusionRule(organization = "io.netty")),
   "org.apache.spark" %% "spark-hive"       % "2.3.0" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
   "org.apache.kafka" % "kafka-clients" % "0.11.0.0" % Test,
   "org.apache.kafka" % "kafka-clients" % "0.11.0.0" % Test classifier "test",
   "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test classifier "test",
-  "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test,
-  "org.cassandraunit" % "cassandra-unit" % "3.1.1.0" % Test classifier "shaded")
+  "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test ,
+  "org.cassandraunit" % "cassandra-unit" % "3.1.1.0" % Test classifier "shaded" excludeAll( ExclusionRule(organization = "io.netty")))
 
 excludeDependencies += "net.jpountz.lz4"
 
-dependencyOverrides +=  "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test
+dependencyOverrides ++= Seq(
+  "org.apache.kafka" % "kafka_2.11" % "0.11.0.0" % Test
+)
 
 testOptions += Tests.Argument(TestFrameworks.JUnit)
 
