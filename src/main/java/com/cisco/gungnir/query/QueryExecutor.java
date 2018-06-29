@@ -1,6 +1,7 @@
 package com.cisco.gungnir.query;
 
 import com.cisco.gungnir.config.ConfigProvider;
+import com.cisco.gungnir.utils.Aggregation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -12,7 +13,6 @@ import org.apache.spark.sql.types.StructField;
 import java.io.Serializable;
 import java.util.*;
 
-import static com.cisco.gungnir.utils.CommonFunctions.getPeriodStartDateList;
 import static org.apache.spark.sql.functions.callUDF;
 import static org.apache.spark.sql.functions.col;
 
@@ -56,9 +56,6 @@ public class QueryExecutor implements Serializable {
                 break;
             case "writeToFile":
                 queryFunctions.file.writeToFile(previous, queryType, parameters);
-                break;
-            case "splitData":
-                result = queryFunctions.splitData(previous, parameters);
                 break;
             default:
                 result = queryFunctions.executeSqlQueries(previous, queryName, parameters);
@@ -164,7 +161,7 @@ public class QueryExecutor implements Serializable {
         String endDate = ConfigProvider.retrieveConfigValue(query, "dateRange.endDate");
         String period =  ConfigProvider.retrieveConfigValue(query, "parameters.period");
 
-        for(String periodStartDate: getPeriodStartDateList(startDate, endDate, period)){
+        for(String periodStartDate: Aggregation.getPeriodStartDateList(startDate, endDate, period)){
             JsonNode parameter = query.get("parameters");
             JsonNode newParameter = parameter.deepCopy();
             ((ObjectNode) newParameter).put("date", periodStartDate);

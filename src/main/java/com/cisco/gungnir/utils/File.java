@@ -12,8 +12,6 @@ import org.apache.spark.sql.types.StructType;
 import java.io.Serializable;
 import java.util.List;
 
-import static com.cisco.gungnir.utils.CommonFunctions.aggregateDates;
-import static com.cisco.gungnir.utils.CommonFunctions.getPeriodStartDate;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
@@ -209,8 +207,8 @@ public class File implements Serializable {
     }
 
     public Dataset withSchema(Dataset dataset, StructType schema){
-        if(!CommonFunctions.hasColumn(dataset, "value")){
-            if(CommonFunctions.hasColumn(dataset, "raw")) {
+        if(!DatasetFunctions.hasColumn(dataset, "value")){
+            if(DatasetFunctions.hasColumn(dataset, "raw")) {
                 schema = schema.add("raw", DataTypes.StringType);
             }
             dataset = dataset.selectExpr("to_json(struct(*)) as value")
@@ -223,7 +221,7 @@ public class File implements Serializable {
 
 
     public Dataset readDataByDateStream(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
-        List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
+        List<String> dateList = Aggregation.aggregateDates(Aggregation.getPeriodStartDate(date, period), period);
 
         String regex = partitionKey!=null? partitionKey + "=" + dateList.get(0): dateList.get(0);
         Dataset dataset = schema!=null? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
@@ -236,7 +234,7 @@ public class File implements Serializable {
     }
 
     public Dataset readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey, String format, boolean multiline) throws Exception {
-        List<String> dateList = aggregateDates(getPeriodStartDate(date, period), period);
+        List<String> dateList = Aggregation.aggregateDates(Aggregation.getPeriodStartDate(date, period), period);
 
         String regex = partitionKey!=null? partitionKey + "=" + dateList.get(0): dateList.get(0);
         Dataset dataset = schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex), schema): readFileBatch(dataLocation,input, format, multiline, regex);
@@ -270,7 +268,7 @@ public class File implements Serializable {
     private String getDate(String date){
         if(date.contains("days")){
             int n = Integer.valueOf(date.replace("days", "").replaceAll("\\s",""));
-            return CommonFunctions.getPlusDays(n);
+            return Aggregation.getPlusDays(n);
         }
         return date;
     }

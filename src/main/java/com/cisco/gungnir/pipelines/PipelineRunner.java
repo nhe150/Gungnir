@@ -45,7 +45,7 @@ public class PipelineRunner implements Serializable {
         String configFile = cmd.getOptionValue("config");
         String jobType = cmd.getOptionValue("type");
 
-        SparkSession.Builder builder = SparkSession.builder().appName(jobName);
+        SparkSession.Builder builder = SparkSession.builder().enableHiveSupport().appName(jobName);
         if(cmd.getOptionValue("codecs")!=null && cmd.getOptionValue("codecs").equals("lzo")){
             builder = builder.config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzoCodec");
         }

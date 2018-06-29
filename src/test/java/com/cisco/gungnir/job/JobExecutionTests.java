@@ -1,6 +1,7 @@
 package com.cisco.gungnir.job;
 
 import com.cisco.gungnir.config.ConfigProvider;
+import com.cisco.gungnir.udf.Udfs;
 import com.cisco.gungnir.util.kafka.EmbeddedSingleNodeKafkaCluster;
 import com.datastax.driver.core.ResultSet;
 import com.holdenkarau.spark.testing.JavaDatasetSuiteBase;
@@ -31,6 +32,8 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
         this.spark = spark();
         ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/application.conf");
         this.jobExecutor = new JobExecutor(spark, configProvider);
+        Udfs udfs = new Udfs(spark);
+        udfs.registerFunctions();
     }
 
     @Test

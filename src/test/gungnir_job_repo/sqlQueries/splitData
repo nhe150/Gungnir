@@ -1,0 +1,5 @@
+SELECT convertTimeString(getTimestampField(value)) as pdate,
+       preprocess(value) as value
+FROM
+   SOURCE_VIEW
+WHERE appFilter(value)=true
