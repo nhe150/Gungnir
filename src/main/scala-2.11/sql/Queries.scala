@@ -33,46 +33,46 @@ object Queries {
       |           WHEN (mediaType='callEnd_video') THEN 1
       |           ELSE 0
       |       END AS video_is_good,
-      |       'callQuality' AS relation_name
+      |       'callQuality' AS relation_name,
+      |       raw
       |FROM
-      |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-      |          SM.value.clientCallDuration AS duration,
-      |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
-      |          SM.key AS mediaType,
-      |          coalesce(`@fields`.userId, "unknown") AS userId,
-      |          CONCAT(SM.value.locusId , '^', SM.value.locusTimestamp) AS call_id,
-      |          SM.sessionId as confId,
-      |          SM.value.correlationId as meetingId,
-      |
+      |  (SELECT timeRcvd AS time_stamp,
+      |          SM_C.value.clientCallDuration AS duration,
+      |          coalesce(orgId, 'unknown') AS orgId,
+      |          SM_C.key AS mediaType,
+      |          coalesce(userId, "unknown") AS userId,
+      |          CONCAT(SM_C.value.locusId , '^', SM_C.value.locusTimestamp) AS call_id,
+      |          SM_C.sessionId as confId,
+      |          SM_C.value.correlationId as meetingId,
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.jitter)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
       |          END AS audio_jitter,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.jitter)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.jitter)
       |          END AS video_jitter,
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.rtt)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
       |          END AS audio_rtt,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.rtt)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.rtt)
       |          END AS video_rtt,
       |          CASE
-      |              WHEN (SM.key='callEnd_audio') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.lossRatio)
+      |              WHEN (SM_C.key='callEnd_audio') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
       |          END AS audio_packetloss,
       |          CASE
-      |              WHEN (SM.key='callEnd_video') THEN calcAvgFromHistMin(SM.value.mediaStatistics.stats.lossRatio)
+      |              WHEN (SM_C.key='callEnd_video') THEN calcAvgFromHistMin(SM_C.value.mediaStatistics.stats.lossRatio)
       |          END AS video_packetloss,
-      |          `@fields`.uaType AS uaType,
-      |          `@fields`.uaVersion AS uaVersion,
-      |          'Spark' AS SOURCE
+      |          uaType,
+      |          uaVersion,
+      |          'Spark' AS SOURCE,
+      |          raw
       |   FROM callQualityRaw
-      |   WHERE _appname='metrics'
-      |     AND SM.value.callWasJoined=true
-      |     AND SM.value.clientCallDuration>10000
-      |     AND (SM.key='callEnd_audio'
-      |          OR SM.key='callEnd_video')
-      |     AND (`@fields`.uaType='sparkwindows'
-      |            OR `@fields`.uaType='sparkmac'))
+      |   WHERE appname='metrics'
+      |     AND SM_C.value.clientCallDuration>10000
+      |     AND (SM_C.key='callEnd_audio'
+      |          OR SM_C.key='callEnd_video')
+      |     AND (uaType='sparkwindows'
+      |            OR uaType='sparkmac'))
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
@@ -180,18 +180,20 @@ object Queries {
       |       'Spark' AS SOURCE,
       |       deviceType,
       |       call_id,
-      |       'callDuration' AS relation_name
+      |       'callDuration' AS relation_name,
+      |       raw
       |FROM
-      |  (SELECT coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
-      |          to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
+      |  (SELECT coalesce(ORG_ID, SM.orgId, SM.participant.orgId, 'unknown') AS orgId,
+      |          timeRcvd AS time_stamp,
       |          SM.legDuration AS legDuration,
-      |          coalesce(`@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
-      |          `@fields`.uaVersion AS uaVersion,
-      |          CONCAT(`@fields`.LOCUS_ID , '^', `@fields`.locusStartTime) AS call_id,
-      |          SM.uaType AS uaType,
-      |          SM.deviceType as deviceType
+      |          coalesce(USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+      |          SM.uaVersion as uaVersion,
+      |          CONCAT(LOCUS_ID , '^', locusStartTime) AS call_id,
+      |          SM.uaType as uaType,
+      |          SM.deviceType as deviceType,
+      |          raw
       |   FROM callDurationRaw
-      |   WHERE _appname='locus'
+      |   WHERE appname='locus'
       |     AND SM.uaType <> 'UCConnector'
       |     AND (SM.env is NULL OR SM.env <> 'TEST')
       |     AND SM.metricType='CALL_LEG'
@@ -241,18 +243,20 @@ object Queries {
       |       userId,
       |       isFile,
       |       contentSize,
-      |       'fileUsed' AS relation_name
+      |       'fileUsed' AS relation_name,
+      |       raw
       |FROM
-      |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-      |          coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
-      |          coalesce(userId, `@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+      |  (SELECT timeRcvd AS time_stamp,
+      |          coalesce(ORG_ID, orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
+      |          coalesce(userId, USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
       |          CASE
       |              WHEN SM.object.objectType='content' THEN 1
       |              ELSE 0
       |          END AS isFile,
-      |          SM.object.contentSize AS contentSize
+      |          SM.object.contentSize AS contentSize,
+      |          raw
       |   FROM fileUsedRaw
-      |   WHERE _appname='conv'
+      |   WHERE appname='conv'
       |     AND SM.verb='share')
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
@@ -284,75 +288,6 @@ object Queries {
       |FROM fileUsed
       |GROUP BY orgId,
       |         aggregateStartDate(time_stamp)
-    """.stripMargin
-
-  def activeUsersFilter =
-    """
-      |SELECT CASE
-      |           WHEN (SM.verb='create'
-      |                 AND (SM.object.objectType='team'
-      |                      OR SM.object.objectType='conversation')) THEN 1
-      |           ELSE 0
-      |       END AS isCreate,
-      |       CASE
-      |           WHEN (SM.convOneOnOne=true) THEN 1
-      |           ELSE 0
-      |       END AS isOneToOneRoom,
-      |       CASE
-      |           WHEN (`@fields`.teamId IS NULL
-      |                 AND SM.convOneOnOne=false) THEN 1
-      |           ELSE 0
-      |       END AS isGroupRoom,
-      |       CASE
-      |           WHEN `@fields`.teamId IS NOT NULL THEN 1
-      |           ELSE 0
-      |       END AS isTeamRoom,
-      |       CASE
-      |           WHEN (`@fields`.teamId IS NULL
-      |                 AND SM.convOneOnOne=false) THEN SM.target.id
-      |       END AS isGroupRoomId,
-      |       CASE
-      |           WHEN (SM.convOneOnOne=true) THEN SM.target.id
-      |       END AS isOneToOneRoomId,
-      |       CASE
-      |           WHEN `@fields`.teamId IS NOT NULL THEN SM.target.id
-      |       END AS isTeamRoomId,
-      |       CASE
-      |           WHEN SM.verb='post'
-      |                AND SM.object.objectType='comment' THEN 1
-      |           ELSE 0
-      |       END AS isMessage,
-      |       CASE
-      |           WHEN SM.metricType='PARTICIPANT'
-      |                AND SM.callType='TERMINATED' THEN 1
-      |           ELSE 0
-      |       END AS isCall,
-      |       coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
-      |       coalesce(userId, `@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
-      |       to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp
-      |FROM activeUsersRaw
-      |WHERE _appname='conv'
-      |  AND SM.uaType<>'Messenger'
-      |  AND SM.uaType<>'Hydra'
-      |  AND SM.uaType<>'UCConnector'
-      |  AND ((SM.verb='acknowledge'
-      |        AND SM.object.objectType='activity')
-      |       OR (SM.verb='post'
-      |           AND SM.object.objectType='comment')
-      |       OR (SM.verb='share'
-      |           AND SM.object.objectType='content')
-      |       OR (SM.verb='create'
-      |           AND (SM.object.objectType='conversation'
-      |                OR SM.object.objectType='team'))
-      |       OR (SM.verb='add'
-      |           AND SM.object.objectType='person'
-      |           AND (SM.target.objectType='conversation'
-      |                OR SM.object.objectType='team')))
-      |  OR (_appname='locus'
-      |      AND (SM.metricType='PARTICIPANT'
-      |           AND SM.callType='TERMINATED'
-      |           AND SM.squared=true
-      |           AND SM.locusType<>'JABBER'))
     """.stripMargin
 
   def activeUser =
@@ -388,8 +323,75 @@ object Queries {
       |       CASE
       |           WHEN (isTeamRoom=1) THEN isTeamRoomId
       |       END AS team,
-      |       'activeUser' AS relation_name
-      |FROM activeUsersFiltered
+      |       'activeUser' AS relation_name,
+      |       raw
+      |FROM (SELECT CASE
+      |               WHEN (SM.verb='create'
+      |                   AND (SM.object.objectType='team'
+      |                      OR SM.object.objectType='conversation')) THEN 1
+      |               ELSE 0
+      |               END AS isCreate,
+      |             CASE
+      |               WHEN (SM.convOneOnOne=true) THEN 1
+      |               ELSE 0
+      |               END AS isOneToOneRoom,
+      |             CASE
+      |               WHEN (teamId IS NULL
+      |                 AND SM.convOneOnOne=false) THEN 1
+      |               ELSE 0
+      |               END AS isGroupRoom,
+      |             CASE
+      |               WHEN teamId IS NOT NULL THEN 1
+      |               ELSE 0
+      |               END AS isTeamRoom,
+      |             CASE
+      |               WHEN (teamId IS NULL
+      |                 AND SM.convOneOnOne=false) THEN SM.target.id
+      |               END AS isGroupRoomId,
+      |             CASE
+      |               WHEN (SM.convOneOnOne=true) THEN SM.target.id
+      |               END AS isOneToOneRoomId,
+      |             CASE
+      |               WHEN teamId IS NOT NULL THEN SM.target.id
+      |               END AS isTeamRoomId,
+      |             CASE
+      |               WHEN SM.verb='post'
+      |                AND SM.object.objectType='comment' THEN 1
+      |               ELSE 0
+      |               END AS isMessage,
+      |             CASE
+      |               WHEN SM.metricType='PARTICIPANT'
+      |                 AND SM.callType='TERMINATED' THEN 1
+      |               ELSE 0
+      |               END AS isCall,
+      |             coalesce(ORG_ID, orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
+      |             coalesce(userId, USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+      |             timeRcvd AS time_stamp,
+      |             raw
+      |       FROM activeUsersRaw
+      |       WHERE appname='conv'
+      |           AND SM.uaType<>'Messenger'
+      |           AND SM.uaType<>'Hydra'
+      |           AND SM.uaType<>'UCConnector'
+      |           AND ((SM.verb='acknowledge'
+      |           AND SM.object.objectType='activity')
+      |               OR (SM.verb='post'
+      |           AND SM.object.objectType='comment')
+      |               OR (SM.verb='share'
+      |           AND SM.object.objectType='content')
+      |               OR (SM.verb='create'
+      |           AND (SM.object.objectType='conversation'
+      |                OR SM.object.objectType='team'))
+      |               OR (SM.verb='add'
+      |           AND SM.object.objectType='person'
+      |           AND (SM.target.objectType='conversation'
+      |                OR SM.object.objectType='team')))
+      |           OR (appname='locus'
+      |           AND (SM.metricType='PARTICIPANT'
+      |           AND SM.callType='TERMINATED'
+      |           AND SM.squared=true
+      |           AND SM.locusType<>'JABBER'))
+      |)
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
       |  AND testUser(userId) = 0
@@ -445,24 +447,26 @@ object Queries {
       |       userId,
       |       deviceId,
       |       model,
-      |       'registeredEndpoint' AS relation_name
+      |       'registeredEndpoint' AS relation_name,
+      |       raw
       |FROM
-      |  (SELECT to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-      |          coalesce(`@fields`.orgId, 'unknown') AS orgId,
-      |          SM.value.deviceIdentifier AS deviceId,
+      |  (SELECT timeRcvd AS time_stamp,
+      |          coalesce(orgId, 'unknown') AS orgId,
+      |          SM_C.value.deviceIdentifier AS deviceId,
       |          coalesce(
       |             CASE
-      |                 WHEN (SM.value.model='Room 70D') THEN 'Undefined'
-      |                 WHEN (SM.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
-      |                 ELSE SM.value.model
+      |                 WHEN (SM_C.value.model='Room 70D') THEN 'Undefined'
+      |                 WHEN (SM_C.value.model='SparkBoard 55') THEN 'SPARK-BOARD55'
+      |                 ELSE SM_C.value.model
       |             END, 'unknown') AS model,
-      |          'NA' AS userId
+      |          'NA' AS userId,
+      |          raw
       |   FROM registeredEndpointRaw
-      |   WHERE _appname='metrics'
-      |     AND (`@fields`.uaType='ce'
-      |          OR `@fields`.uaType='SparkBoard')
-      |     AND (SM.key='sysinfo_darling'
-      |          OR SM.key='sysinfo'))
+      |   WHERE appname='metrics'
+      |     AND (uaType='ce'
+      |          OR uaType='SparkBoard')
+      |     AND (SM_C.key='sysinfo_darling'
+      |          OR SM_C.key='sysinfo'))
       |WHERE orgId<>'unknown'
       |  AND validOrg(orgId)<>'1'
     """.stripMargin
@@ -606,8 +610,8 @@ object Queries {
 
   def autoLicense =
     s"""
-       |SELECT  to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_stamp,
-       |        convertTime(to_timestamp(`@timestamp`, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) as pdate,
+       |SELECT  timeRcvd AS time_stamp,
+       |        convertTime(timeRcvd) as pdate,
        |        uuid(orgId) as dataid,
        |        "license" as relation_name,
        |        split(license, '_')[0] as licenses,

@@ -16,6 +16,8 @@ import java.io.*;
 
 import java.sql.Timestamp;
 import java.util.*;
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.callUDF;
 
 public class TableProcessor implements Serializable {
     private SparkSession spark;
@@ -64,43 +66,37 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset autoLicense(Dataset raw){
-        raw.createOrReplaceTempView("autoLicenseRaw");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("autoLicenseRaw");
         return spark.sql(sql.Queries.autoLicense());
     }
 
     public Dataset callQuality(Dataset raw){
-        raw.createOrReplaceTempView("callQualityRaw");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("callQualityRaw");
         return spark.sql(sql.Queries.callQuality());
     }
 
-    public Dataset callVolume(Dataset raw){
-        raw.createOrReplaceTempView("callVolumeRaw");
-        return spark.sql(sql.Queries.callVolume());
-    }
-
     public Dataset callDuration(Dataset raw){
-        raw.createOrReplaceTempView("callDurationRaw");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("callDurationRaw");
         return spark.sql(sql.Queries.callDuration());
     }
 
     public Dataset fileUsed(Dataset raw){
-        raw.createOrReplaceTempView("fileUsedRaw");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("fileUsedRaw");
         return spark.sql(sql.Queries.fileUsed());
     }
 
     public Dataset registeredEndpoint(Dataset raw){
-        raw.createOrReplaceTempView("registeredEndpointRaw");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("registeredEndpointRaw");
         return spark.sql(sql.Queries.registeredEndpoint());
     }
 
     public Dataset activeUser(Dataset raw){
-        raw.createOrReplaceTempView("activeUsersRaw");
-        spark.sql(sql.Queries.activeUsersFilter()).createOrReplaceTempView("activeUsersFiltered");
+        setTimestampField(raw, "timeRcvd").createOrReplaceTempView("activeUsersRaw");
         return spark.sql(sql.Queries.activeUser());
     }
 
     public Dataset callQualityTotalCount(Dataset callQuality){
-        callQuality
+        setTimestampField(callQuality, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id")
                 .dropDuplicates("time_stamp", "orgId", "call_id")
@@ -109,7 +105,7 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset callQualityBadCount(Dataset callQuality){
-        callQuality
+        setTimestampField(callQuality, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id",
                         "CASE WHEN (audio_jitter>150 OR audio_rtt>400 OR audio_packetloss>5) THEN 1 ELSE 0 END AS quality_is_bad")
@@ -119,21 +115,21 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset callVolumeCount(Dataset callVolume){
-        callVolume
+        setTimestampField(callVolume, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("callVolume");
         return spark.sql(sql.Queries.callVolumeCount());
     }
 
     public Dataset callDurationCount(Dataset callDuration){
-        callDuration
+        setTimestampField(callDuration, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("callDuration");
         return spark.sql(sql.Queries.callDurationCount());
     }
 
     public Dataset totalCallCount(Dataset callDuration){
-        callDuration
+        setTimestampField(callDuration, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "call_id", "uaType", "deviceType", "ep1(deviceType, uaType) as ep1")
                 .dropDuplicates("time_stamp", "orgId", "call_id", "ep1")
@@ -142,7 +138,7 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset fileUsedCount(Dataset fileUsed){
-        fileUsed
+        setTimestampField(fileUsed, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .dropDuplicates("time_stamp","dataid")
                 .createOrReplaceTempView("fileUsed");
@@ -150,7 +146,7 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset registeredEndpointCount(Dataset registeredEndpoint){
-        registeredEndpoint
+        setTimestampField(registeredEndpoint, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "model", "deviceId")
                 .dropDuplicates("time_stamp", "orgId", "model", "deviceId")
@@ -160,22 +156,20 @@ public class TableProcessor implements Serializable {
 
     public List<Dataset> activeUserCounts(Dataset activeUser){
         List<Dataset> datasets = new ArrayList<>();
-        Dataset activeUserWithWatermark = activeUser.withWatermark("time_stamp", watermarkDelayThreshold);
-        activeUserWithWatermark.createOrReplaceTempView("activeUser");
 //        datasets.add(spark.sql(sql.Queries.isCreateSumByOrg()));
-        datasets.add(activeUserCount(activeUserWithWatermark,"userId", "userCountByOrg"));
+        datasets.add(activeUserCount(activeUser,"userId", "userCountByOrg"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"rtUser", "allUser"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOneUser", "oneToOneUser"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"groupUser", "spaceUser"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"teamUser", "teamUser"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"oneToOne", "oneToOneCount"));
-        datasets.add(activeUserCount(activeUserWithWatermark,"group", "spaceCount"));
+        datasets.add(activeUserCount(activeUser,"oneToOne", "oneToOneCount"));
+        datasets.add(activeUserCount(activeUser,"group", "spaceCount"));
 //        datasets.add(activeUserCount(activeUserWithWatermark,"team", "teamCount"));
         return datasets;
     }
 
     public Dataset activeUserRollUp(Dataset activeUser){
-        activeUser
+        setTimestampField(activeUser, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("endOfDay(time_stamp) as time_stamp", "orgId", "userId", "isMessage", "isCall")
                 .createOrReplaceTempView("activeUser");
@@ -183,21 +177,21 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset rtUser(Dataset activeUser){
-        activeUser
+        setTimestampField(activeUser, "time_stamp")
                 .selectExpr("endOfDay(time_stamp) as time_stamp", "orgId", "userId", "oneToOne", "group")
                 .createOrReplaceTempView("activeUser");
         return spark.sql(sql.Queries.rtUser());
     }
 
     public Dataset activeUserTopCount(Dataset activeUser){
-        activeUser
+        setTimestampField(activeUser, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("activeUser");
         return spark.sql(sql.Queries.topUser());
     }
 
     public Dataset topPoorQuality(Dataset callQuality){
-        callQuality
+        setTimestampField(callQuality, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", "userId",
                         "CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad")
@@ -206,7 +200,7 @@ public class TableProcessor implements Serializable {
     }
 
     private Dataset activeUserCount(Dataset activeUser, String aggregateColumn, String resultColumn){
-        activeUser
+        setTimestampField(activeUser, "time_stamp")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .selectExpr("aggregateStartDate(time_stamp) as time_stamp", "orgId", aggregateColumn)
                 .dropDuplicates("time_stamp", "orgId", aggregateColumn).createOrReplaceTempView(resultColumn);
@@ -214,24 +208,24 @@ public class TableProcessor implements Serializable {
     }
 
     public Dataset convCount(Dataset conv){
-        conv
-                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId")
+        setTimestampField(conv, "timeRcvd")
+                .selectExpr("timeRcvd AS time_stamp", "coalesce(ORG_ID, orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("conv");
         return spark.sql(sql.Queries.orgIdCountQuery("conv"));
     }
 
     public Dataset metricsCount(Dataset metrics){
-        metrics
-                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(`@fields`.orgId, 'unknown') AS orgId")
+        setTimestampField(metrics, "timeRcvd")
+                .selectExpr("timeRcvd AS time_stamp", "coalesce(orgId, 'unknown') AS orgId")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("metrics");
         return spark.sql(sql.Queries.orgIdCountQuery("metrics"));
     }
 
     public Dataset locusCount(Dataset locus){
-        locus
-                .selectExpr("to_timestamp(`@timestamp`, \"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\") AS time_stamp", "coalesce(SM.orgId, SM.participant.orgId, 'unknown') AS orgId")
+        setTimestampField(locus, "timeRcvd")
+                .selectExpr("timeRcvd AS time_stamp", "coalesce(ORG_ID, SM.orgId, SM.participant.orgId, 'unknown') AS orgId")
                 .withWatermark("time_stamp", watermarkDelayThreshold)
                 .createOrReplaceTempView("locus");
         return spark.sql(sql.Queries.orgIdCountQuery("locus"));
@@ -250,6 +244,7 @@ public class TableProcessor implements Serializable {
     private void registerFunctions(){
         spark.udf().register("validOrg", new ValidOrgLookup("/officialOrgList.csv"), DataTypes.StringType);
         spark.udf().register("convertTime", new TimeConverter("yyyy-MM-dd"), DataTypes.StringType);
+        spark.udf().register("toTimestamp", new ToTimestamp(), DataTypes.TimestampType);
         spark.udf().register("calcAvgFromHistMin", new calcAvgFromHistMin(), DataTypes.FloatType);
         spark.udf().register("periodTag", new PeriodTag(aggregationPeriod), DataTypes.StringType);
         spark.udf().register("aggregateStartDate", new AggregateStartDate(aggregationPeriod), DataTypes.TimestampType);
@@ -343,6 +338,17 @@ public class TableProcessor implements Serializable {
         }
     }
 
+    private class ToTimestamp implements UDF1<String, Timestamp> {
+        private Functions.TimeConverter timeConverter;
+        public ToTimestamp(){
+            this.timeConverter = new Functions.TimeConverter();
+        }
+
+        public Timestamp call(String timeStamp) throws Exception {
+            return timeConverter.toTimestamp(timeStamp);
+        }
+    }
+
     private class ValidOrgLookup implements UDF1<String, String> {
         private Map<String, String> orgExcludeMap;
 
@@ -372,6 +378,10 @@ public class TableProcessor implements Serializable {
         public String call(String orgId) throws Exception {
             return orgExcludeMap.get(orgId) == null ? "0" : orgExcludeMap.get(orgId);
         }
+    }
+
+    public static Dataset setTimestampField(Dataset ds, String timestampField) {
+        return ds.withColumn(timestampField, callUDF("toTimestamp", col(timestampField)));
     }
 
 }

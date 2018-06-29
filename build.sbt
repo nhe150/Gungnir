@@ -37,5 +37,5 @@ assemblyMergeStrategy in assembly := {
 unmanagedResourceDirectories in Test += baseDirectory.value / "src" / "main" / "resources"
 
 jacocoExcludes ++= Seq("SparkDataStreaming", "SparkDataBatch", "SparkDataMonitor")
-coverageExcludedPackages := "<empty>;util.Constants;DeleteRocords;"
+coverageExcludedPackages := "<empty>;util.Constants;DeleteRocords;DataMigrationCassandra"
 

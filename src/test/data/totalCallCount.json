@@ -1,0 +1,11 @@
+[
+  {
+    "eventKey": "2018-05-14 00:00:00^6ae39fcc-c051-4301-a30d-7df774e58578^Other^callDuration^daily",
+    "time_stamp": "2018-05-14T00:00:00Z",
+    "orgId": "6ae39fcc-c051-4301-a30d-7df774e58578",
+    "ep1": "Other",
+    "number_of_successful_calls": 1,
+    "period": "daily",
+    "relation_name": "callDuration"
+  }
+]

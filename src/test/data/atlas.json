@@ -1,1 +1,59 @@
-{"@timestamp":"2018-03-14T02:16:38.011Z","@fields":{"logger_name":"com.cisco.wx2.server.metrics.MetricsHelper","thread_name":"executor.atlas-metrics.2-17","level":"INFO","level_value":20000,"caller_class_name":"com.cisco.wx2.server.metrics.MetricsHelper","caller_method_name":"publishSemanticEvent","caller_file_name":"MetricsHelper.java","caller_line_number":36,"WEBEX_TRACKINGID":"ATLAS_13a2c947-81fd-fca8-fa7a-3269a4d33f8b_57","build":"12431z141at1520958997"},"tags":["atlas","splunk"],"@environment":"a6","@version":"1","type":"udp_json_event","host":"172.18.213.186","logs_broker":"logstash-logsachm-307-achm","_appname":"atlas","SM":{"orgId":"4cae56d0-9f81-4bb3-a961-e9758cd43d96","inviterID":"36977995-7898-4df4-a8f2-275c25aa1bf5","inviteeID":"95c3b544-caea-4150-9c1f-6f8caa46d55c","inviteeOrgId":"4cae56d0-9f81-4bb3-a961-e9758cd43d96","time":"2018-03-14T02:16:37Z","inviteAction":"INVITE","inviteType":"ADMIN_INVITE","adminInviteType":"spark","inviteStatus":"SUCCESS","isInviterFirstNameUsed":"true","isInviteeFirstNameUsed":"false","recipe":"A","abTestVersion":"4.4","testUser":"false","entitlements":["spark","squaredCallInitiation","squaredRoomModeration","squaredSyncUp","webExSquared"],"licenses":["MS_5831e718-9f2e-4fbd-835e-3358dfe4c357","CF_4b554d94-fd79-4d9a-9cf1-6ccbe09aa1f2"],"autoTemplate":false,"onboardMethod":"CSV","adminId":"36977995-7898-4df4-a8f2-275c25aa1bf5","userId":"36977995-7898-4df4-a8f2-275c25aa1bf5","elapsedTime":1101,"className":"InviteMetricEvent","numberOfInvitees":0,"publishedDate":"2018-03-14T02:16:37Z"}}
+{
+  "timeRcvd": "2018-03-14T02:16:38.011Z",
+  "timestamp": "2018-03-14T02:16:38.011Z",
+  "logger_name": "com.cisco.wx2.server.metrics.MetricsHelper",
+  "thread_name": "executor.atlas-metrics.2-17",
+  "level": "INFO",
+  "level_value": 20000,
+  "caller_class_name": "com.cisco.wx2.server.metrics.MetricsHelper",
+  "caller_method_name": "publishSemanticEvent",
+  "caller_file_name": "MetricsHelper.java",
+  "caller_line_number": 36,
+  "WEBEX_TRACKINGID": "ATLAS_13a2c947-81fd-fca8-fa7a-3269a4d33f8b_57",
+  "build": "12431z141at1520958997",
+  "tags": [
+    "atlas",
+    "splunk"
+  ],
+  "@environment": "a6",
+  "@version": "1",
+  "type": "udp_json_event",
+  "host": "172.18.213.186",
+  "logs_broker": "logstash-logsachm-307-achm",
+  "appname": "atlas",
+  "SM": {
+    "orgId": "4cae56d0-9f81-4bb3-a961-e9758cd43d96",
+    "inviterID": "36977995-7898-4df4-a8f2-275c25aa1bf5",
+    "inviteeID": "95c3b544-caea-4150-9c1f-6f8caa46d55c",
+    "inviteeOrgId": "4cae56d0-9f81-4bb3-a961-e9758cd43d96",
+    "time": "2018-03-14T02:16:37Z",
+    "inviteAction": "INVITE",
+    "inviteType": "ADMIN_INVITE",
+    "adminInviteType": "spark",
+    "inviteStatus": "SUCCESS",
+    "isInviterFirstNameUsed": "true",
+    "isInviteeFirstNameUsed": "false",
+    "recipe": "A",
+    "abTestVersion": "4.4",
+    "testUser": "false",
+    "entitlements": [
+      "spark",
+      "squaredCallInitiation",
+      "squaredRoomModeration",
+      "squaredSyncUp",
+      "webExSquared"
+    ],
+    "licenses": [
+      "MS_5831e718-9f2e-4fbd-835e-3358dfe4c357",
+      "CF_4b554d94-fd79-4d9a-9cf1-6ccbe09aa1f2"
+    ],
+    "autoTemplate": false,
+    "onboardMethod": "CSV",
+    "adminId": "36977995-7898-4df4-a8f2-275c25aa1bf5",
+    "userId": "36977995-7898-4df4-a8f2-275c25aa1bf5",
+    "elapsedTime": 1101,
+    "className": "InviteMetricEvent",
+    "numberOfInvitees": 0,
+    "publishedDate": "2018-03-14T02:16:37Z"
+  }
+}

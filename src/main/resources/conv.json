@@ -1,15 +1,15 @@
 {
-  "@timestamp": "2017-11-08T22:30:47.892Z",
+  "timestamp": "2017-11-08T22:30:47.892Z",
+  "timeRcvd": "2017-11-08T22:30:47.892Z",
   "orgId": "",
+  "teamId": "",
   "userId": "",
-  "@fields": {
-    "teamId": "",
-    "orgId": "",
-    "userId": "",
-    "USER_ID": "42ff21ff-d041-4968-9974-3660a0920400"
-  },
-  "_appname": "conv,locus",
+  "USER_ID": "42ff21ff-d041-4968-9974-3660a0920400",
+  "ORG_ID": "",
+  "appname": "conv,locus",
   "SM": {
+    "uaType": "sparkwindows",
+    "uaVersion": "",
     "teamId": "",
     "metricType": "",
     "callType": "",
@@ -39,7 +39,6 @@
       "objectType": "conversation",
       "id": "148488a6-cf22-3726-8a63-285395ac93ae"
     },
-    "convOneOnOne": true,
-    "uaType": "sparkwindows"
+    "convOneOnOne": true
   }
 }

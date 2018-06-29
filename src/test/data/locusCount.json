@@ -1,10 +1,18 @@
 [
   {
   "eventKey": "2017-11-19 00:00:00^unknown^locus^daily",
-  "time_stamp": "2017-11-19T00:00:00.000",
+  "time_stamp": "2017-11-19T00:00:00.000Z",
   "orgId": "unknown",
   "userCountByOrg": 1,
   "period": "daily",
   "relation_name": "locus"
-  }
+  },
+  {
+    "eventKey": "2018-05-14 00:00:00^6ae39fcc-c051-4301-a30d-7df774e58578^locus^daily",
+    "time_stamp": "2018-05-14T00:00:00.000Z",
+    "orgId": "6ae39fcc-c051-4301-a30d-7df774e58578",
+    "userCountByOrg": 1,
+    "period": "daily",
+    "relation_name": "locus"
+  }git
 ]

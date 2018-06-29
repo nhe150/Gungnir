@@ -1,13 +1,12 @@
 {
-  "@timestamp": "2017-11-08T22:30:47.892Z",
-  "@fields": {
-    "uaType": "",
-    "uaVersion": "2.0.6199.0",
-    "orgId": "",
-    "userId": ""
-  },
-  "_appname": "metrics",
-  "SM": {
+  "timestamp": "2017-11-08T22:30:47.892Z",
+  "timeRcvd": "2017-11-08T22:30:47.892Z",
+  "uaType": "",
+  "uaVersion": "2.0.6199.0",
+  "orgId": "",
+  "userId": "",
+  "appname": "metrics",
+  "SM_C": {
     "sessionId": "",
     "value": {
       "deviceIdentifier": "",
@@ -46,7 +45,6 @@
         }
       }
     },
-    "key": "",
-    "uuid": ""
+    "key": ""
   }
 }

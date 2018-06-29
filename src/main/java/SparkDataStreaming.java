@@ -221,43 +221,43 @@ public class SparkDataStreaming implements Serializable {
     private void sinkTopicsToFile(String topicList, String format) {
         for (String s : topicList.split(",")) {
             Dataset<Row> inputStream = readFromKafka(s);
-            sinkToFileByKey(inputStream.selectExpr("split(key, '_')[0] as key", "value"), format, s);
+            sinkToFileByKey(inputStream, format, s);
         }
     }
 
     private void sinkDetailsToCassandra(String topicList) throws Exception{
         for (String s : topicList.split(",")) {
-            Dataset<Row> inputStream = readFromKafkaWithSchema(s);
+            Dataset<Row> inputStream = readFromKafkaWithSchema(s).drop("raw");
             sinkToCassandra(inputStream, constants.CassandraTableData(), "append", s);
         }
     }
 
     private void autoLicense(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/atlas.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/atlas.json"));
         Dataset<Row> autoLicense = tableProcessor.autoLicense(raw);
         sinkToCassandra(autoLicense, constants.CassandraTableLic(), "update", "autoLicense");
     }
 
     private void callQuality(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/metrics.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> callQuality = tableProcessor.callQuality(raw);
         sinkToKafka(callQuality.selectExpr("pdate as key","to_json(struct(*)) AS value"), "callQuality");
     }
 
     private void callDuration(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/locus.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/locus.json"));
         Dataset<Row> callDuration = tableProcessor.callDuration(raw);
         sinkToKafka(callDuration.selectExpr("pdate as key","to_json(struct(*)) AS value"), "callDuration");
     }
 
     private void fileUsed(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/conv.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> fileUsed = tableProcessor.fileUsed(raw);
         sinkToKafka(fileUsed.selectExpr("pdate as key","to_json(struct(*)) AS value"), "fileUsed");
     }
 
     private void registeredEndpoint(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/metrics.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/metrics.json"));
         Dataset<Row> registeredEndpoint = tableProcessor.registeredEndpoint(raw);
         sinkToKafka(registeredEndpoint.selectExpr("pdate as key","to_json(struct(*)) AS value"),"registeredEndpoint");
     }
@@ -289,7 +289,7 @@ public class SparkDataStreaming implements Serializable {
     }
 
     private void activeUser(String input) throws Exception{
-        Dataset<Row> raw = readFromKafkaWithSchema(input, tableProcessor.getSchema("/conv.json"));
+        Dataset<Row> raw = readFromKafkaWithSchemaWithRaw(input, tableProcessor.getSchema("/conv.json"));
         Dataset<Row> activeUser = tableProcessor.activeUser(raw);
         sinkToKafka(activeUser.selectExpr("pdate as key","to_json(struct(*)) AS value"),"activeUser");
     }
@@ -384,7 +384,7 @@ public class SparkDataStreaming implements Serializable {
     }
 
     private Dataset<Row> readFromKafka(String topics){
-        return readFromKafka(getKafkaTopicNames(topics), constants.kafkaOutputBroker());
+        return readFromKafka(getKafkaTopicNames(topics), constants.kafkaOutputBroker()).selectExpr("split(key, '_')[0] as key", "value");
     }
 
     private Dataset<Row> readFromKafka(String topics, String bootstrap_ervers){
@@ -409,6 +409,12 @@ public class SparkDataStreaming implements Serializable {
         return readFromKafka(topics)
                 .filter(col("key").notEqual(Functions.PreProcess.BAD_DATA_LABLE))
                 .select(from_json(col("value"), schema).as("data")).select("data.*");
+    }
+
+    private Dataset<Row> readFromKafkaWithSchemaWithRaw(String topics, StructType schema){
+        return readFromKafka(topics)
+                .filter(col("key").notEqual(Functions.PreProcess.BAD_DATA_LABLE))
+                .select(from_json(col("value"), schema).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
     private String getKafkaTopicNames(String topics) {

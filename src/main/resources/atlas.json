@@ -1,12 +1,10 @@
 {
-  "@timestamp": "2018-02-17T01:32:08.633Z",
+  "timestamp": "2018-02-17T01:32:08.633Z",
+  "timeRcvd": "2018-02-17T01:32:08.633Z",
   "orgId": "",
   "userId": "",
-  "@fields": {
-    "orgId": "",
-    "userId": ""
-  },
-  "_appname": "atlas",
+  "ORG_ID": "",
+  "appname": "atlas",
   "SM": {
     "className": "ProvisioningMetricEvent",
     "autoTemplate": "true",

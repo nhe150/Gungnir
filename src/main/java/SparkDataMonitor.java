@@ -107,21 +107,27 @@ public class SparkDataMonitor implements Serializable {
             Dataset orgIdList = spark.createDataset(new ArrayList<>(), Encoders.STRING());
             FileSystem fs = FileSystem.get(spark.sparkContext().hadoopConfiguration());
             if(fs.exists(new org.apache.hadoop.fs.Path(orgIdListFile))){
-                orgIdList = spark.read().textFile(orgIdListFile).toDF("orgId");
+                orgIdList = spark.read().option("multiline", true).json(orgIdListFile).selectExpr("explode(orgids) as orgid");
             } else if(Files.exists(Paths.get(orgIdListFile))){
                 File orgList = new File(orgIdListFile);
                 InputStream targetStream = new FileInputStream(orgList);
                 String orgs = IOUtils.toString(targetStream);
-                orgIdList = spark.createDataset(Arrays.asList(orgs), Encoders.STRING()).toDF("orgId");;
+                orgIdList = spark.createDataset(Arrays.asList(orgs), Encoders.STRING());
+                orgIdList = spark.read().option("multiline", true).json(orgIdList).selectExpr("explode(orgids) as orgid");
             } else {
                 throw new IllegalArgumentException("Couldn't find the file " + orgIdListFile + " that contains the list of orgs for monitoring");
             }
-            data = orgIdList.join(data.alias("data"), orgIdList.col("orgId").equalTo(data.col("orgId")))
-                    .selectExpr("data.*");
-        }
 
+            orgIdList.show(false);
+            data.show(false);
+            data = orgIdList.join(data.alias("data"), orgIdList.col("orgid").equalTo(data.col("orgid")))
+                    .selectExpr("data.*");
+            data.show(false);
+        }
+        data.show(false);
         Dataset allCounts = getOrgCount(dataset).union(getCountPerOrg(data));
-        return allCounts.selectExpr("orgId", "relation_name", "convertTime(unix_timestamp(time_stamp)) as pdate", "count");
+        allCounts.show(false);
+        return allCounts.selectExpr("orgid", "relation_name", "convertTime(unix_timestamp(time_stamp)) as pdate", "count");
     }
 
     private Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
@@ -146,8 +152,8 @@ public class SparkDataMonitor implements Serializable {
             average = getOrgAverage(historyForNonBusinessDays);
         }
 
-        Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgId").equalTo(average.col("orgId")).and(currentData.col("relation_name").equalTo(average.col("relation_name"))))
-                .selectExpr("currentData.orgId", "currentData.relation_name", "pdate", "count", "avg", "CASE WHEN (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +") THEN 'failure' ELSE 'success' END as status");
+        Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgid").equalTo(average.col("orgid")).and(currentData.col("relation_name").equalTo(average.col("relation_name"))))
+                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CASE WHEN (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +") THEN 'failure' ELSE 'success' END as status");
 
         dataWithFlag.repartition(1)
                 .write()
@@ -166,7 +172,8 @@ public class SparkDataMonitor implements Serializable {
         Dataset orgCount = aggregates.selectExpr("CONCAT(relation_name, '^', period) as relation_name", "time_stamp")
                 .groupBy("relation_name", "time_stamp")
                 .count()
-                .selectExpr("'orgCount' as orgId", "relation_name", "time_stamp", "count");
+                .selectExpr("'orgCount' as orgid", "relation_name", "time_stamp", "count");
+        orgCount.show(false);
         return orgCount;
     }
 
@@ -194,10 +201,12 @@ public class SparkDataMonitor implements Serializable {
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callDuration'")
+                .where("ep1 = 'Desktop client'")
                 .selectExpr("orgid", "CONCAT('number_of_minutes^', period) as relation_name", "time_stamp", "number_of_minutes as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callDuration'")
+                .where("ep1 = 'Desktop client'")
                 .selectExpr("orgid", "CONCAT('number_of_total_calls^', period) as relation_name", "time_stamp", "number_of_successful_calls as count"));
 
         countPerOrg= countPerOrg.union(aggregates
@@ -206,7 +215,7 @@ public class SparkDataMonitor implements Serializable {
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callQuality'")
-                .selectExpr("orgid", "CONCAT('number_of_good_bad_calls^', period) as relation_name", "time_stamp", "number_of_total_calls as count"));
+                .selectExpr("orgid", "CONCAT('number_of_bad_calls^', period) as relation_name", "time_stamp", "number_of_bad_calls as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'registeredEndpoint'")
@@ -224,6 +233,7 @@ public class SparkDataMonitor implements Serializable {
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'metrics'")
                 .selectExpr("orgid", "CONCAT('metricsCount^', period) as relation_name", "time_stamp", "userCountByOrg as count"));
+        countPerOrg.show(false);
         return countPerOrg;
     }
 

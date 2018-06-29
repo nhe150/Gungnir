@@ -1,7 +1,7 @@
 [
   {
     "eventKey": "2017-11-19 00:00:00^1eb65fdf-9643-417f-9974-ad72cae0e10f^5920b639-57d3-49fe-ba43-e2c464972484^topUser^daily",
-    "time_stamp": "2017-11-19T00:00:00.000",
+    "time_stamp": "2017-11-19T00:00:00.000Z",
     "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
     "userId": "5920b639-57d3-49fe-ba43-e2c464972484",
     "messages": 1,

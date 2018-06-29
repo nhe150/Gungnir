@@ -1,0 +1,14 @@
+[
+  {
+    "time_stamp": "2018-05-14T22:27:18.746Z",
+    "pdate": "2018-05-14",
+    "orgId": "6ae39fcc-c051-4301-a30d-7df774e58578",
+    "userId": "c46fcc39-d0f7-4032-9667-bccfdb463f54",
+    "uaType": "UCConnecto",
+    "legDuration": 50,
+    "source": "Spark",
+    "deviceType": "UC",
+    "call_id": "79a6033b-1b1a-497b-a508-6001d5de2849^2018-05-14T22:26:18.352Z",
+    "relation_name": "callDuration"
+  }
+]

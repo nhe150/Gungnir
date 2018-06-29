@@ -1,14 +1,14 @@
 {
-  "@timestamp": "2017-11-08T22:30:47.892Z",
-  "userId": "",
-  "_appname": "locus",
-  "@fields": {
-    "uaVersion": "",
-    "USER_ID": "",
-    "LOCUS_ID": "",
-    "locusStartTime": ""
-  },
+  "timestamp": "2017-11-08T22:30:47.892Z",
+  "timeRcvd": "2017-11-08T22:30:47.892Z",
+  "appname": "locus",
+  "USER_ID": "",
+  "LOCUS_ID": "",
+  "locusStartTime": "",
+  "ORG_ID": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
   "SM": {
+    "uaVersion": "",
+    "uaType": "sparkwindows",
     "onBoardedUser": "",
     "uid": "",
     "env":"",
@@ -27,7 +27,6 @@
     "userId": "",
     "metricType": "",
     "callType": "",
-    "deviceType": "",
-    "uaType": "sparkwindows"
+    "deviceType": ""
   }
 }
