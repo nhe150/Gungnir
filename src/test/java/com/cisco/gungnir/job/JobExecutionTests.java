@@ -37,6 +37,11 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     }
 
     @Test
+    public void testSchemaForTransform() throws Exception {
+        jobExecutor.execute("schemaForTransform", "batch");
+    }
+
+    @Test
     public void testSplitDataBatch() throws Exception {
         jobExecutor.execute("splitData", "batch");
     }

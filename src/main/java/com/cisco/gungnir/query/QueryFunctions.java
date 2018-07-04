@@ -10,6 +10,10 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.Serializable;
 
+import static org.apache.spark.sql.functions.from_json;
+import static org.apache.spark.sql.functions.col;
+
+
 public class QueryFunctions implements Serializable {
     private SparkSession spark;
     private ConfigProvider configProvider;
@@ -55,6 +59,13 @@ public class QueryFunctions implements Serializable {
             }
         }
 
+        return applySchema(ds, parameters);
+    }
+
+    private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
+        if(parameters!= null && parameters.has("schemaName") && ds != null && ds.columns().length!=0) {
+            return ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
+        }
         return ds;
     }
 
