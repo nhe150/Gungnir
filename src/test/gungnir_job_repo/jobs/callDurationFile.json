@@ -40,7 +40,22 @@
             "saveMode": "append"
           }
         }
-      },
+      }
+    ],
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "callDuration",
+          "timeStampField": "time_stamp",
+          "schemaName": "callDuration",
+          "format": "json",
+          "multiline": true,
+          "dataLocation": "src/test/gungnir_job_repo/testData/"
+        }
+      }
+     ],
+     [
       {
         "queryName":"callDurationCount",
         "parameters":{

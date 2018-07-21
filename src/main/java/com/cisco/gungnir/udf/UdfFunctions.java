@@ -2,22 +2,27 @@ package com.cisco.gungnir.udf;
 
 import com.cisco.gungnir.config.ConfigProvider;
 import com.cisco.gungnir.utils.TimeConverter;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
+import org.apache.spark.sql.api.java.UDF2;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
+import scala.Tuple2;
 import scala.collection.JavaConversions;
 import scala.collection.mutable.WrappedArray;
-import util.UDFUtil;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class UdfFunctions implements Serializable {
@@ -32,6 +37,7 @@ public class UdfFunctions implements Serializable {
     public void registerFunctions() throws Exception{
         spark.udf().register("validOrg", new ValidOrgLookup(configProvider.retrieveAppConfigValue("configLocation") + "officialOrgList.csv"), DataTypes.StringType);
         spark.udf().register("testUser", new TestUser(configProvider.retrieveAppConfigValue("configLocation") + "testUserList.json"), DataTypes.IntegerType);
+        spark.udf().register("ep1", new DeviceMapping(configProvider.retrieveAppConfigValue("configLocation") + "deviceMapping.csv"), DataTypes.StringType);
         spark.udf().register("convertTime", new ConvertTime("yyyy-MM-dd"), DataTypes.StringType);
         spark.udf().register("endOfDay", new EndOfDay(), DataTypes.TimestampType);
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
@@ -45,8 +51,6 @@ public class UdfFunctions implements Serializable {
                     int lastIndex = fullPath.lastIndexOf("/") + 1;
                     return fullPath.substring(lastIndex, fullPath.length());
                 }, DataTypes.StringType);
-
-        UDFUtil.register(spark.sqlContext());
     }
 
     private static class ToTimestamp implements UDF1<String, Timestamp> {
@@ -127,6 +131,30 @@ public class UdfFunctions implements Serializable {
 
         public String call(String orgId) throws Exception {
             return excludedOrgList.contains(orgId) ? "1" : "0";
+        }
+    }
+
+    private class DeviceMapping implements UDF2<String, String, String> {
+        private Map<String, String> deviceTypeMap;
+
+        public DeviceMapping(String configPath){
+            Dataset deviceUaType = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            JavaPairRDD<String, String> javaPairRDD = deviceUaType.toJavaRDD().mapToPair(new PairFunction<Row, String, String>() {
+                public Tuple2<String, String> call(Row row) throws Exception {
+                    return new Tuple2<String, String>((String) row.get(0), (String) row.get(1));
+                }
+            });
+
+            deviceTypeMap = new HashMap<>(javaPairRDD.collectAsMap());
+        }
+
+        public String call(String device, String ua) throws Exception {
+            String key = device + "|" + ua;
+            return deviceTypeMap.containsKey(key)?  deviceTypeMap.get(key): "Other";
         }
     }
 
