@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 public class TimeConverter implements Serializable {
-    public static List<String> fromFormatStrings = Arrays.asList("yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private static final List<String> fromFormatStrings = Arrays.asList("yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     private SimpleDateFormat toFormat;
 
     public TimeConverter() {};
