@@ -16,7 +16,7 @@ public class DataVolumeMonitor implements Serializable {
         options.addOption(config);
 
         Option date = new Option("d", "date", true, "date of data to be monitored");
-        date.setRequired(true);
+        date.setRequired(false);
         options.addOption(date);
 
         Option thresholdOpt = new Option("t", "threshold", true, "threshold of data volume off to be consider abnormal");
