@@ -16,6 +16,9 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.callUDF;
+
 public class SparkDataMonitor implements Serializable {
     private SparkSession spark;
     private ConfigProvider configProvider;
@@ -36,7 +39,7 @@ public class SparkDataMonitor implements Serializable {
 
         Dataset aggregates = queryFunctions.cassandra.readFromCassandra("batch", configProvider.getAppConfig());
 
-        Dataset data = allCounts(aggregates, orgId);
+        Dataset data = allCounts(aggregates, orgId, currentDate);
 
         Dataset dataWithFlag = dataWithFlag(currentDate, data, threshold);
 
@@ -45,10 +48,12 @@ public class SparkDataMonitor implements Serializable {
         queryFunctions.kafka.writeToKafka(messages, "batch", configProvider.getAppConfig());
     }
 
-    private Dataset allCounts(Dataset dataset, String orgId) throws Exception{
+    private Dataset allCounts(Dataset dataset, String orgId, String currentDate) throws Exception{
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         dataset.cache();
         dataset  = dataset.where("period = 'daily'");
+        dataset =  dataset.withColumn("pdate", callUDF("unix_timestamp", col("time_stamp"))).withColumn("pdate", callUDF("convertTime", col("pdate")));
+
         Dataset data;
         if("*".equals(orgId)){
             data = dataset;
@@ -64,9 +69,9 @@ public class SparkDataMonitor implements Serializable {
                 .selectExpr("data.*");
         data.show(false);
 
-        Dataset allCounts = getOrgCount(dataset).union(getCountPerOrg(data));
+        Dataset allCounts = getOrgCount(dataset, currentDate).union(getCountPerOrg(data));
         allCounts.show(false);
-        return allCounts.selectExpr("orgid", "relation_name", "convertTime(unix_timestamp(time_stamp)) as pdate", "count");
+        return allCounts.selectExpr("orgid", "relation_name", "pdate", "count");
     }
 
     private Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
@@ -107,11 +112,22 @@ public class SparkDataMonitor implements Serializable {
         return dataset.where("count IS NOT NULL").groupBy("orgid", "relation_name").avg("count").selectExpr("orgid", "relation_name", "`avg(count)` as avg");
     }
 
-    private Dataset getOrgCount(Dataset aggregates){
-        Dataset orgCount = aggregates.selectExpr("relation_name", "time_stamp")
-                .groupBy("relation_name", "time_stamp")
+    private Dataset getOrgCount(Dataset aggregates, String currentDate){
+        List<String> data = new ArrayList<>();
+        data.add("fileUsed," + currentDate);
+        data.add("activeUser," + currentDate);
+        data.add("registeredEndpoint," + currentDate);
+        data.add("callDuration," + currentDate);
+        data.add("callQuality," + currentDate);
+
+        Dataset df = spark.createDataset(data, Encoders.STRING()).toDF();
+
+        Dataset df1 = df.selectExpr("split(value, ',')[0] as relation_name", "split(value, ',')[1] as pdate");
+
+        Dataset orgCount = aggregates.selectExpr("relation_name", "pdate").union(df1)
+                .groupBy("relation_name", "pdate")
                 .count()
-                .selectExpr("'orgCount' as orgid", "relation_name", "time_stamp", "count");
+                .selectExpr("'orgCount' as orgid", "relation_name", "pdate", "count");
         orgCount.show(false);
         return orgCount;
     }
@@ -120,58 +136,58 @@ public class SparkDataMonitor implements Serializable {
         aggregates.cache();
         Dataset countPerOrg = aggregates
                 .where("relation_name = 'fileUsed'")
-                .selectExpr("orgid", "'fileUsed' as relation_name", "time_stamp", "files as count");
+                .selectExpr("orgid", "'fileUsed' as relation_name", "pdate", "files as count");
 //
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'fileUsed'")
-//                .selectExpr("orgid", "CONCAT('filesize^', period) as relation_name", "time_stamp", "filesize as count"));
+//                .selectExpr("orgid", "CONCAT('filesize^', period) as relation_name", "pdate", "filesize as count"));
 
 //        Dataset countPerOrg= aggregates
 //                .where("relation_name = 'activeUser'")
-//                .selectExpr("orgid", "CONCAT('onetoonecount^', period) as relation_name", "time_stamp", "onetoonecount as count"));
+//                .selectExpr("orgid", "CONCAT('onetoonecount^', period) as relation_name", "pdate", "onetoonecount as count"));
 //
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'activeUser'")
-//                .selectExpr("orgid", "CONCAT('spacecount^', period) as relation_name", "time_stamp", "spacecount as count"));
+//                .selectExpr("orgid", "CONCAT('spacecount^', period) as relation_name", "pdate", "spacecount as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'activeUser'")
-                .selectExpr("orgid", "'activeUser' as relation_name", "time_stamp", "usercountbyorg as count"));
+                .selectExpr("orgid", "'activeUser' as relation_name", "pdate", "usercountbyorg as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'callDuration'")
 //                .where("ep1 = 'Desktop client'")
-//                .selectExpr("orgid", "CONCAT('number_of_minutes^', period) as relation_name", "time_stamp", "number_of_minutes as count"));
+//                .selectExpr("orgid", "CONCAT('number_of_minutes^', period) as relation_name", "pdate", "number_of_minutes as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callDuration'")
                 .where("ep1 = 'Desktop client'")
-                .selectExpr("orgid", "'number_of_total_calls' as relation_name", "time_stamp", "number_of_successful_calls as count"));
+                .selectExpr("orgid", "'number_of_total_calls' as relation_name", "pdate", "number_of_successful_calls as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callQuality'")
-                .selectExpr("orgid", "'number_of_good_calls' as relation_name", "time_stamp", "number_of_total_calls-number_of_bad_calls as count"));
+                .selectExpr("orgid", "'number_of_good_calls' as relation_name", "pdate", "number_of_total_calls-number_of_bad_calls as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'callQuality'")
-//                .selectExpr("orgid", "CONCAT('number_of_bad_calls^', period) as relation_name", "time_stamp", "number_of_bad_calls as count"));
+//                .selectExpr("orgid", "CONCAT('number_of_bad_calls^', period) as relation_name", "pdate", "number_of_bad_calls as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'registeredEndpoint'")
                 .where("model = 'SPARK-BOARD55'")
-                .selectExpr("orgid", "'roomDevice' as relation_name", "time_stamp", "registeredEndpointCount as count"));
+                .selectExpr("orgid", "'roomDevice' as relation_name", "pdate", "registeredEndpointCount as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'conv'")
-//                .selectExpr("orgid", "CONCAT('convCount^', period) as relation_name", "time_stamp", "userCountByOrg as count"));
+//                .selectExpr("orgid", "CONCAT('convCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
 //
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'locus'")
-//                .selectExpr("orgid", "CONCAT('locusCount^', period) as relation_name", "time_stamp", "userCountByOrg as count"));
+//                .selectExpr("orgid", "CONCAT('locusCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
 //
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'metrics'")
-//                .selectExpr("orgid", "CONCAT('metricsCount^', period) as relation_name", "time_stamp", "userCountByOrg as count"));
+//                .selectExpr("orgid", "CONCAT('metricsCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
         countPerOrg.show(false);
         return countPerOrg;
     }
