@@ -30,8 +30,8 @@ def repoName = "Gungnir"
 // need to change if add package
 def TarChoice = '''Gungnir-assembly'''
 def LabMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
-def BTSMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,testForPiPeLine_BTS3,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed,testForPiPeLine_BTS2"]
-def ProdMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed,testForPiPeLine_Prod2,testForPiPeLine_Prod4"]
+def BTSMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
+def ProdMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
 
 def String LabDesc = " "
 LabMap.each{component, jobs->
