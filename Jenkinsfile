@@ -136,7 +136,7 @@ node ("Linux") {
                 } else {
                     sparkDeploy(toPersonEmail: lastCommitUserEmail ,repoName: repoName, repoHTMLUrl:repoHTMLUrl, env:"Lab")
                 }
-      generateInputParameters(TarChoice:TarChoice.toString(), Desc:LabDesc.toString(), env:"Lab", map:LabMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)        
+      generateCMPDeployPage(TarChoice:TarChoice.toString(), Desc:LabDesc.toString(), env:"Lab", map:LabMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)        
    }
     
    stage('deploy to BTS') {
@@ -145,7 +145,7 @@ node ("Linux") {
                 } else {
                     sparkDeploy(toPersonEmail: lastCommitUserEmail ,repoName: repoName, repoHTMLUrl: repoHTMLUrl, env:"BTS")
                 }
-      generateInputParameters(TarChoice:TarChoice.toString(), Desc:BTSDesc.toString(), env:"BTS", map:BTSMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)
+      generateCMPDeployPage(TarChoice:TarChoice.toString(), Desc:BTSDesc.toString(), env:"BTS", map:BTSMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)
    }
    
    stage('deploy to Prod') {
@@ -154,6 +154,6 @@ node ("Linux") {
                 } else {
                     sparkDeploy(toPersonEmail: lastCommitUserEmail ,repoName: repoName, repoHTMLUrl:repoHTMLUrl, env:"Prod")
                }
-      generateInputParameters(TarChoice:TarChoice.toString(), Desc:ProdDesc.toString(), env:"Prod", map:ProdMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)
+      generateCMPDeployPage(TarChoice:TarChoice.toString(), Desc:ProdDesc.toString(), env:"Prod", map:ProdMap, roomId:PCIA20Room, repoName:repoName, repoHTMLUrl:repoHTMLUrl, lastCommitUserEmail:lastCommitUserEmail)
    }
 }
