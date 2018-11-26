@@ -22,7 +22,7 @@ currentBuild.displayName= '#' + currentBuild.number + ' ' + TARGET_TITLE
 env.TARGET_TITLE = currentBuild.displayName
 
 def CURRENT_DATE = new Date().format("yyy/MM/dd")
-def PCIA20Room = "Y2lzY29zcGFyazovL3VzL1JPT00vMjY1ZjI5YzAtOWQxZS0xMWU3LWIwZjYtMTc0NjBiNmY4N2Nk"
+def PCIA20Room = "Y2lzY29zcGFyazovL3VzL1JPT00vNThiMmNlMzAtZjEyNC0xMWU4LWE5MzItYzM4MDg5YmI1YmJm"
 
 def repoHTMLUrl = "https://sqbu-github.cisco.com/SAP/Gungnir"
 def repoName = "Gungnir"
