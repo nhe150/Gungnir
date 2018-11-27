@@ -139,7 +139,7 @@ node ("Linux") {
               }
 
               if (isPRBuild() || isMaterBranch()) {
-                  sparkSend(roomId: SparkRoom, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
+                  sparkSend(roomId: PCIA20Room, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
               } else {
                   sparkSend(toPersonEmail: lastCommitUserEmail, html: message, repoHTMLUrl: repoHTMLUrl, repoName: repoName)
               }
