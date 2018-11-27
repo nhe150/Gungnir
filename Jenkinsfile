@@ -22,16 +22,48 @@ currentBuild.displayName= '#' + currentBuild.number + ' ' + TARGET_TITLE
 env.TARGET_TITLE = currentBuild.displayName
 
 def CURRENT_DATE = new Date().format("yyy/MM/dd")
-def PCIA20Room = "Y2lzY29zcGFyazovL3VzL1JPT00vMjY1ZjI5YzAtOWQxZS0xMWU3LWIwZjYtMTc0NjBiNmY4N2Nk"
+def PCIA20Room = "Y2lzY29zcGFyazovL3VzL1JPT00vNThiMmNlMzAtZjEyNC0xMWU4LWE5MzItYzM4MDg5YmI1YmJm"
 
 def repoHTMLUrl = "https://sqbu-github.cisco.com/SAP/Gungnir"
 def repoName = "Gungnir"
 
 // need to change if add package
 def TarChoice = '''Gungnir-assembly'''
-def LabMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
-def BTSMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
-def ProdMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,Gungnir-batch-topCount-weekly,Gungnir-batch-topCount,Gungnir-stream-monthly-aggregates,Gungnir-stream-weekly-aggregates,Gungnir-stream-activeUser,Gungnir-stream_registeredEndpoint,Gungnir-stream_callQuality,Gungnir_stream_splitData,Gungnir-stream_callDuration,Gungnir-stream_autoLicense,Gungnir-stream_fileUsed"]
+def LabMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,\
+                                  Gungnir-batch-topCount-weekly,\
+                                  Gungnir-batch-topCount,\
+                                  Gungnir-stream-monthly-aggregates,\
+                                  Gungnir-stream-weekly-aggregates,\
+                                  Gungnir-stream-activeUser,\
+                                  Gungnir-stream_registeredEndpoint,\
+                                  Gungnir-stream_callQuality,\
+                                  Gungnir_stream_splitData,\
+                                  Gungnir-stream_callDuration,\
+                                  Gungnir-stream_autoLicense,\
+                                  Gungnir-stream_fileUsed"]
+def BTSMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly-BTS,\
+                                  Gungnir-batch-topCount-weekly-BTS,\
+                                  Gungnir-batch-topCount-BTS,\
+                                  Gungnir-stream-monthly-aggregates-BTS,\
+                                  Gungnir-stream-weekly-aggregates-BTS,\
+                                  Gungnir-stream-activeUser-BTS,\
+                                  Gungnir-stream_registeredEndpoint-BTS,\
+                                  Gungnir-stream_callQuality-BTS,\
+                                  Gungnir_stream_splitData_BTS,\
+                                  Gungnir-stream_callDuration-BTS,\
+                                  Gungnir-stream_autoLicense-BTS,\
+                                  Gungnir-stream_fileUsed-BTS"]
+def ProdMap = ["Gungnir-assembly":"Gungnir-batch-topCount-monthly,\
+                                   Gungnir-batch-topCount-weekly,\
+                                   Gungnir-batch-topCount,\
+                                   Gungnir-stream-monthly-aggregates,\
+                                   Gungnir-stream-weekly-aggregates,\
+                                   Gungnir-stream-activeUser,\
+                                   Gungnir-stream_registeredEndpoint,\
+                                   Gungnir-stream_callQuality,Gungnir_stream_splitData,\
+                                   Gungnir-stream_callDuration,\
+                                   Gungnir-stream_autoLicense,\
+                                   Gungnir-stream_fileUsed"]
 
 def String LabDesc = " "
 LabMap.each{component, jobs->
