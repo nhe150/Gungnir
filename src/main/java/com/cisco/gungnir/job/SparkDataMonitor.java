@@ -20,9 +20,9 @@ import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.callUDF;
 
 public class SparkDataMonitor implements Serializable {
-    private SparkSession spark;
-    private ConfigProvider configProvider;
-    private QueryFunctions queryFunctions;
+    protected SparkSession spark;
+    protected ConfigProvider configProvider;
+    protected QueryFunctions queryFunctions;
 
     public SparkDataMonitor(SparkSession spark, ConfigProvider appConfigProvider) throws Exception{
         ConfigProvider gungnirConfigProvider = new ConfigProvider(spark, appConfigProvider.retrieveAppConfigValue("gungnirConfigFile"));
@@ -48,7 +48,7 @@ public class SparkDataMonitor implements Serializable {
         queryFunctions.kafka.writeToKafka(messages, "batch", configProvider.getAppConfig());
     }
 
-    private Dataset allCounts(Dataset dataset, String orgId, String currentDate) throws Exception{
+    protected Dataset allCounts(Dataset dataset, String orgId, String currentDate) throws Exception{
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         dataset.cache();
         dataset  = dataset.where("period = 'daily'");
@@ -74,7 +74,7 @@ public class SparkDataMonitor implements Serializable {
         return allCounts.selectExpr("orgid", "relation_name", "pdate", "count");
     }
 
-    private Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
+    protected Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
 
         String startDate = new DateTime(DateTimeZone.UTC).plusDays(-30).toString("yyyy-MM-dd");
@@ -193,7 +193,7 @@ public class SparkDataMonitor implements Serializable {
     }
 
 
-    private Dataset createMessages(Dataset dataset) throws Exception {
+    protected Dataset createMessages(Dataset dataset) throws Exception {
         Dataset message = dataset.where("status = 'failure'").selectExpr(
                 "'crs' as component",
                 "'metrics' as eventtype",
