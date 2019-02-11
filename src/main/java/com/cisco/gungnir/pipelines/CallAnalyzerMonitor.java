@@ -4,6 +4,7 @@ package com.cisco.gungnir.pipelines;
 //import com.cisco.gungnir.job.SparkDataMonitor;
 //import org.apache.spark.SparkConf;
 //import org.apache.spark.sql.Dataset;
+import com.cisco.gungnir.pipelines.Schema;
 import org.apache.spark.sql.*;
 import java.io.Serializable;
 //import org.joda.time.DateTime;
@@ -32,7 +33,7 @@ public class CallAnalyzerMonitor implements Serializable {
         */
 
         SparkSession spark = SparkSession.builder()
-                .master("local")
+                .master("local[4]")
                 .appName("CallAnalyzerMonitor")
                 .getOrCreate();
 
@@ -49,6 +50,9 @@ public class CallAnalyzerMonitor implements Serializable {
             .option("es.nodes.wan.only", "true")
             .option("es.net.ssl", "true")
             .option("es.net.ssl.cert.allow.self.signed", "true")
+            .option("es.mapping.date.rich","false")
+            //.schema(Schema.schema())
+            .schema(ESSchema())
             .option("es.read.field.as.array.include", //es.read.field.as.array.include
                 "crid_media_audio_metrics.rx_media_e2e_lost_percent:2," +
                 "crid_media_audio_metrics.rx_media_hop_lost:2," +
@@ -96,15 +100,16 @@ public class CallAnalyzerMonitor implements Serializable {
                 "tx_rtt.share:2," +
                 "tx_rtt.video:2,"
             )
-            //.schema(Schema())
-            .load("call_analyzer/quality");
+            .load("call_analyzer/quality").limit(1);
 
         CallAnalyzerData.printSchema();
 
-        CallAnalyzerData.filter("CAST(start_time AS Date) = DATE_SUB(CURRENT_DATE(), 1)");
+        //CallAnalyzerData.filter("CAST(start_time AS Date) = DATE_SUB(CURRENT_DATE(), 1)");
+                       // .withColumn("crid_media_audio_metrics.rx_media_e2e_lost_percent", CallAnalyzerData(""));
 
-        //CallAnalyzerData.show();
+        //CallAnalyzerData.show(1);
 
+/*
         CallAnalyzerData.write()
                 .format("org.elasticsearch.spark.sql")
                 .option("es.net.http.auth.user", "waprestapi.gen")
@@ -118,7 +123,7 @@ public class CallAnalyzerMonitor implements Serializable {
                 .mode("Overwrite")
                 .save("call_analyzer_test/quality");
 
-/*
+*/
         String resourcesPath = System.getProperty("user.dir") + "/src/test/resources/";
 
         CallAnalyzerData.write()
@@ -127,7 +132,7 @@ public class CallAnalyzerMonitor implements Serializable {
                 .json(resourcesPath + "temp/output1/");
 
 
-*/
+
         System.out.println("Hello");
         //System.out.println(CallAnalyzerData.count());
 
@@ -170,10 +175,26 @@ public class CallAnalyzerMonitor implements Serializable {
     }
 
 
-     static public StructType Schema() {
+     static public StructType ESSchema() {
 
 
-        StructField mq_metric_type = DataTypes.createStructField("measurement", DataTypes.StringType, true);
+         StructType metrics_schema = new StructType(
+             new StructField[]{
+                 DataTypes.createStructField("rx_media_hop_lost",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("rx_rtp_pkts",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("tx_rtt",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("rx_media_e2e_lost_percent",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("rx_media_session_jitter",DataTypes.createArrayType(DataTypes.LongType),false)
+             }
+         );
+
+         StructType detail_schema = new StructType(
+             new StructField[]{
+                 DataTypes.createStructField("audio",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("video",DataTypes.createArrayType(DataTypes.LongType),false),
+                 DataTypes.createStructField("share",DataTypes.createArrayType(DataTypes.LongType),false)
+             }
+         );
 
         StructType schema = new StructType(
             new StructField[]{
@@ -211,19 +232,22 @@ public class CallAnalyzerMonitor implements Serializable {
                 DataTypes.createStructField("labels", DataTypes.StringType, false),
                 DataTypes.createStructField("ip_reflexive_addr", DataTypes.StringType, false),
                 DataTypes.createStructField("start_time", DataTypes.StringType, false),
-                DataTypes.createStructField(
-                    "crid_media_audio_metrics",
-                    new StructType(
-                        new StructField[]{
-                            DataTypes.createStructField("rx_media_hop_lost",DataTypes.LongType,false),
-                            DataTypes.createStructField("rx_rtp_pkts",DataTypes.LongType,false),
-                            DataTypes.createStructField("tx_rtt",DataTypes.LongType,false),
-                            DataTypes.createStructField("rx_media_e2e_lost_percent",DataTypes.LongType,false),
-                            DataTypes.createStructField("rx_media_session_jitter",DataTypes.LongType,false)
-                        }
-                    ),
-                    false
-                )
+
+                DataTypes.createStructField("crid_media_audio_metrics", metrics_schema,false),
+                DataTypes.createStructField("crid_media_video_metrics", metrics_schema,false),
+                DataTypes.createStructField("crid_media_share_metrics", metrics_schema,false),
+
+                DataTypes.createStructField("tx_rtp_pkts", detail_schema,false),
+                DataTypes.createStructField("tx_avail_bitrate", detail_schema,false),
+                DataTypes.createStructField("tx_rtp_bitrate", detail_schema,false),
+                DataTypes.createStructField("tx_queue_delay", detail_schema,false),
+                DataTypes.createStructField("tx_rtt", detail_schema,false),
+                DataTypes.createStructField("rx_rtp_pkts", detail_schema,false),
+                DataTypes.createStructField("rx_media_hop_lost", detail_schema,false),
+                DataTypes.createStructField("rx_rtp_bitrate", detail_schema,false),
+                DataTypes.createStructField("rx_media_e2e_lost_percent", detail_schema,false),
+                DataTypes.createStructField("rx_media_session_jitter", detail_schema,false)
+
             }
          );
 
