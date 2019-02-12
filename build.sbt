@@ -12,6 +12,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
   "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0",
+  "com.webex.dap.oneportal" % "spark2-streaming-job-metrics_cdh-5.14_2.11" % "3.0" % "provided" from "file:///"+file("").getAbsolutePath+"/lib/spark2-streaming-job-metrics_cdh-5.14_2.11-3.0.jar",
   //Test dependencies
   "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test excludeAll( ExclusionRule(organization = "io.netty")),
   "org.apache.spark" %% "spark-hive"       % "2.3.0" % Test,
@@ -42,5 +43,5 @@ assemblyMergeStrategy in assembly := {
 }
 
 unmanagedResourceDirectories in Test += baseDirectory.value / "src" / "main" / "resources"
-
+unmanagedBase := baseDirectory.value / "lib"
 jacocoExcludes ++= Seq("com.cisco.gungnir.pipelines.*")
