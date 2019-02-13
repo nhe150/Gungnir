@@ -29,16 +29,20 @@ public class CallAnalyzerDataMonitor implements Serializable {
     }
 
     public void run() throws Exception {
-/*
+
+        int historyDuration = 30;
+
+
         // Parameters - Test
         String avgIndex = "call_analyzer_model_test";
         String dataIndex = "call_analyzer_test";
-        String alertIndex = "call_analyzer_alert_test";
+        //String alertIndex = "call_analyzer_alert_test";
+        String alertIndex = "call_analyzer_temp";
         String currentDate = "2019-01-17";
         //String threshold = "0.33"; // All success
         String threshold = "1.1"; // All fail
-*/
 
+/*
         // Parameters - Real
         String avgIndex = "call_analyzer_anomalydetection";
         String dataIndex = "call_analyzer";
@@ -46,8 +50,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
         String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
         String threshold = "0.33"; // All real-alert
         //String threshold = "1.1"; // All fail
-
-
+*/
         // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
@@ -58,7 +61,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
 
         // Generate the avg call counts per org data model to ELK
         System.out.println("Start: " + new DateTime(DateTimeZone.UTC).toString());
-        GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, 30);
+        GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, historyDuration);
         System.out.println("End: " + new DateTime(DateTimeZone.UTC).toString());
 
         // Do the alerting
@@ -67,7 +70,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
 
         // Generate alert message
         Dataset messages = createMessages(dataWithFlag);
-        messages.show();
+        messages.show(false);
 
         // Write alert message to ELK
         writeTOELK(messages, alertIndex);
@@ -82,7 +85,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
             .orderBy(desc("avg"))
             .limit(50);
 
-        avgModel.show();
+        avgModel.show(false);
 
         // Write Data Model to ELK
         writeTOELK(avgModel, avgIndex);
@@ -94,18 +97,19 @@ public class CallAnalyzerDataMonitor implements Serializable {
         if(!isBusinessDay(targetDate)) return null;  // Do not generate alert
 
         // Read avg call counts per org data model from ELK
-        Dataset avgData = readFromELK(avgIndex);
-        avgData.printSchema();
+        Dataset historyAvgData = readFromELKAvg(avgIndex)
+            .withColumn("historyAvg", col("avg"));
+        historyAvgData.show(false);
 
         // Data of top 50 org that matters
-        Dataset orgIdList = avgData.select("org_id");
-        orgIdList.show();
+        Dataset orgIdList = historyAvgData.select("org_id");
+        orgIdList.show(false);
 
         Dataset orgData = orgIdList.join(dataset.alias("data"), orgIdList.col("org_id").equalTo(dataset.col("org_id")))
             .selectExpr("data.*");
 
         // Get Avg call count on target date
-        Dataset currentAvgData = avgPerOrg(dataset, AddDay(targetDate,-1), AddDay(targetDate, 1))
+        Dataset currentAvgData = avgPerOrg(orgData, AddDay(targetDate,-1), AddDay(targetDate, 1))
             .withColumn("currentAvg", col("avg"));
 
         // Generate alert data
@@ -115,22 +119,22 @@ public class CallAnalyzerDataMonitor implements Serializable {
         Dataset dataWithFlag = currentAvgData
             .alias("currentAvgData")
             .join(
-                avgData,
+                historyAvgData,
                 currentAvgData.col("org_id")
-                .equalTo(avgData.col("org_id"))
+                .equalTo(historyAvgData.col("org_id"))
             )
             .selectExpr(
                 "currentAvgData.org_id",
                 "currentAvg",
-                "avgData.avg",
-                "CAST((currentAvg/avgData.avg) * 100 AS INT) as percentage",
+                "historyAvg",
+                "CAST((currentAvg/historyAvg) * 100 AS INT) as percentage",
                 "'" + eventTimestamp + "' as eventTimestamp",
                 "'" + targetDate + "' as eventTime",
                 "'" + threshold + "' as threshold",
                 "CASE WHEN (" +
                     " currentAvg IS NULL" +
-                    " OR currentAvg/avg < " + threshold +
-                    " OR currentAvg/avg > " + 2/Double.parseDouble(threshold) +
+                    " OR currentAvg/historyAvg < " + threshold +
+                    " OR currentAvg/historyAvg > " + 2/Double.parseDouble(threshold) +
                     ") " +
                 "THEN 'failure' " +
                 "ELSE 'success' " +
@@ -160,7 +164,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
                     "org_id as id, " +
                     "struct(" +
                     "currentAvg as volume, " +
-                    "avg as historicalAverageVolume, " +
+                    "historyAvg as historicalAverageVolume, " +
                     "percentage, " +
                     "threshold as threshold " +
                     ") as value, " +
@@ -304,6 +308,23 @@ public class CallAnalyzerDataMonitor implements Serializable {
             .load(index + "/quality");
 
     }
+
+    private Dataset readFromELKAvg(String index) throws Exception {
+
+        return spark.read()
+            .format("org.elasticsearch.spark.sql")
+            .option("es.net.http.auth.user", "waprestapi.gen")
+            .option("es.net.http.auth.pass", "C1sco123!")
+            .option("es.nodes", "https://clpsj-bts-call.webex.com")
+            .option("es.port", "443")
+            .option("es.nodes.path.prefix", "esapi")
+            .option("es.nodes.wan.only", "true")
+            .option("es.net.ssl", "true")
+            .option("es.net.ssl.cert.allow.self.signed", "true")
+            .load(index + "/quality");
+
+    }
+
 
     private void writeTOELK(Dataset dataset, String index) throws Exception{
         if(dataset == null || dataset.count()==0) {
