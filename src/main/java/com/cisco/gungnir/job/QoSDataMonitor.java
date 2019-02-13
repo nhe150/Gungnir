@@ -3,6 +3,7 @@ package com.cisco.gungnir.job;
 // import com.cisco.gungnir.job.SparkDataMonitor.TimeConverter; // Do not work, copied locally
 // import com.cisco.gungnir.job.SparkDataMonitor.BusinessDay;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.*;
@@ -19,26 +20,25 @@ import org.joda.time.DateTimeZone;
 
 import static org.apache.spark.sql.functions.*;
 
-// QoS
-public class CallAnalyzerDataMonitor implements Serializable {
+// CallAnalyzer
+public class QoSDataMonitor implements Serializable {
 
     private SparkSession spark;
 
-    public CallAnalyzerDataMonitor(SparkSession spark) throws Exception{
+    public QoSDataMonitor(SparkSession spark) throws Exception{
         this.spark = spark;
     }
 
     public void run(int orgNum, String threshold, boolean ifInitialize, int historyDuration, boolean isTest) throws Exception {
 
 
-        // Parameters - Default
+        // Parameter default value
         String dataIndex = "call_analyzer";
         String avgIndex = "call_analyzer_anomalydetection";
         String alertIndex = "call_analyzer_alert";
         String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
 
         if(isTest){
-            // Parameters - Test
             dataIndex = "call_analyzer_test";
             avgIndex = "call_analyzer_model_test";
             //alertIndex = "call_analyzer_alert_test";
@@ -70,7 +70,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
         messages.show(false);
 
         // Write alert message to ELK
-        writeTOELK(messages, alertIndex);
+        writeTOELK(messages, alertIndex, true);
 
     }
 
@@ -85,7 +85,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
         avgModel.show(false);
 
         // Write Data Model to ELK
-        writeTOELK(avgModel, avgIndex);
+        writeTOELK(avgModel, avgIndex,false); //  Override
 
         return avgModel;
     }
@@ -322,7 +322,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
 
     }
 
-    private void writeTOELK(Dataset dataset, String index) throws Exception{
+    private void writeTOELK(Dataset dataset, String index, boolean isAppend) throws Exception{
         if(dataset == null || dataset.count()==0) {
             System.out.println("Nothing to Write"); return;
         }
@@ -333,7 +333,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
             .mode("Overwrite")
             .json(resourcesPath + "temp/output3/");
         */
-        dataset.write()
+        DataFrameWriter dfw = dataset.write()
             .format("org.elasticsearch.spark.sql")
             .option("es.net.http.auth.user", "waprestapi.gen")
             .option("es.net.http.auth.pass", "C1sco123!")
@@ -342,9 +342,18 @@ public class CallAnalyzerDataMonitor implements Serializable {
             .option("es.nodes.path.prefix", "esapi")
             .option("es.nodes.wan.only", "true")
             .option("es.net.ssl", "true")
-            .option("es.net.ssl.cert.allow.self.signed", "true")
-            .mode("Overwrite")
-            .save(index + "/quality");
+            .option("es.net.ssl.cert.allow.self.signed", "true");
+
+        if(isAppend){
+            dfw
+                .mode("Append")
+                .save(index + "/quality");
+        }else{
+            dfw
+                .mode("Overwrite")
+                .save(index + "/quality");
+        }
+
     }
 
     private StructType ESSchema() {
