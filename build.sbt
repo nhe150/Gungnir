@@ -11,7 +11,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
-  "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0" excludeAll( ExclusionRule(organization = "io.netty")),
+  "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0",
   "org.elasticsearch" %% "elasticsearch-spark-20" % "6.3.0",
   //Test dependencies
   "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test excludeAll( ExclusionRule(organization = "io.netty")),
