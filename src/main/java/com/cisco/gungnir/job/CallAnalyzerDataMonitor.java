@@ -29,21 +29,217 @@ public class CallAnalyzerDataMonitor implements Serializable {
     }
 
     public void run() throws Exception {
+/*
+        // Parameters - Test
+        String avgIndex = "call_analyzer_model_test";
+        String dataIndex = "call_analyzer_test";
+        String alertIndex = "call_analyzer_alert_test";
+        String currentDate = "2019-01-17";
+        //String threshold = "0.33"; // All success
+        String threshold = "1.1"; // All fail
+*/
+
+        // Parameters - Real
+        String avgIndex = "call_analyzer_anomalydetection";
+        String dataIndex = "call_analyzer";
+        String alertIndex = "call_analyzer_alert";
+        String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
+        String threshold = "0.33"; // All real-alert
+        //String threshold = "1.1"; // All fail
+
+
+        // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
+        spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
+        spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
+
         // Read from ELK
-        Dataset callAnalyzerData = readFromELK("call_analyzer_test");
+        Dataset callAnalyzerData = readFromELK(dataIndex);
         callAnalyzerData.printSchema();
 
-        // Get the temp model
-        callAnalyzerData = GenerateOrgAveModel(callAnalyzerData, "2019-01-17");
+        // Generate the avg call counts per org data model to ELK
+        System.out.println("Start: " + new DateTime(DateTimeZone.UTC).toString());
+        GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, 30);
+        System.out.println("End: " + new DateTime(DateTimeZone.UTC).toString());
 
-        //
+        // Do the alerting
+        String  yesterday = AddDay(currentDate,-1);
+        Dataset dataWithFlag = GenerateAlert(callAnalyzerData, yesterday, threshold, avgIndex);
 
-        // Write Data Model to ELK
-        writeTOELK(callAnalyzerData, "call_analyzer_temp");
+        // Generate alert message
+        Dataset messages = createMessages(dataWithFlag);
+        messages.show();
+
+        // Write alert message to ELK
+        writeTOELK(messages, alertIndex);
+
     }
 
+    private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration) throws Exception {
 
-    private Dataset readFromELK(String index) {
+        // Avg call counts per top 50 org
+        String historyStartDate = new DateTime(DateTimeZone.UTC).plusDays(-duration-1).toString("yyyy-MM-dd");
+        Dataset avgModel = avgPerOrg(dataset, historyStartDate, endDate)
+            .orderBy(desc("avg"))
+            .limit(50);
+
+        avgModel.show();
+
+        // Write Data Model to ELK
+        writeTOELK(avgModel, avgIndex);
+
+        return avgModel;
+    }
+
+    private Dataset GenerateAlert(Dataset dataset, String targetDate, String threshold, String avgIndex) throws Exception{
+        if(!isBusinessDay(targetDate)) return null;  // Do not generate alert
+
+        // Read avg call counts per org data model from ELK
+        Dataset avgData = readFromELK(avgIndex);
+        avgData.printSchema();
+
+        // Data of top 50 org that matters
+        Dataset orgIdList = avgData.select("org_id");
+        orgIdList.show();
+
+        Dataset orgData = orgIdList.join(dataset.alias("data"), orgIdList.col("org_id").equalTo(dataset.col("org_id")))
+            .selectExpr("data.*");
+
+        // Get Avg call count on target date
+        Dataset currentAvgData = avgPerOrg(dataset, AddDay(targetDate,-1), AddDay(targetDate, 1))
+            .withColumn("currentAvg", col("avg"));
+
+        // Generate alert data
+        String eventTimestamp = convertToStamp(targetDate);
+        System.out.println(eventTimestamp);
+
+        Dataset dataWithFlag = currentAvgData
+            .alias("currentAvgData")
+            .join(
+                avgData,
+                currentAvgData.col("org_id")
+                .equalTo(avgData.col("org_id"))
+            )
+            .selectExpr(
+                "currentAvgData.org_id",
+                "currentAvg",
+                "avgData.avg",
+                "CAST((currentAvg/avgData.avg) * 100 AS INT) as percentage",
+                "'" + eventTimestamp + "' as eventTimestamp",
+                "'" + targetDate + "' as eventTime",
+                "'" + threshold + "' as threshold",
+                "CASE WHEN (" +
+                    " currentAvg IS NULL" +
+                    " OR currentAvg/avg < " + threshold +
+                    " OR currentAvg/avg > " + 2/Double.parseDouble(threshold) +
+                    ") " +
+                "THEN 'failure' " +
+                "ELSE 'success' " +
+                "END as status"
+            );
+
+        dataWithFlag.show(false);
+
+        return dataWithFlag;
+    }
+
+    private Dataset createMessages(Dataset dataset) throws Exception {
+
+        Dataset message = dataset
+            .where("status = 'failure'")
+            .selectExpr(
+                "'CRS' as component",
+                "'Teams' as product",
+                "'Reporting' as service",
+                "'Reporting' as service",
+                "'CallAnalyzer' as type",
+                "eventTimestamp as eventTime",
+                "'processing' as stage",
+                "struct( " +
+                    "eventTime as time, " +
+                    "'orgID' as name, " +
+                    "org_id as id, " +
+                    "struct(" +
+                    "currentAvg as volume, " +
+                    "avg as historicalAverageVolume, " +
+                    "percentage, " +
+                    "threshold as threshold " +
+                    ") as value, " +
+                    "status as isAlert" +
+                    ") as metrics"
+            );
+
+        return message;
+    }
+
+    private String AddDay(String dt, int n)throws Exception{
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Calendar c = Calendar.getInstance();
+
+        c.setTime(sdf.parse(dt));
+        c.add(Calendar.DATE, n);
+        dt = sdf.format(c.getTime());
+
+        return dt;
+    }
+
+    private String convertToStamp(String DateString) throws Exception{
+
+        SimpleDateFormat sdff = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat sdft = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+        sdff.setTimeZone(TimeZone.getTimeZone("GMT"));
+        sdft.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        Date startDate = sdff.parse(DateString);
+        String startTimeStampString = sdft.format(startDate);
+
+        return startTimeStampString;
+
+    }
+
+    private Dataset avgPerOrg(Dataset dataset, String startDate, String endDate){
+
+        // Change the time from timestamp to date string for aggregation
+        Dataset result = dataset
+            .cache()
+            .withColumn("pdate", callUDF("convertTime", col("start_time")));
+
+        // Business day data within last 30 days
+        Dataset historyData = result
+            .where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + endDate + "')")
+            .filter("isBusinessDay(pdate)");
+
+        // Calculate the avg per org
+        Dataset avgModel = historyData
+            .groupBy("org_id", "pdate")
+            .agg(
+                count(lit(1)).alias("numRec")
+            );
+
+        avgModel.show();
+
+        avgModel = avgModel
+            .groupBy("org_id")
+            .agg(
+                avg("numRec").alias("avg")
+            );
+
+        // Test
+        long inputCount =  result.count();
+        long historyCount =  historyData.count();
+        long outputCount =  avgModel.count();
+        System.out.println("startDate: " + startDate);
+        System.out.println("endDate: " + endDate);
+        System.out.println("inputCount: " + inputCount);
+        System.out.println("historyCount: " + historyCount);
+        System.out.println("outputCount: " + outputCount);
+
+        return avgModel;
+    }
+
+    // ELK
+    private Dataset readFromELK(String index) throws Exception {
 
         return spark.read()
             .format("org.elasticsearch.spark.sql")
@@ -105,37 +301,33 @@ public class CallAnalyzerDataMonitor implements Serializable {
                 "tx_rtt.share:2," +
                 "tx_rtt.video:2,"
             )
-            .load(index + "/quality")
-            .limit(100);
+            .load(index + "/quality");
 
     }
 
-    private void writeTOELK(Dataset dataset, String index){
+    private void writeTOELK(Dataset dataset, String index) throws Exception{
         if(dataset == null || dataset.count()==0) {
             System.out.println("Nothing to Write"); return;
         }
-
+        /*
         String resourcesPath = System.getProperty("user.dir") + "/src/test/resources/";
-
-//      dataset.filter("CAST(start_time AS Date) = DATE_SUB(CURRENT_DATE(), 1)");
-
         dataset.write()
-                .format("json")
-                .mode("Overwrite")
-                .json(resourcesPath + "temp/output3/");
-
+            .format("json")
+            .mode("Overwrite")
+            .json(resourcesPath + "temp/output3/");
+        */
         dataset.write()
-                .format("org.elasticsearch.spark.sql")
-                .option("es.net.http.auth.user", "waprestapi.gen")
-                .option("es.net.http.auth.pass", "C1sco123!")
-                .option("es.nodes", "https://clpsj-bts-call.webex.com")
-                .option("es.port", "443")
-                .option("es.nodes.path.prefix", "esapi")
-                .option("es.nodes.wan.only", "true")
-                .option("es.net.ssl", "true")
-                .option("es.net.ssl.cert.allow.self.signed", "true")
-                .mode("Overwrite")
-                .save(index + "/quality");
+            .format("org.elasticsearch.spark.sql")
+            .option("es.net.http.auth.user", "waprestapi.gen")
+            .option("es.net.http.auth.pass", "C1sco123!")
+            .option("es.nodes", "https://clpsj-bts-call.webex.com")
+            .option("es.port", "443")
+            .option("es.nodes.path.prefix", "esapi")
+            .option("es.nodes.wan.only", "true")
+            .option("es.net.ssl", "true")
+            .option("es.net.ssl.cert.allow.self.signed", "true")
+            .mode("Overwrite")
+            .save(index + "/quality");
     }
 
     private StructType ESSchema() {
@@ -148,14 +340,14 @@ public class CallAnalyzerDataMonitor implements Serializable {
                 DataTypes.createStructField("rx_media_e2e_lost_percent", DataTypes.createArrayType(DataTypes.LongType), false),
                 DataTypes.createStructField("rx_media_session_jitter", DataTypes.createArrayType(DataTypes.LongType), false)
             }
-        );
+    );
 
         StructType detail_schema = new StructType(
             new StructField[]{
                 DataTypes.createStructField("audio", DataTypes.createArrayType(DataTypes.LongType), false),
                 DataTypes.createStructField("video", DataTypes.createArrayType(DataTypes.LongType), false),
                 DataTypes.createStructField("share", DataTypes.createArrayType(DataTypes.LongType), false)
-            }
+                }
         );
 
         StructType schema = new StructType(
@@ -210,75 +402,19 @@ public class CallAnalyzerDataMonitor implements Serializable {
                 DataTypes.createStructField("rx_media_e2e_lost_percent", detail_schema, false),
                 DataTypes.createStructField("rx_media_session_jitter", detail_schema, false)
 
-             }
+            }
         );
 
         return schema;
     }
 
-    private Dataset GenerateOrgAveModel(Dataset dataset, String targetDate) throws Exception {
-        // Change the time from timestamp to date string for aggregation
-        spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
-        spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
-        Dataset result = dataset
-            .cache()
-            .withColumn("pdate", callUDF("convertTime", col("start_time")));
-
-        // Business day data within last 30 days
-        String historyStartDate = new DateTime(DateTimeZone.UTC).plusDays(-30).toString("yyyy-MM-dd");
-        Dataset historyData = result
-            .where( "to_date('" + historyStartDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + targetDate + "')")
-            .filter("isBusinessDay(pdate)");
-        //.limit(1);
-
-        // Create the avg per top 50 org
-        Dataset avgModel = historyData
-                .groupBy("org_id", "pdate")
-                .agg(
-                    count(lit(1)).alias("numRec")
-                )
-                .orderBy(desc("numRec"))
-                ;
-
-        avgModel.show();
-
-        avgModel = avgModel
-            .groupBy("org_id")
-            .agg(
-                avg("numRec").alias("avg")
-            )
-            .orderBy(desc("avg"))
-            .limit(50)
-            ;
-                //.selectExpr("org_id", "pdate", "count");
-                //.groupBy("org_id", "pdate")
-                //.avg("count");
-
-        avgModel.show();
-
-        // Test
-        long input =  result.count();
-        long history =  historyData.count();
-        long output =  avgModel.count();
-        System.out.println("historyStartDate: " + historyStartDate);
-        System.out.println("targetDate: " + targetDate);
-        System.out.println("input: " + input);
-        System.out.println("history: " + history);
-        System.out.println("output: " + output);
-
-        return avgModel;
-    }
-
     // UDF
     public class TimeConverter implements UDF1<String, String> {
-        public String call(String startTimeStampString) throws Exception { // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
-            SimpleDateFormat sdff = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        public String call(String startTimeStampString) throws Exception {
+
             SimpleDateFormat sdft = new SimpleDateFormat("yyyy-MM-dd");
-            sdff.setTimeZone(TimeZone.getTimeZone("GMT"));
             sdft.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-            Date  startDate = sdft.parse(startTimeStampString);
-
+            Date startDate = sdft.parse(startTimeStampString);
             String startDateString = sdft.format(startDate);
 
             return startDateString;
