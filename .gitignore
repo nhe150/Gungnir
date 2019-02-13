@@ -7,3 +7,4 @@ classes/*
 src/test/output
 src/test/checkpoint
 .DS_Store
+src/test/resources/temp/
