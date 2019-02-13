@@ -19,7 +19,7 @@ import org.joda.time.DateTimeZone;
 
 import static org.apache.spark.sql.functions.*;
 
-
+// QoS
 public class CallAnalyzerDataMonitor implements Serializable {
 
     private SparkSession spark;
@@ -28,29 +28,24 @@ public class CallAnalyzerDataMonitor implements Serializable {
         this.spark = spark;
     }
 
-    public void run() throws Exception {
-
-        int historyDuration = 30;
+    public void run(int orgNum, String threshold, boolean ifInitialize, int historyDuration, boolean isTest) throws Exception {
 
 
-        // Parameters - Test
-        String avgIndex = "call_analyzer_model_test";
-        String dataIndex = "call_analyzer_test";
-        //String alertIndex = "call_analyzer_alert_test";
-        String alertIndex = "call_analyzer_temp";
-        String currentDate = "2019-01-17";
-        //String threshold = "0.33"; // All success
-        String threshold = "1.1"; // All fail
-
-/*
-        // Parameters - Real
-        String avgIndex = "call_analyzer_anomalydetection";
+        // Parameters - Default
         String dataIndex = "call_analyzer";
+        String avgIndex = "call_analyzer_anomalydetection";
         String alertIndex = "call_analyzer_alert";
         String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
-        String threshold = "0.33"; // All real-alert
-        //String threshold = "1.1"; // All fail
-*/
+
+        if(isTest){
+            // Parameters - Test
+            dataIndex = "call_analyzer_test";
+            avgIndex = "call_analyzer_model_test";
+            //alertIndex = "call_analyzer_alert_test";
+            alertIndex = "call_analyzer_temp";
+            currentDate = "2019-01-17";
+        }
+
         // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
@@ -61,7 +56,9 @@ public class CallAnalyzerDataMonitor implements Serializable {
 
         // Generate the avg call counts per org data model to ELK
         System.out.println("Start: " + new DateTime(DateTimeZone.UTC).toString());
-        GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, historyDuration);
+        if(ifInitialize){
+            GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, historyDuration, orgNum);
+        }
         System.out.println("End: " + new DateTime(DateTimeZone.UTC).toString());
 
         // Do the alerting
@@ -77,13 +74,13 @@ public class CallAnalyzerDataMonitor implements Serializable {
 
     }
 
-    private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration) throws Exception {
+    private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration, int orgNum) throws Exception {
 
         // Avg call counts per top 50 org
         String historyStartDate = new DateTime(DateTimeZone.UTC).plusDays(-duration-1).toString("yyyy-MM-dd");
         Dataset avgModel = avgPerOrg(dataset, historyStartDate, endDate)
             .orderBy(desc("avg"))
-            .limit(50);
+            .limit(orgNum);
 
         avgModel.show(false);
 
@@ -136,8 +133,8 @@ public class CallAnalyzerDataMonitor implements Serializable {
                     " OR currentAvg/historyAvg < " + threshold +
                     " OR currentAvg/historyAvg > " + 2/Double.parseDouble(threshold) +
                     ") " +
-                "THEN 'failure' " +
-                "ELSE 'success' " +
+                "THEN 'true' " +   // isAlert: true
+                "ELSE 'false' " +
                 "END as status"
             );
 
@@ -149,7 +146,7 @@ public class CallAnalyzerDataMonitor implements Serializable {
     private Dataset createMessages(Dataset dataset) throws Exception {
 
         Dataset message = dataset
-            .where("status = 'failure'")
+            .where("status = 'true'")
             .selectExpr(
                 "'CRS' as component",
                 "'Teams' as product",
@@ -324,7 +321,6 @@ public class CallAnalyzerDataMonitor implements Serializable {
             .load(index + "/quality");
 
     }
-
 
     private void writeTOELK(Dataset dataset, String index) throws Exception{
         if(dataset == null || dataset.count()==0) {
