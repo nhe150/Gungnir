@@ -1,7 +1,5 @@
 package com.cisco.gungnir.job;
 
-// import com.cisco.gungnir.job.SparkDataMonitor.TimeConverter; // Do not work, copied locally
-// import com.cisco.gungnir.job.SparkDataMonitor.BusinessDay;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.SparkSession;
@@ -13,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.logging.Logger;
 
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
@@ -24,6 +23,8 @@ import static org.apache.spark.sql.functions.*;
 public class QoSDataMonitor implements Serializable {
 
     private SparkSession spark;
+    private static final Logger LOGGER = Logger.getLogger(QoSDataMonitor.class.getName());
+
 
     public QoSDataMonitor(SparkSession spark) throws Exception{
         this.spark = spark;
@@ -31,7 +32,7 @@ public class QoSDataMonitor implements Serializable {
 
     public void run(int orgNum, String threshold, boolean ifInitialize, int historyDuration, boolean isTest) throws Exception {
 
-        // Parameter default value
+        // ELK index default values
         String dataIndex = "call_analyzer";
         String avgIndex = "call_analyzer_anomalydetection";
         String alertIndex = "call_analyzer_alert";
@@ -42,10 +43,22 @@ public class QoSDataMonitor implements Serializable {
             avgIndex = "call_analyzer_model_test";
             alertIndex = "call_analyzer_alert_test";
             currentDate = "2019-01-17";
-            //threshold = "0.8"; // Will show one alert for hitting upper band, one alert for hitting lower band
+            //threshold = "0.8";
+
+            /* Unit Test Data Info: 100 documents in ELK
+
+               Lower alert bound: threshold => 0.8
+               Upper alert bound: 2/threshold => 2.5
+
+               Org  1/14 1/15 1/16 AVG   Yesterday  %            Alert
+               A    0    14   2    8     2          0.25 < 0.8   true
+               B    2    2    70   24.6  70         2.8  > 2.5   true
+               C    0    2    4    3     4          1.3          false
+               D    0    2    2    2     2          1            false
+            */
         }
 
-        // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
+
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
 
@@ -54,11 +67,11 @@ public class QoSDataMonitor implements Serializable {
         callAnalyzerData.printSchema();
 
         // Generate the avg call counts per org data model to ELK
-        System.out.println("Start: " + new DateTime(DateTimeZone.UTC).toString());
+        LOGGER.info("Model generate start: " + new DateTime(DateTimeZone.UTC).toString());
         if(ifInitialize){
             GenerateOrgAveModel(callAnalyzerData, currentDate, avgIndex, historyDuration, orgNum);
         }
-        System.out.println("End: " + new DateTime(DateTimeZone.UTC).toString());
+        LOGGER.info("Model generate end: " + new DateTime(DateTimeZone.UTC).toString());
 
         // Do the alerting
         String  yesterday = AddDay(currentDate,-1);
@@ -83,8 +96,8 @@ public class QoSDataMonitor implements Serializable {
 
         avgModel.show(false);
 
-        // Write Data Model to ELK
-        writeTOELK(avgModel, avgIndex,false); //  Override
+        // Write Data Model to ELK, override.
+        writeTOELK(avgModel, avgIndex,false);
 
         return avgModel;
     }
@@ -97,7 +110,7 @@ public class QoSDataMonitor implements Serializable {
             .withColumn("historyAvg", col("avg"));
         historyAvgData.show(false);
 
-        // Data of top 50 org that matters
+        // Data of top n org that matters
         Dataset orgIdList = historyAvgData.select("org_id");
         orgIdList.show(false);
 
@@ -110,7 +123,6 @@ public class QoSDataMonitor implements Serializable {
 
         // Generate alert data
         String eventTimestamp = convertToStamp(targetDate);
-        System.out.println(eventTimestamp);
 
         Dataset dataWithFlag = currentAvgData
             .alias("currentAvgData")
@@ -224,15 +236,11 @@ public class QoSDataMonitor implements Serializable {
                 avg("numRec").alias("avg")
             );
 
-        // Test
-        long inputCount =  result.count();
-        long historyCount =  historyData.count();
-        long outputCount =  avgModel.count();
-        System.out.println("startDate: " + startDate);
-        System.out.println("endDate: " + endDate);
-        System.out.println("inputCount: " + inputCount);
-        System.out.println("historyCount: " + historyCount);
-        System.out.println("outputCount: " + outputCount);
+        LOGGER.info("Avg start date: " + startDate);
+        LOGGER.info("Avg end date: " + endDate);
+        LOGGER.info("Avg input count: " + result.count());
+        LOGGER.info("Avg valid history count: " + historyData.count());
+        LOGGER.info("Avg output count: " + avgModel.count());
 
         return avgModel;
     }
@@ -322,15 +330,9 @@ public class QoSDataMonitor implements Serializable {
 
     private void writeTOELK(Dataset dataset, String index, boolean isAppend) throws Exception{
         if(dataset == null || dataset.count()==0) {
-            System.out.println("Nothing to Write"); return;
+            LOGGER.info("No alert to Write to ELK"); return;
         }
-        /*
-        String resourcesPath = System.getProperty("user.dir") + "/src/test/resources/";
-        dataset.write()
-            .format("json")
-            .mode("Overwrite")
-            .json(resourcesPath + "temp/output3/");
-        */
+
         DataFrameWriter dfw = dataset.write()
             .format("org.elasticsearch.spark.sql")
             .option("es.net.http.auth.user", "waprestapi.gen")
@@ -437,6 +439,7 @@ public class QoSDataMonitor implements Serializable {
     public class TimeConverter implements UDF1<String, String> {
         public String call(String startTimeStampString) throws Exception {
 
+            // Convert String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
             SimpleDateFormat sdft = new SimpleDateFormat("yyyy-MM-dd");
             sdft.setTimeZone(TimeZone.getTimeZone("GMT"));
             Date startDate = sdft.parse(startTimeStampString);
