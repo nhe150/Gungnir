@@ -15,7 +15,6 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import org.apache.spark.sql.types.DataTypes;
-import org.bouncycastle.asn1.ess.ESSCertID;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
