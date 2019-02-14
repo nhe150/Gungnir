@@ -35,7 +35,6 @@ public class SparkDataMonitor implements Serializable {
 
     public void run(String currentDate, String threshold, String orgId) throws Exception {
         if(currentDate==null) currentDate = new DateTime(DateTimeZone.UTC).plusDays(-1).toString("yyyy-MM-dd");
-        if(!isBusinessDay(currentDate)) return;
 
         Dataset aggregates = queryFunctions.cassandra.readFromCassandra("batch", configProvider.getAppConfig());
 
@@ -51,7 +50,6 @@ public class SparkDataMonitor implements Serializable {
     private Dataset allCounts(Dataset dataset, String orgId, String currentDate) throws Exception{
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         dataset.cache();
-        dataset  = dataset.where("period = 'daily'");
         dataset =  dataset.withColumn("pdate", callUDF("unix_timestamp", col("time_stamp"))).withColumn("pdate", callUDF("convertTime", col("pdate")));
 
         Dataset data;
@@ -77,7 +75,7 @@ public class SparkDataMonitor implements Serializable {
     private Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
 
-        String startDate = new DateTime(DateTimeZone.UTC).plusDays(-30).toString("yyyy-MM-dd");
+        String startDate = new DateTime(DateTimeZone.UTC).plusDays(-64).toString("yyyy-MM-dd");
 
         Dataset history = data.where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + currentDate + "')");
         Dataset currentData = data.where("pdate = '" + currentDate + "'");
@@ -99,7 +97,7 @@ public class SparkDataMonitor implements Serializable {
         }
 
         Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgid").equalTo(average.col("orgid")).and(currentData.col("relation_name").equalTo(average.col("relation_name"))))
-                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage", "CASE WHEN (((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser')) AND ((currentData.relation_name='fileUsed' AND count=0) OR (currentData.relation_name='number_of_good_calls' AND count=0) OR (currentData.relation_name<>'fileUsed' AND currentData.relation_name<>'number_of_good_calls' AND (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +")))) THEN 'failure' ELSE 'success' END as status");        dataWithFlag.repartition(1)
+                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage", "CASE WHEN (((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser')) AND ((currentData.relation_name='fileUsed' AND count=0) OR (currentData.relation_name='number_of_good_calls' AND count=0) OR ((currentData.relation_name like '%weekly%' OR currentData.relation_name like '%monthly%') AND count=0) OR ((currentData.relation_name='activeUser' OR currentData.relation_name='number_of_total_calls') AND (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +")))) THEN 'failure' ELSE 'success' END as status");        dataWithFlag.repartition(1)
                 .write()
                 .mode(SaveMode.Overwrite)
                 .format("csv")
@@ -116,7 +114,7 @@ public class SparkDataMonitor implements Serializable {
         List<String> data = new ArrayList<>();
         data.add("fileUsed," + currentDate);
         data.add("activeUser," + currentDate);
-        data.add("registeredEndpoint," + currentDate);
+//        data.add("registeredEndpoint," + currentDate);
         data.add("callDuration," + currentDate);
         data.add("callQuality," + currentDate);
 
@@ -124,7 +122,7 @@ public class SparkDataMonitor implements Serializable {
 
         Dataset df1 = df.selectExpr("split(value, ',')[0] as relation_name", "split(value, ',')[1] as pdate");
 
-        Dataset orgCount = aggregates.selectExpr("relation_name", "pdate").union(df1)
+        Dataset orgCount = aggregates.filter("period='daily'").selectExpr("relation_name", "pdate").union(df1)
                 .groupBy("relation_name", "pdate")
                 .count()
                 .selectExpr("'orgCount' as orgid", "relation_name", "pdate", "count");
@@ -136,7 +134,7 @@ public class SparkDataMonitor implements Serializable {
         aggregates.cache();
         Dataset countPerOrg = aggregates
                 .where("relation_name = 'fileUsed'")
-                .selectExpr("orgid", "'fileUsed' as relation_name", "pdate", "files as count");
+                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'fileUsed' ELSE CONCAT('fileUsed-', period) END AS relation_name", "pdate", "files as count");
 //
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'fileUsed'")
@@ -152,7 +150,7 @@ public class SparkDataMonitor implements Serializable {
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'activeUser'")
-                .selectExpr("orgid", "'activeUser' as relation_name", "pdate", "usercountbyorg as count"));
+                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'activeUser' ELSE CONCAT('activeUser-', period) END AS relation_name", "pdate", "usercountbyorg as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'callDuration'")
@@ -162,20 +160,20 @@ public class SparkDataMonitor implements Serializable {
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callDuration'")
                 .where("ep1 = 'Desktop client'")
-                .selectExpr("orgid", "'number_of_total_calls' as relation_name", "pdate", "number_of_successful_calls as count"));
+                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'number_of_total_calls' ELSE CONCAT('number_of_total_calls-', period) END AS relation_name", "pdate", "number_of_successful_calls as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callQuality'")
-                .selectExpr("orgid", "'number_of_good_calls' as relation_name", "pdate", "number_of_total_calls-number_of_bad_calls as count"));
+                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'number_of_good_calls' ELSE CONCAT('number_of_good_calls-', period) END AS relation_name", "pdate", "number_of_total_calls-number_of_bad_calls as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'callQuality'")
 //                .selectExpr("orgid", "CONCAT('number_of_bad_calls^', period) as relation_name", "pdate", "number_of_bad_calls as count"));
 
-        countPerOrg= countPerOrg.union(aggregates
-                .where("relation_name = 'registeredEndpoint'")
-                .where("model = 'SPARK-BOARD55'")
-                .selectExpr("orgid", "'roomDevice' as relation_name", "pdate", "registeredEndpointCount as count"));
+//        countPerOrg= countPerOrg.union(aggregates
+//                .where("relation_name = 'registeredEndpoint'")
+//                .where("model = 'SPARK-BOARD55'")
+//                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'registeredEndpoint' ELSE CONCAT('registeredEndpoint-', period) END AS relation_name", "pdate", "registeredEndpointCount as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'conv'")
@@ -194,7 +192,11 @@ public class SparkDataMonitor implements Serializable {
 
 
     private Dataset createMessages(Dataset dataset) throws Exception {
-        Dataset message = dataset.where("status = 'failure'").selectExpr(
+//        Dataset message = dataset.where("status = 'failure'").selectExpr(
+//                "'crs' as component",
+//                "'metrics' as eventtype",
+//                "struct('Spark' as pipeLine, 'DataProcess' as phase, CONCAT(pdate, 'T00:00:00Z') as sendTime, struct(CONCAT(orgid, '_', relation_name) as name, pdate as reportDate, count as volume, avg as historicalAverageVolume, percentage, status) as data) as metrics");
+        Dataset message = dataset.selectExpr(
                 "'crs' as component",
                 "'metrics' as eventtype",
                 "struct('Spark' as pipeLine, 'DataProcess' as phase, CONCAT(pdate, 'T00:00:00Z') as sendTime, struct(CONCAT(orgid, '_', relation_name) as name, pdate as reportDate, count as volume, avg as historicalAverageVolume, percentage, status) as data) as metrics");

@@ -2,8 +2,9 @@ package com.cisco.gungnir.job;
 
 import com.cisco.gungnir.config.ConfigProvider;
 import com.cisco.gungnir.query.QueryExecutor;
-import com.cisco.gungnir.utils.StreamingMetrics;
+import com.webex.dap.spark.listener.DapSparkStreamingListenerFactory;
 import org.apache.spark.sql.SparkSession;
+
 
 import java.io.Serializable;
 
@@ -21,8 +22,9 @@ public class JobExecutor implements Serializable {
 
     public void execute(String jobName, String jobType) throws Exception {
         if("stream".equals(jobType)){
-            spark.streams().addListener(new StreamingMetrics(configProvider.retrieveAppConfigValue("kafka.broker"), configProvider.retrieveAppConfigValue("kafka.streamingMetricsTopic")));
+            spark.streams().addListener(DapSparkStreamingListenerFactory.buildDapStreamingQueryListener(configProvider.retrieveAppConfigValue("kafka.broker")));
         }
+
         queryExecutor.execute(configProvider.readJobConfig(jobName).get("queryPlan"), jobType);
     }
 
