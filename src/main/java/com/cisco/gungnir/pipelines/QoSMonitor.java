@@ -8,10 +8,9 @@ public class QoSMonitor implements Serializable { // CallAnalyzer
 
     public static void main(String[] args) throws Exception {
 
-        // Default parameter:
+        // Default parameter. Set args[] in configuration when testing to override this.
         int orgNum = 50;
-        String threshold = "0.33"; // Real alert
-        //String threshold = "1.1"; // All fail
+        String threshold = "0.33";
         boolean ifInitialize = false;
         boolean isTest = false;
         int historyDuration = 30;
@@ -35,18 +34,10 @@ public class QoSMonitor implements Serializable { // CallAnalyzer
             }
         }
 
-        SparkSession spark;
-
-        if(isTest){
-            spark = SparkSession.builder()
-                .master("local[4]")
-                .appName("CallAnalyzerMonitor")
-                .getOrCreate();
-        }else{
-            spark = SparkSession.builder()
-                .appName("CallAnalyzerMonitor")
-                .getOrCreate();
-        }
+        SparkSession spark = SparkSession.builder()
+            .master("local[4]") // Use this for local testing.
+            .appName("CallAnalyzerMonitor")
+            .getOrCreate();
 
         QoSDataMonitor app = new QoSDataMonitor(spark);
 

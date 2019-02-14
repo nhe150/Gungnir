@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import org.apache.spark.sql.types.DataTypes;
+import org.bouncycastle.asn1.ess.ESSCertID;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -31,7 +32,6 @@ public class QoSDataMonitor implements Serializable {
 
     public void run(int orgNum, String threshold, boolean ifInitialize, int historyDuration, boolean isTest) throws Exception {
 
-
         // Parameter default value
         String dataIndex = "call_analyzer";
         String avgIndex = "call_analyzer_anomalydetection";
@@ -41,9 +41,9 @@ public class QoSDataMonitor implements Serializable {
         if(isTest){
             dataIndex = "call_analyzer_test";
             avgIndex = "call_analyzer_model_test";
-            //alertIndex = "call_analyzer_alert_test";
-            alertIndex = "call_analyzer_temp";
+            alertIndex = "call_analyzer_alert_test";
             currentDate = "2019-01-17";
+            //threshold = "0.8"; // Will show one alert for hitting upper band, one alert for hitting lower band
         }
 
         // String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
@@ -76,8 +76,8 @@ public class QoSDataMonitor implements Serializable {
 
     private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration, int orgNum) throws Exception {
 
-        // Avg call counts per top 50 org
-        String historyStartDate = new DateTime(DateTimeZone.UTC).plusDays(-duration-1).toString("yyyy-MM-dd");
+        // Avg call counts per top n org
+        String historyStartDate = AddDay(endDate,-duration-1);
         Dataset avgModel = avgPerOrg(dataset, historyStartDate, endDate)
             .orderBy(desc("avg"))
             .limit(orgNum);
@@ -150,7 +150,6 @@ public class QoSDataMonitor implements Serializable {
             .selectExpr(
                 "'CRS' as component",
                 "'Teams' as product",
-                "'Reporting' as service",
                 "'Reporting' as service",
                 "'CallAnalyzer' as type",
                 "eventTimestamp as eventTime",
@@ -347,6 +346,7 @@ public class QoSDataMonitor implements Serializable {
         if(isAppend){
             dfw
                 .mode("Append")
+                //.mode("Overwrite")// Can use this to clean index
                 .save(index + "/quality");
         }else{
             dfw
