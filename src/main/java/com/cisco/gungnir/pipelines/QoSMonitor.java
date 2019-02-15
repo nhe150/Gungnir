@@ -26,8 +26,8 @@ public class QoSMonitor implements Serializable {
         }
 
         SparkSession spark = SparkSession.builder()
-            //.master("local[4]") // Use this for local testing
-            .appName("CallAnalyzerMonitor")
+            .master("local[4]") // Use this for local testing
+            .appName("QoSMonitor")
             .getOrCreate();
 
         QoSDataMonitor app = new QoSDataMonitor(spark);

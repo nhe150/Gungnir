@@ -58,7 +58,6 @@ public class QoSDataMonitor implements Serializable {
             */
         }
 
-
         spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
         spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
 
@@ -83,7 +82,18 @@ public class QoSDataMonitor implements Serializable {
 
         // Write alert message to ELK
         writeTOELK(messages, alertIndex, true);
+/*
+        // Read answer data from local JSON file
+        String resourcesPath = System.getProperty("user.dir") + "/src/test/resources/";
 
+        Dataset data = spark.read()
+                .option("failOnDataLoss", "false")
+                .option("mode", "DROPMALFORMED")
+                .schema(ESSchema())
+                .json(resourcesPath + "QoSTestData.json");
+
+        writeTOELK(data, "call_analyzer_test", false);
+*/
     }
 
     private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration, int orgNum) throws Exception {
@@ -413,6 +423,10 @@ public class QoSDataMonitor implements Serializable {
                 DataTypes.createStructField("labels", DataTypes.StringType, false),
                 DataTypes.createStructField("ip_reflexive_addr", DataTypes.StringType, false),
                 DataTypes.createStructField("start_time", DataTypes.StringType, false),
+                DataTypes.createStructField("is_test", DataTypes.StringType, false),
+                DataTypes.createStructField("is_webex_backed", DataTypes.StringType, false),
+                DataTypes.createStructField("kafka_timestamp", DataTypes.StringType, false),
+                DataTypes.createStructField("spark_process_time", DataTypes.StringType, false),
 
                 DataTypes.createStructField("crid_media_audio_metrics", metrics_schema, false),
                 DataTypes.createStructField("crid_media_video_metrics", metrics_schema, false),
