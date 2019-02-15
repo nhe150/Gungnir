@@ -82,18 +82,7 @@ public class QoSDataMonitor implements Serializable {
 
         // Write alert message to ELK
         writeTOELK(messages, alertIndex, true);
-/*
-        // Read answer data from local JSON file
-        String resourcesPath = System.getProperty("user.dir") + "/src/test/resources/";
 
-        Dataset data = spark.read()
-                .option("failOnDataLoss", "false")
-                .option("mode", "DROPMALFORMED")
-                .schema(ESSchema())
-                .json(resourcesPath + "QoSTestData.json");
-
-        writeTOELK(data, "call_analyzer_test", false);
-*/
     }
 
     private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration, int orgNum) throws Exception {
