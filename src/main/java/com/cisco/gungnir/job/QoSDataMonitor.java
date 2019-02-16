@@ -39,7 +39,7 @@ public class QoSDataMonitor implements Serializable {
         String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
 
         if(isTest){
-            dataIndex = "call_analyzer_test_data";
+            dataIndex = "call_analyzer_unit_test";
             avgIndex = "call_analyzer_model_test";
             alertIndex = "call_analyzer_alert_test";
             currentDate = "2019-01-17";
@@ -415,8 +415,8 @@ public class QoSDataMonitor implements Serializable {
                 DataTypes.createStructField("labels", DataTypes.StringType, false),
                 DataTypes.createStructField("ip_reflexive_addr", DataTypes.StringType, false),
                 DataTypes.createStructField("start_time", DataTypes.StringType, false),
-                DataTypes.createStructField("is_webex_backed", DataTypes.StringType, true),
-                DataTypes.createStructField("is_test", DataTypes.StringType, true),
+                DataTypes.createStructField("is_webex_backed", DataTypes.BooleanType, true),
+                DataTypes.createStructField("is_test", DataTypes.BooleanType, true),
 
                 DataTypes.createStructField("crid_media_audio_metrics", metrics_schema, false),
                 DataTypes.createStructField("crid_media_video_metrics", metrics_schema, false),
