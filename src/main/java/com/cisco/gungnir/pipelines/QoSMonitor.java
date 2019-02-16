@@ -27,12 +27,15 @@ public class QoSMonitor implements Serializable {
 
         SparkSession spark = SparkSession.builder()
             //.master("local[4]") // Use this for local testing
+            .master("yarn")
             .appName("QoSMonitor")
             .getOrCreate();
 
         QoSDataMonitor app = new QoSDataMonitor(spark);
 
         app.run(orgNum, threshold, ifInitialize,historyDuration,isTest);
+
+        spark.stop();
 
     }
 

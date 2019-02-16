@@ -39,13 +39,13 @@ public class QoSDataMonitor implements Serializable {
         String currentDate = new DateTime(DateTimeZone.UTC).toString("yyyy-MM-dd");
 
         if(isTest){
-            dataIndex = "call_analyzer_test";
+            dataIndex = "call_analyzer_test_data";
             avgIndex = "call_analyzer_model_test";
             alertIndex = "call_analyzer_alert_test";
             currentDate = "2019-01-17";
             //threshold = "0.8";
 
-            /* Unit Test Data Info: 100 documents in ELK
+            /* Unit Test Data Info: 100 documents in ELK, with old and new schema mixed.
 
                Lower alert bound: threshold => 0.8
                Upper alert bound: 2/threshold => 2.5
@@ -63,7 +63,6 @@ public class QoSDataMonitor implements Serializable {
 
         // Read from ELK
         Dataset callAnalyzerData = readFromELK(dataIndex);
-        callAnalyzerData.printSchema();
 
         // Generate the avg call counts per org data model to ELK
         LOGGER.info("Model generate start: " + new DateTime(DateTimeZone.UTC).toString());
@@ -82,6 +81,7 @@ public class QoSDataMonitor implements Serializable {
 
         // Write alert message to ELK
         writeTOELK(messages, alertIndex, true);
+        messages.show(false);
 
     }
 
@@ -252,6 +252,7 @@ public class QoSDataMonitor implements Serializable {
             .option("es.net.http.auth.user", "waprestapi.gen")
             .option("es.net.http.auth.pass", "C1sco123!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
+            //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
             .option("es.nodes.path.prefix", "esapi")
             .option("es.nodes.wan.only", "true")
@@ -318,6 +319,7 @@ public class QoSDataMonitor implements Serializable {
             .option("es.net.http.auth.user", "waprestapi.gen")
             .option("es.net.http.auth.pass", "C1sco123!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
+            //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
             .option("es.nodes.path.prefix", "esapi")
             .option("es.nodes.wan.only", "true")
@@ -337,6 +339,7 @@ public class QoSDataMonitor implements Serializable {
             .option("es.net.http.auth.user", "waprestapi.gen")
             .option("es.net.http.auth.pass", "C1sco123!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
+            //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
             .option("es.nodes.path.prefix", "esapi")
             .option("es.nodes.wan.only", "true")
@@ -412,10 +415,8 @@ public class QoSDataMonitor implements Serializable {
                 DataTypes.createStructField("labels", DataTypes.StringType, false),
                 DataTypes.createStructField("ip_reflexive_addr", DataTypes.StringType, false),
                 DataTypes.createStructField("start_time", DataTypes.StringType, false),
-                DataTypes.createStructField("is_test", DataTypes.StringType, false),
-                DataTypes.createStructField("is_webex_backed", DataTypes.StringType, false),
-                DataTypes.createStructField("kafka_timestamp", DataTypes.StringType, false),
-                DataTypes.createStructField("spark_process_time", DataTypes.StringType, false),
+                DataTypes.createStructField("is_webex_backed", DataTypes.StringType, true),
+                DataTypes.createStructField("is_test", DataTypes.StringType, true),
 
                 DataTypes.createStructField("crid_media_audio_metrics", metrics_schema, false),
                 DataTypes.createStructField("crid_media_video_metrics", metrics_schema, false),
@@ -430,8 +431,10 @@ public class QoSDataMonitor implements Serializable {
                 DataTypes.createStructField("rx_media_hop_lost", detail_schema, false),
                 DataTypes.createStructField("rx_rtp_bitrate", detail_schema, false),
                 DataTypes.createStructField("rx_media_e2e_lost_percent", detail_schema, false),
-                DataTypes.createStructField("rx_media_session_jitter", detail_schema, false)
+                DataTypes.createStructField("rx_media_session_jitter", detail_schema, false),
 
+                DataTypes.createStructField("kafka_timestamp", DataTypes.StringType, true),
+                DataTypes.createStructField("spark_process_time", DataTypes.StringType, true)
             }
         );
 
