@@ -73,19 +73,18 @@ public class QoSDataMonitor implements Serializable {
 
         // Do the alerting
         String  yesterday = AddDay(currentDate,-1);
-        Dataset dataWithFlag = GenerateAlert(callAnalyzerData, yesterday, threshold, avgIndex);
+        Dataset dataWithFlag = GenerateAlert(callAnalyzerData, yesterday, threshold, avgIndex, orgNum);
 
         // Generate alert message
         Dataset messages = createMessages(dataWithFlag);
-        messages.show(false);
 
         // Write alert message to ELK
         writeTOELK(messages, alertIndex, true);
-        messages.show(false);
 
     }
 
     private Dataset GenerateOrgAveModel(Dataset dataset, String endDate, String avgIndex, int duration, int orgNum) throws Exception {
+        if(dataset  == null || dataset.count() == 0){ LOGGER.info("No data to calculate model"); return null; }
 
         // Avg call counts per top n org
         String historyStartDate = AddDay(endDate,-duration-1);
@@ -93,7 +92,7 @@ public class QoSDataMonitor implements Serializable {
             .orderBy(desc("avg"))
             .limit(orgNum);
 
-        avgModel.show(false);
+        if(avgModel!=null)avgModel.show(false);
 
         // Write Data Model to ELK, override.
         writeTOELK(avgModel, avgIndex,false);
@@ -101,12 +100,14 @@ public class QoSDataMonitor implements Serializable {
         return avgModel;
     }
 
-    private Dataset GenerateAlert(Dataset dataset, String targetDate, String threshold, String avgIndex) throws Exception{
-        if(!isBusinessDay(targetDate)) return null;  // Do not generate alert
+    private Dataset GenerateAlert(Dataset dataset, String targetDate, String threshold, String avgIndex, int orgNum) throws Exception{
+        if(!isBusinessDay(targetDate)){ LOGGER.info("No alert for non-business day");return null; }
+        if(dataset  == null || dataset.count() == 0){ LOGGER.info("No target day's data for alert"); return null; }
 
         // Read avg call counts per org data model from ELK
         Dataset historyAvgData = readFromELKAvg(avgIndex)
             .withColumn("historyAvg", col("avg"));
+        if(historyAvgData  == null || historyAvgData.count() == 0){ LOGGER.info("No data model"); return null; }
         historyAvgData.show(false);
 
         // Data of top n org that matters
@@ -119,6 +120,11 @@ public class QoSDataMonitor implements Serializable {
         // Get Avg call count on target date
         Dataset currentAvgData = avgPerOrg(orgData, AddDay(targetDate,-1), AddDay(targetDate, 1))
             .withColumn("currentAvg", col("avg"));
+
+        if(currentAvgData == null || currentAvgData.count() == 0){ // Missing data
+            currentAvgData = orgIdList
+                .selectExpr("org_id, 0 as currentAvg");
+        }
 
         // Generate alert data
         String eventTimestamp = convertToStamp(targetDate);
@@ -154,6 +160,7 @@ public class QoSDataMonitor implements Serializable {
     }
 
     private Dataset createMessages(Dataset dataset) throws Exception {
+        if(dataset == null || dataset.count() == 0){ LOGGER.info("No alert");return null;}
 
         Dataset message = dataset
             .where("status = 'true'")
@@ -177,6 +184,8 @@ public class QoSDataMonitor implements Serializable {
                     "status as isAlert" +
                     ") as metrics"
             );
+
+        message.show(false);
 
         return message;
     }
@@ -209,6 +218,7 @@ public class QoSDataMonitor implements Serializable {
     }
 
     private Dataset avgPerOrg(Dataset dataset, String startDate, String endDate){
+        if(dataset  == null || dataset.count() == 0){ LOGGER.info("No data to calculate avg"); return null; }
 
         // Change the time from timestamp to date string for aggregation
         Dataset result = dataset
@@ -330,9 +340,7 @@ public class QoSDataMonitor implements Serializable {
     }
 
     private void writeTOELK(Dataset dataset, String index, boolean isAppend) throws Exception{
-        if(dataset == null || dataset.count()==0) {
-            LOGGER.info("No alert to Write to ELK"); return;
-        }
+        if(dataset == null || dataset.count()==0) {LOGGER.info("No alert to Write to ELK");return;}
 
         DataFrameWriter dfw = dataset.write()
             .format("org.elasticsearch.spark.sql")
