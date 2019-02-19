@@ -198,6 +198,12 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
         sparkDataMonitor.run(null,"0.3", "*");
     }
 
+    @Test
+    public void testQoSDataMonitor() throws Exception {
+        QoSDataMonitor QoSDataMonitor = new QoSDataMonitor(spark);
+        QoSDataMonitor.run(50,"0.8", true, 30, true);
+    }
+
     @After
     public void after()throws Exception{
 
