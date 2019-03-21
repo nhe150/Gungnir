@@ -1,6 +1,6 @@
 SELECT time_stamp,
        convertTime(time_stamp) as pdate,
-       uuid(orgId) as dataid,
+       dataid,
        orgId,
        userId,
        isMessage,
@@ -30,7 +30,11 @@ SELECT time_stamp,
            WHEN (isTeamRoom=1) THEN isTeamRoomId
        END AS team,
        'activeUser' AS relation_name,
-       raw
+       appname,
+       locustype,
+       activity,
+       uaType,
+       uaCategory(uaType) as ua_category
 FROM (SELECT CASE
                WHEN (SM.verb='create'
                    AND (SM.object.objectType='team'
@@ -42,23 +46,23 @@ FROM (SELECT CASE
                ELSE 0
                END AS isOneToOneRoom,
              CASE
-               WHEN (`@fields`.teamId IS NULL
+               WHEN (teamId IS NULL
                  AND SM.convOneOnOne=false) THEN 1
                ELSE 0
                END AS isGroupRoom,
              CASE
-               WHEN `@fields`.teamId IS NOT NULL THEN 1
+               WHEN teamId IS NOT NULL THEN 1
                ELSE 0
                END AS isTeamRoom,
              CASE
-               WHEN (`@fields`.teamId IS NULL
+               WHEN (teamId IS NULL
                  AND SM.convOneOnOne=false) THEN SM.target.id
                END AS isGroupRoomId,
              CASE
                WHEN (SM.convOneOnOne=true) THEN SM.target.id
                END AS isOneToOneRoomId,
              CASE
-               WHEN `@fields`.teamId IS NOT NULL THEN SM.target.id
+               WHEN teamId IS NOT NULL THEN SM.target.id
                END AS isTeamRoomId,
              CASE
                WHEN SM.verb='post'
@@ -70,12 +74,20 @@ FROM (SELECT CASE
                  AND SM.callType='TERMINATED' THEN 1
                ELSE 0
                END AS isCall,
-             coalesce(orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
-             coalesce(userId, `@fields`.USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
-             `@timestamp` AS time_stamp,
-             raw
+             coalesce(ORG_ID, orgId, SM.actor.orgId, SM.participant.orgId, SM.orgId, 'unknown') AS orgId,
+             coalesce(userId, USER_ID, SM.actor.id, SM.participant.userId, SM.userId, SM.uid, SM.onBoardedUser, 'unknown') AS userId,
+             timeRcvd AS time_stamp,
+             WEBEX_TRACKINGID AS dataid,
+             appname,
+             CASE
+               WHEN appname='conv'
+               THEN concat_ws('_', SM.verb, SM.object.objectType)
+               ELSE 'call'
+               END AS activity,
+             SM.locusType AS locustype,
+             coalesce(SM.uaType, uaType) AS uaType
        FROM SOURCE_VIEW
-       WHERE _appname='conv'
+       WHERE appname='conv'
            AND SM.uaType<>'Messenger'
            AND SM.uaType<>'Hydra'
            AND SM.uaType<>'UCConnector'
@@ -92,12 +104,23 @@ FROM (SELECT CASE
            AND SM.object.objectType='person'
            AND (SM.target.objectType='conversation'
                 OR SM.object.objectType='team')))
-           OR (_appname='locus'
-           AND (SM.metricType='PARTICIPANT'
+           OR (appname='locus'
+           AND ((SM.metricType='PARTICIPANT'
            AND SM.callType='TERMINATED'
            AND SM.squared=true
-           AND SM.locusType<>'JABBER'))
+           AND SM.locusType<>'JABBER'
+           AND SM.locusType<>'CMRMEETING'
+           AND SM.locusType<>'EVENTCENTERMEETING'
+           AND SM.locusType<>'SPACEMEETING')
+           OR (SM.metricType='DEVICE'
+           AND (SM.locusType='CMRMEETING' OR SM.locusType='SPACEMEETING' OR SM.locusType='EVENTCENTERMEETING')
+           AND SM.callType='TERMINATED'
+           AND SM.deviceType<>'SIP'
+           AND SM.deviceType<>'TP_ENDPOINT'
+           AND substring(SM.deviceType, 0, 5) <>'WEBEX')
+           ))
 )
 WHERE orgId<>'unknown'
   AND validOrg(orgId)<>'1'
   AND testUser(userId) = 0
+  AND dataid IS NOT NULL

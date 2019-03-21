@@ -92,6 +92,10 @@ meetingId text,
 callLeg text,
 associated_key text,
 devicetype text,
+appname text,
+locustype text,
+activity text,
+ua_category text,
 primary key((pdate, relation_name), time_stamp, dataid)
 );
 

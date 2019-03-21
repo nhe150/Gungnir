@@ -97,7 +97,7 @@ public class SparkDataMonitor implements Serializable {
         }
 
         Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgid").equalTo(average.col("orgid")).and(currentData.col("relation_name").equalTo(average.col("relation_name"))))
-                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage", "CASE WHEN (((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser')) AND ((currentData.relation_name='fileUsed' AND count=0) OR (currentData.relation_name='number_of_good_calls' AND count=0) OR ((currentData.relation_name like '%weekly%' OR currentData.relation_name like '%monthly%') AND count=0) OR ((currentData.relation_name='activeUser' OR currentData.relation_name='number_of_total_calls') AND (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +")))) THEN 'failure' ELSE 'success' END as status");        dataWithFlag.repartition(1)
+                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage", "CASE WHEN (((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser')) AND ((currentData.relation_name='fileUsed' AND count=0) OR (currentData.relation_name='number_of_good_calls' AND count=0) OR ((currentData.relation_name like '%weekly%' OR currentData.relation_name like '%monthly%') AND count=0) OR ((currentData.relation_name='activeUser' OR currentData.relation_name='number_of_total_calls' OR currentData.relation_name='messageSent') AND (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +")))) THEN 'failure' ELSE 'success' END as status");        dataWithFlag.repartition(1)
                 .write()
                 .mode(SaveMode.Overwrite)
                 .format("csv")
@@ -117,6 +117,8 @@ public class SparkDataMonitor implements Serializable {
 //        data.add("registeredEndpoint," + currentDate);
         data.add("callDuration," + currentDate);
         data.add("callQuality," + currentDate);
+        data.add("messageSent," + currentDate);
+
 
         Dataset df = spark.createDataset(data, Encoders.STRING()).toDF();
 
@@ -151,6 +153,11 @@ public class SparkDataMonitor implements Serializable {
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'activeUser'")
                 .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'activeUser' ELSE CONCAT('activeUser-', period) END AS relation_name", "pdate", "usercountbyorg as count"));
+
+        countPerOrg= countPerOrg.union(aggregates
+                .where("relation_name = 'messageSent'")
+                .where("ua_category = 'DESKTOP'")
+                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'messageSent' ELSE CONCAT('messageSent-', period) END AS relation_name", "pdate", "messages as count"));
 
 //        countPerOrg= countPerOrg.union(aggregates
 //                .where("relation_name = 'callDuration'")

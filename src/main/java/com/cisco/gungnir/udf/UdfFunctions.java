@@ -38,6 +38,7 @@ public class UdfFunctions implements Serializable {
         spark.udf().register("validOrg", new ValidOrgLookup(configProvider.retrieveAppConfigValue("configLocation") + "officialOrgList.csv"), DataTypes.StringType);
         spark.udf().register("testUser", new TestUser(configProvider.retrieveAppConfigValue("configLocation") + "testUserList.json"), DataTypes.IntegerType);
         spark.udf().register("ep1", new DeviceMapping(configProvider.retrieveAppConfigValue("configLocation") + "deviceMapping.csv"), DataTypes.StringType);
+        spark.udf().register("uaCategory", new UaMapping(configProvider.retrieveAppConfigValue("configLocation") + "uaMapping.csv"), DataTypes.StringType);
         spark.udf().register("convertTime", new ConvertTime("yyyy-MM-dd"), DataTypes.StringType);
         spark.udf().register("endOfDay", new EndOfDay(), DataTypes.TimestampType);
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
@@ -134,6 +135,30 @@ public class UdfFunctions implements Serializable {
         }
     }
 
+    private class UaMapping implements UDF1<String, String> {
+        private Map<String, String> deviceTypeMap;
+
+        public UaMapping(String configPath){
+            Dataset deviceUaType = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            JavaPairRDD<String, String> javaPairRDD = deviceUaType.toJavaRDD().mapToPair(new PairFunction<Row, String, String>() {
+                public Tuple2<String, String> call(Row row) throws Exception {
+                    return new Tuple2<String, String>((String) row.get(0), (String) row.get(1));
+                }
+            });
+
+            deviceTypeMap = new HashMap<>(javaPairRDD.collectAsMap());
+        }
+
+        public String call(String ua) throws Exception {
+            String key = (ua==null ? "": ua);
+            return deviceTypeMap.containsKey(key)?  deviceTypeMap.get(key): "OTHER";
+        }
+    }
+
     private class DeviceMapping implements UDF2<String, String, String> {
         private Map<String, String> deviceTypeMap;
 
@@ -153,7 +178,7 @@ public class UdfFunctions implements Serializable {
         }
 
         public String call(String device, String ua) throws Exception {
-            String key = device + "|" + ua;
+            String key = (device==null ? "": device) + "|" + (ua==null ? "": ua);
             return deviceTypeMap.containsKey(key)?  deviceTypeMap.get(key): "Other";
         }
     }
