@@ -199,6 +199,13 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     }
 
     @Test
+    public void testRdDataMonitor() throws Exception {
+        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/rdDataMonitor.conf");
+        RdDataMonitor rdDataMonitor = new RdDataMonitor(spark, configProvider);
+        rdDataMonitor.run(null, "0.5", "*");
+    }
+
+    @Test
     public void testQoSDataMonitor() throws Exception {
         QoSDataMonitor QoSDataMonitor = new QoSDataMonitor(spark);
         QoSDataMonitor.run(50,"0.8", true, 30, true);

@@ -150,7 +150,7 @@ node ("Linux") {
   stage('Upload Artifacts') {
     sh """
     cd target/scala-2.11
-     tar cvf ${packageName}-${version}-${env.BUILD_NUMBER}.tar Gungnir-assembly-0.2-SNAPSHOT.jar
+     tar cvf ${packageName}-${version}-${env.BUILD_NUMBER}.tar Gungnir-assembly*.jar
      mv ${packageName}-${version}-${env.BUILD_NUMBER}.tar ../../
      cd ../..
     """
