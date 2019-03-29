@@ -88,7 +88,7 @@ public class QoSDataMonitor implements Serializable {
 
         // Avg call counts per top n org
         String historyStartDate = AddDay(endDate,-duration-1);
-        Dataset avgModel = avgPerOrg(dataset, historyStartDate, endDate)
+        Dataset avgModel = avgPerOrg(dataset, historyStartDate, endDate, true)
             .orderBy(desc("avg"))
             .limit(orgNum);
 
@@ -101,14 +101,16 @@ public class QoSDataMonitor implements Serializable {
     }
 
     private Dataset GenerateAlert(Dataset dataset, String targetDate, String threshold, String avgIndex, int orgNum) throws Exception{
-        if(!isBusinessDay(targetDate)){ LOGGER.info("No alert for non-business day");return null; }
-        if(dataset  == null || dataset.count() == 0){ LOGGER.info("No target day's data for alert"); return null; }
+        if(dataset  == null || dataset.count() == 0){ LOGGER.info("No ELK data for alert"); return null; }
 
         // Read avg call counts per org data model from ELK
         Dataset historyAvgData = readFromELKAvg(avgIndex)
             .withColumn("historyAvg", col("avg"));
         if(historyAvgData  == null || historyAvgData.count() == 0){ LOGGER.info("No data model"); return null; }
         historyAvgData.show(false);
+
+        Dataset historyAvgDataSum = historyAvgData.agg(sum("historyAvg")).withColumn("historyAvgDataSum",col("sum(historyAvg)"));
+        historyAvgDataSum.show(false);
 
         // Data of top n org that matters
         Dataset orgIdList = historyAvgData.select("org_id");
@@ -118,16 +120,52 @@ public class QoSDataMonitor implements Serializable {
             .selectExpr("data.*");
 
         // Get Avg call count on target date
-        Dataset currentAvgData = avgPerOrg(orgData, AddDay(targetDate,-1), AddDay(targetDate, 1))
+        Dataset currentAvgData = avgPerOrg(orgData, AddDay(targetDate,-1), AddDay(targetDate, 1), false)
             .withColumn("currentAvg", col("avg"));
 
-        if(currentAvgData == null || currentAvgData.count() == 0){ // Missing data
-            currentAvgData = orgIdList
-                .selectExpr("org_id, 0 as currentAvg");
+        // TimeStamp for the alert generate time
+        String eventTimestamp = new DateTime(DateTimeZone.UTC).toString();
+
+        // No Data from all top n orgs
+        if(currentAvgData == null || currentAvgData.count() == 0){
+
+            Dataset dataWithFlagNoData = historyAvgDataSum
+                .selectExpr(
+                    "'All Top " + orgNum + " Orgs Have No Data' as org_id",
+                    "0 as currentAvg",
+                    " historyAvgDataSum as historyAvg",
+                    "0 as percentage",
+                    "'" + eventTimestamp + "' as eventTimestamp",
+                    "'" + targetDate + "' as eventTime",
+                    "'" + threshold + "' as threshold",
+                    "'true' as status"
+                );
+
+            dataWithFlagNoData.show(false);
+            return dataWithFlagNoData;
         }
 
-        // Generate alert data
-        String eventTimestamp = convertToStamp(targetDate);
+        // Return after no data check on non-business day
+        if(!isBusinessDay(targetDate)){ LOGGER.info("No alert for non-business day");return null;}
+
+        // Missing specific top n org's data
+        if(currentAvgData.count() < orgNum ){
+            Dataset tempCurrentAvgData = orgIdList
+                .alias("orgIdList")
+                .join(
+                    currentAvgData,
+                    orgIdList.col("org_id").equalTo(currentAvgData.col("org_id")),
+                    "leftanti"
+                )
+                .selectExpr(
+                    "org_id",
+                    "0 as avg",
+                    "0 as currentAvg"
+                );
+
+            // Adding the missing data's current avg back
+            currentAvgData = currentAvgData.union(tempCurrentAvgData);
+        }
 
         Dataset dataWithFlag = currentAvgData
             .alias("currentAvgData")
@@ -163,7 +201,6 @@ public class QoSDataMonitor implements Serializable {
         if(dataset == null || dataset.count() == 0){ LOGGER.info("No alert");return null;}
 
         Dataset message = dataset
-            .where("status = 'true'")
             .selectExpr(
                 "'CRS' as component",
                 "'Teams' as product",
@@ -217,7 +254,7 @@ public class QoSDataMonitor implements Serializable {
 
     }
 
-    private Dataset avgPerOrg(Dataset dataset, String startDate, String endDate){
+    private Dataset avgPerOrg(Dataset dataset, String startDate, String endDate, boolean isModelUpdate){
         if(dataset  == null || dataset.count() == 0){ LOGGER.info("No data to calculate avg"); return null; }
 
         // Change the time from timestamp to date string for aggregation
@@ -227,8 +264,11 @@ public class QoSDataMonitor implements Serializable {
 
         // Business day data within last 30 days
         Dataset historyData = result
-            .where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + endDate + "')")
-            .filter("isBusinessDay(pdate)");
+            .where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + endDate + "')");
+
+        if(isModelUpdate){
+            historyData = historyData.filter("isBusinessDay(pdate)");
+        }
 
         // Calculate the avg per org
         Dataset avgModel = historyData
@@ -260,7 +300,7 @@ public class QoSDataMonitor implements Serializable {
         return spark.read()
             .format("org.elasticsearch.spark.sql")
             .option("es.net.http.auth.user", "waprestapi.gen")
-            .option("es.net.http.auth.pass", "C1sco123!")
+            .option("es.net.http.auth.pass", "C1sco123!!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
             //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
@@ -327,7 +367,7 @@ public class QoSDataMonitor implements Serializable {
         return spark.read()
             .format("org.elasticsearch.spark.sql")
             .option("es.net.http.auth.user", "waprestapi.gen")
-            .option("es.net.http.auth.pass", "C1sco123!")
+            .option("es.net.http.auth.pass", "C1sco123!!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
             //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
@@ -345,7 +385,7 @@ public class QoSDataMonitor implements Serializable {
         DataFrameWriter dfw = dataset.write()
             .format("org.elasticsearch.spark.sql")
             .option("es.net.http.auth.user", "waprestapi.gen")
-            .option("es.net.http.auth.pass", "C1sco123!")
+            .option("es.net.http.auth.pass", "C1sco123!!")
             .option("es.nodes", "https://clpsj-bts-call.webex.com")
             //.option("es.nodes", "https://clpsj-call.webex.com")
             .option("es.port", "443")
