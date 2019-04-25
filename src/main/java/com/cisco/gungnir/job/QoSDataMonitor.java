@@ -260,10 +260,11 @@ public class QoSDataMonitor implements Serializable {
         // Change the time from timestamp to date string for aggregation
         Dataset result = dataset
             .cache()
-            .withColumn("pdate", callUDF("convertTime", col("start_time")));
+            .withColumn("pdate", callUDF("convertTime", col("locus_start_time")));
 
         // Business day data within last 30 days
         Dataset historyData = result
+            .filter(col("pdate").notEqual(""))
             .where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + endDate + "')");
 
         if(isModelUpdate){
@@ -492,13 +493,16 @@ public class QoSDataMonitor implements Serializable {
     // UDF
     public class TimeConverter implements UDF1<String, String> {
         public String call(String startTimeStampString) throws Exception {
-
             // Convert String "2019-01-16T08:01:28.121Z" to String "2019-01-16"
             SimpleDateFormat sdft = new SimpleDateFormat("yyyy-MM-dd");
             sdft.setTimeZone(TimeZone.getTimeZone("GMT"));
-            Date startDate = sdft.parse(startTimeStampString);
-            String startDateString = sdft.format(startDate);
-
+            String startDateString = "";
+            try {
+                Date startDate = sdft.parse(startTimeStampString);
+                startDateString = sdft.format(startDate);
+            }catch(Exception e){
+                return startDateString; // This will be filtered out later
+            }
             return startDateString;
         }
     }
