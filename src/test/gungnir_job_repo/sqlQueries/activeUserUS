@@ -1,0 +1,2 @@
+CREATE OR REPLACE TEMPORARY VIEW regionEU AS SELECT * FROM regionMap WHERE region='EU';
+SELECT * FROM activeUser LEFT ANTI JOIN regionEU ON activeuser.orgId = regionEU.orgId;

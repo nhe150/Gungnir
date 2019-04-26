@@ -1,4 +1,4 @@
-CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+CREATE OR REPLACE TEMPORARY view TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
        orgId,
        call_id,
        uaType,
@@ -6,7 +6,7 @@ CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
        ep1(deviceType, uaType) as ep1
 FROM  SOURCE_VIEW;
 
-CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, call_id, ep1;
+CREATE OR REPLACE TEMPORARY view TEMP1 AS DropDuplicates time_stamp, orgId, call_id, ep1;
 
 SELECT CONCAT(time_stamp, '^', orgId, '^', ep1, '^', 'callDuration', '^', periodTag(orgId)) AS eventKey,
        time_stamp,

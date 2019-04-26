@@ -9,6 +9,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
+import util.DatasetFunctions;
 
 import java.io.Serializable;
 import java.util.*;
@@ -177,15 +178,11 @@ public class QueryExecutor implements Serializable {
     }
 
     private Dataset setTimestampField(Dataset ds, String timestampField) {
-        for(StructField field: ds.schema().fields()){
-            if(field.name().equals(timestampField)){
-                if(field.dataType() == DataTypes.StringType) {
-                    return ds.withColumn(timestampField, callUDF("toTimestamp", col(timestampField)));
-                } else {
-                    return ds;
-                }
-            }
+        if(!DatasetFunctions.hasColumn(ds, timestampField)) throw new IllegalArgumentException("Could not find timestamp field name: " + timestampField);
+        StructField field = (StructField) ds.select(timestampField).schema().head();
+        if(field.dataType().sameType(DataTypes.StringType)){
+            return ds.withColumn(timestampField, callUDF("toTimestamp", col(timestampField)));
         }
-        throw new IllegalArgumentException("Could not find timestamp field name: " + timestampField);
+        return ds;
     }
 }

@@ -1,0 +1,1 @@
+SELECT * FROM activeUser LEFT SEMI JOIN regionMap ON activeuser.orgId = regionmap.orgId AND regionmap.region='EU' ;

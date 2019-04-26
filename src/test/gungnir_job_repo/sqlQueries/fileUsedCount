@@ -1,6 +1,6 @@
-CREATE TEMP_VIEW TEMP AS DropDuplicates time_stamp, dataid;
+CREATE OR REPLACE TEMPORARY view TEMP AS DropDuplicates time_stamp, dataid;
 
-CREATE TEMP_VIEW TEMP1 AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+CREATE OR REPLACE TEMPORARY view TEMP1 AS SELECT aggregateStartDate(time_stamp) as time_stamp,
        orgId,
        isFile,
        contentSize

@@ -8,6 +8,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+import util.DatasetFunctions;
 
 import java.io.Serializable;
 import java.util.List;
@@ -243,6 +244,7 @@ public class File implements Serializable {
             regex = partitionKey!=null? partitionKey + "=" + dateList.get(i): dateList.get(i);
             dataset = dataset.union(schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex), schema): readFileBatch(dataLocation,input, format, multiline, regex));
         }
+
         return dataset;
     }
 

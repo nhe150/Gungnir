@@ -32,27 +32,20 @@ public class QueryFunctions implements Serializable {
     }
 
     public Dataset executeSqlQueries(Dataset ds, String queryName, JsonNode parameters) throws Exception {
-        if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
-
         registerFunctions(queryName, parameters);
 
         String[] queryList = configProvider.readSql(queryName).split(";");
         String view = "SOURCE_VIEW";
+        if(ds!=null) setWatermark(ds, parameters).createOrReplaceTempView(view);
         for(int i=0; i<queryList.length; i++){
-            setWatermark(ds, parameters).createOrReplaceTempView(view);
             String query = queryList[i].trim();
             System.out.println("executing spark sql query: " + query);
-            if(query.contains("TEMP_VIEW")){
-                String tempView = StringUtils.substringBetween(query, "TEMP_VIEW", "AS");
-                view = tempView==null ? view: tempView;
-                if (query.contains("DropDuplicates")){
-                    ds = dropDuplicates(ds, query);
-                } else {
-                    query = query.replaceAll("select", "SELECT");
-                    int index = Math.max(query.indexOf("SELECT"), 0);
-                    ds = spark.sql(query.substring(index));
-                }
-            }else if(query.contains("SELECT")) {
+
+            if (query.contains("DropDuplicates")){
+                if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
+                ds = dropDuplicates(ds, query);
+            }
+            else if(query.startsWith("SELECT") || query.startsWith("select")) {
                 ds = spark.sql(query);
             }else{
                 spark.sql(query);
@@ -82,7 +75,11 @@ public class QueryFunctions implements Serializable {
     private Dataset dropDuplicates(Dataset ds, String query){
         String f = query.split("DropDuplicates")[1].replaceAll("\\s+","");
         String[] fields = f.split(",");
-        return ds.dropDuplicates(fields);
+        Dataset deduplicatedDs = ds.dropDuplicates(fields);
+        String q = query.replaceAll("as", "AS").replaceAll("view", "VIEW");
+        String view = StringUtils.substringBetween(q, "VIEW", "AS");
+        deduplicatedDs.createOrReplaceTempView(view);
+        return deduplicatedDs;
     }
 
     private void registerFunctions(String queryName, JsonNode parameters) throws Exception{

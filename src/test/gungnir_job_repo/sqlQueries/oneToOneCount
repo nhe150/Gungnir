@@ -1,9 +1,9 @@
-CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+SELECT aggregateStartDate(time_stamp) as time_stamp,
     orgId,
     oneToOne
 FROM  SOURCE_VIEW;
 
-CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, oneToOne;
+CREATE OR REPLACE TEMPORARY view TEMP1 AS DropDuplicates time_stamp, orgId, oneToOne;
 
 SELECT CONCAT(time_stamp, '^', orgId, '^', 'activeUser', '^', periodTag(orgId)) AS eventKey,
        time_stamp,

@@ -1,4 +1,4 @@
-CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+CREATE OR REPLACE TEMPORARY view TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
        orgId,
        userId,
        CASE WHEN (audio_is_good=0 AND video_is_good=0) THEN 1 ELSE 0 END AS quality_is_bad

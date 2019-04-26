@@ -11,7 +11,7 @@
             "endingOffsets": {"conv":{"0":-1},"locus":{"0":-1}},
             "useTopicPrefix": false
           },
-          "timeStampField": "@timestamp",
+          "timeStampField": "timeRcvd",
           "schemaName": "conv"
         }
       }

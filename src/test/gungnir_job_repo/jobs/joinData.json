@@ -1,0 +1,90 @@
+{
+  "name": "joinData",
+  "queryPlan":[
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "orgidRegionMap",
+          "multiline": true,
+          "schemaName": "regionMap",
+          "dataLocation": "src/test/gungnir_job_repo/testData/",
+          "format": "json"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"regionMapView"
+      }
+    ],
+    [
+      {
+        "queryName":"readFromFile",
+        "parameters":{
+          "input": "activeUser",
+          "schemaName": "activeUser",
+          "multiline": true,
+          "dataLocation": "src/test/gungnir_job_repo/testData/",
+          "format": "json"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUserView"
+      }
+    ],
+    [
+      {
+        "queryName":"activeUserUS",
+        "parameters": {
+          "output": "activeUserUS"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "json",
+          "saveMode": "append"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"activeUserEU",
+        "parameters": {
+          "output": "activeUserEU"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "json",
+          "saveMode": "append"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"orgIdNoRegion",
+        "parameters": {
+          "output": "orgIdNoRegion"
+        }
+      }
+    ],
+    [
+      {
+        "queryName":"writeToFile",
+        "parameters":{
+          "format": "json",
+          "saveMode": "append"
+        }
+      }
+    ]
+  ]
+}

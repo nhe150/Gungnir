@@ -1,4 +1,4 @@
-CREATE TEMP_VIEW TEMP AS SELECT endOfDay(time_stamp) as time_stamp,
+CREATE OR REPLACE TEMPORARY VIEW TEMP AS SELECT endOfDay(time_stamp) as time_stamp,
        orgId,
        userId,
        isMessage,

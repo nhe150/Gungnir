@@ -1,10 +1,10 @@
-CREATE TEMP_VIEW TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
+CREATE OR REPLACE TEMPORARY view TEMP AS SELECT aggregateStartDate(time_stamp) as time_stamp,
        orgId,
        call_id,
        CASE WHEN (audio_jitter>150 OR audio_rtt>400 OR audio_packetloss>5) THEN 1 ELSE 0 END AS quality_is_bad
 FROM  SOURCE_VIEW;
 
-CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, call_id, quality_is_bad;
+CREATE OR REPLACE TEMPORARY view TEMP1 AS DropDuplicates time_stamp, orgId, call_id, quality_is_bad;
 
 SELECT CONCAT(time_stamp, '^', orgId, '^', 'callQuality', '^', periodTag(orgId)) AS eventKey,
        time_stamp,

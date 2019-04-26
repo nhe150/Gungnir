@@ -1,0 +1,1 @@
+SELECT activeUser.orgId FROM activeUser LEFT ANTI JOIN regionMap ON activeuser.orgId = regionmap.orgId;

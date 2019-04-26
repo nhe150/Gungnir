@@ -1,11 +1,11 @@
-CREATE TEMP_VIEW TEMP AS SELECT endOfDay(time_stamp) as time_stamp,
+SELECT endOfDay(time_stamp) as time_stamp,
        orgId,
        userId,
        oneToOne,
        group
 FROM  SOURCE_VIEW;
 
-CREATE TEMP_VIEW TEMP1 AS DropDuplicates time_stamp, orgId, userId, oneToOne, group;
+CREATE OR REPLACE TEMPORARY VIEW TEMP1 AS DropDuplicates time_stamp, orgId, userId, oneToOne, group;
 
 SELECT time_stamp,
        convertTime(time_stamp) as pdate,

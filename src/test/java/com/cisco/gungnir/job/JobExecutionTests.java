@@ -182,6 +182,11 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     }
 
     @Test
+    public void testJoinData() throws Exception {
+        jobExecutor.execute("joinData", "batch");
+    }
+
+    @Test
     public void testDeleteDataFromCassandra() throws Exception {
         jobExecutor.execute("writeDataToCassandra", "batch");
         ResultSet resultBeforeDelete = cassandra.session.execute("select * from spark_data");
