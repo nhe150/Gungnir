@@ -25,7 +25,8 @@ public class RdDataMonitor implements Serializable {
     private SparkSession spark;
     private ConfigProvider configProvider;
     private QueryFunctions queryFunctions;
-    private static final Logger LOGGER = Logger.getLogger(QoSDataMonitor.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(RdDataMonitor.class.getName());
 
     public RdDataMonitor(SparkSession spark, ConfigProvider appConfigProvider) throws Exception{
         ConfigProvider gungnirConfigProvider = new ConfigProvider(spark, appConfigProvider.retrieveAppConfigValue("gungnirConfigFile"));
@@ -66,6 +67,9 @@ public class RdDataMonitor implements Serializable {
                 avg("whiteboard").as("whiteboardAvg")
         );
 
+
+        System.out.println("@@@@@@@@@@@@@ getAvgPerOrg: @@@@@@@@@@@@@");
+
         avgPerOrg.show();
 
         return avgPerOrg;
@@ -102,12 +106,25 @@ public class RdDataMonitor implements Serializable {
     private Dataset getAnomaly(Dataset avgPerOrg, Dataset c2, double threshold) {
 
         Dataset joined = avgPerOrg.join(c2.alias("c2"), c2.col("orgid").equalTo(avgPerOrg.col("orgid")));
-        LOGGER.info("@@@@@@@@@@@@ (below) after joined @@@@@@@@@@@@\n");
+
+        System.out.println("@@@@@@@@@@@@ (below) after joined @@@@@@@@@@@@\n");
+
         joined.show();
+
+        Dataset joinedWithPercentage = joined
+                .withColumn("incallDiffPctg", (col("incall").minus(col("incallAvg"))).divide(col("incallAvg"))
+                        .multiply(100).cast("int"))
+                .withColumn("cableDiffPctg", (col("cable").minus(col("cableAvg"))).divide(col("cableAvg"))
+                        .multiply(100).cast("int"))
+                .withColumn("wirelessDiffPctg", (col("wireless").minus(col("wirelessAvg"))).divide(col("wirelessAvg"))
+                        .multiply(100).cast("int"))
+                .withColumn("whiteboardDiffPctg", (col("whiteboard").minus(col("whiteboardAvg"))).divide(col("whiteboardAvg"))
+                        .multiply(100).cast("int"));
 
         LOGGER.info("@@@@@@@@@@@@@ Threshold is: " + threshold);
 
-        Dataset normal = joined.filter(col("incall").geq(col("incallAvg").multiply(1 - threshold)))
+        Dataset normal = joinedWithPercentage.filter(col("incall").geq(col("incallAvg").multiply(1 - threshold)))
+
                 .filter(col("incall").leq(col("incallAvg").multiply(1 + threshold)))
                 .filter(col("cable").geq(col("cableAvg").multiply(1 - threshold)))
                 .filter(col("cable").leq(col("cableAvg").multiply(1 + threshold)))
@@ -117,9 +134,11 @@ public class RdDataMonitor implements Serializable {
                 .filter(col("whiteboard").leq(col("whiteboardAvg").multiply(1 + threshold)))
                 ;
 
-        Dataset anomaly = joined.except(normal);
 
-        LOGGER.info("anomaly below");
+        Dataset anomaly = joinedWithPercentage.except(normal);
+
+        System.out.println("anomaly below");
+
         anomaly.show();
 
         return anomaly;
@@ -135,6 +154,9 @@ public class RdDataMonitor implements Serializable {
 
 
         List<String> orgList = getOrgList(configProvider.getAppConfig());
+
+        System.out.println("orgList:");
+
         for (String org : orgList) {
             System.out.println(org);
         }
@@ -163,7 +185,28 @@ public class RdDataMonitor implements Serializable {
         Dataset message = dataset.selectExpr(
                 "'crs' as component",
                 "'metrics' as eventtype",
-                "struct( 'RoomDeviceUsg' as pipeLine, 'anomalyDetection' as phase, CONCAT(pdate, 'T00:00:00Z') as sendTime, struct( c2.orgid, incallAvg, cableAvg, wirelessAvg, whiteboardAvg, incall, cable, wireless, whiteboard, deviceCount, pdate as reportDate ) as data ) as metrics");
+                "struct('RoomDeviceUsg' as pipeLine, " +
+                        "'anomalyDetection' as phase, " +
+                        "CONCAT(pdate, 'T00:00:00Z') as sendTime, " +
+                        "struct(" +
+                            "c2.orgid, " +
+                            "incall, " +
+                            "cable, " +
+                            "wireless," +
+                            "whiteboard, " +
+                            "incallAvg, " +
+                            "cableAvg, " +
+                            "wirelessAvg, " +
+                            "whiteboardAvg, " +
+                            "incallDiffPctg," +
+                            "cableDiffPctg," +
+                            "wirelessDiffPctg," +
+                            "whiteboardDiffPctg," +
+                            "deviceCount, " +
+                            "pdate as reportDate )" +
+                        " as data ) " +
+                 "as metrics");
+
         return message;
     }
 
