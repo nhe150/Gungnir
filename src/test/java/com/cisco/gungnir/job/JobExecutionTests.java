@@ -10,6 +10,7 @@ import org.apache.spark.sql.*;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.*;
+import util.AppDatabase;
 
 import java.io.File;
 import java.io.Serializable;
@@ -215,6 +216,13 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
         QoSDataMonitor QoSDataMonitor = new QoSDataMonitor(spark);
         QoSDataMonitor.run(50,"0.8", true, 30, true);
     }
+
+//    @Test
+//    public void testAppDatabase() throws Exception {
+//        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/application.conf");
+//        AppDatabase.run(configProvider);
+//    }
+
 
     @After
     public void after()throws Exception{
