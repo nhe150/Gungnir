@@ -74,7 +74,7 @@ object AppDatabase {
     val rs: ResultSet = session.execute(select);
     val rows: util.List[Row] = rs.all()
     val endpoints = getRestEndpoints(session)
-    val insert = "insert into " + table + " (orgid,region) values (?,?) USING TTL 86400;"
+    val insert = "insert into " + table + " (orgid,region) values (?,?);"
     val insertStatement: PreparedStatement = session.prepare(insert)
     for(row <- rows) {
       if(row.getString("region")==null){
