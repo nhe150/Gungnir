@@ -2,6 +2,7 @@ package com.cisco.gungnir.job;
 
 import com.cisco.gungnir.config.ConfigProvider;
 import com.cisco.gungnir.query.QueryFunctions;
+import com.cisco.gungnir.utils.DateUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -89,15 +90,32 @@ public class SparkDataMonitor implements Serializable {
         Dataset average;
         Dataset historyForBusinessDays = history.filter("isBusinessDay(pdate)");
 
-        if(isBusinessDay(currentDate)){
+        if(DateUtil.isBusinessDay(currentDate)){
             average = getOrgAverage(historyForBusinessDays);
         } else {
             Dataset historyForNonBusinessDays = history.except(historyForBusinessDays);
             average = getOrgAverage(historyForNonBusinessDays);
         }
 
-        Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgid").equalTo(average.col("orgid")).and(currentData.col("relation_name").equalTo(average.col("relation_name"))))
-                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage", "CASE WHEN (((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser')) AND ((currentData.relation_name='fileUsed' AND count=0) OR (currentData.relation_name='messageSent' AND count=0) OR (currentData.relation_name='number_of_good_calls' AND count=0) OR ((currentData.relation_name like '%weekly%' OR currentData.relation_name like '%monthly%') AND count=0) OR ((currentData.relation_name='activeUser' OR currentData.relation_name='number_of_total_calls') AND (count IS NULL OR count/avg < " + threshold + " OR count/avg > " + 2/Double.parseDouble(threshold) +")))) THEN 'failure' ELSE 'success' END as status");        dataWithFlag.repartition(1)
+        Dataset dataWithFlag = currentData.alias("currentData").join(average, currentData.col("orgid")
+                .equalTo(average.col("orgid"))
+                .and(currentData.col("relation_name")
+                        .equalTo(average.col("relation_name"))))
+                .selectExpr("currentData.orgid", "currentData.relation_name", "pdate", "count", "avg", "CAST((count/avg) * 100 AS INT) as percentage",
+                        "CASE WHEN ( ((avg>800 AND currentData.relation_name='activeUser') OR (avg>100 AND currentData.relation_name<>'activeUser'))" +
+                                " AND ( (currentData.relation_name='fileUsed' AND count=0) " +
+                                "OR (currentData.relation_name='callDuration' AND count=0) " +
+                                "OR (currentData.relation_name='messageSent' AND count=0) " +
+                                "OR (currentData.relation_name='number_of_good_calls' AND count=0) " +
+                                "OR ((currentData.relation_name like '%weekly%' " +
+                                     "OR currentData.relation_name like '%monthly%') AND count=0) " +
+                                "OR ( (currentData.relation_name='activeUser' OR currentData.relation_name='number_of_total_calls') " +
+                                     "AND (count IS NULL OR count/avg < " + threshold +
+                                         " OR count/avg > " + 2/Double.parseDouble(threshold) +") )" +
+                                ")) " +
+                        "THEN 'failure' ELSE 'success' END as status");
+
+        dataWithFlag.repartition(1)
                 .write()
                 .mode(SaveMode.Overwrite)
                 .format("csv")
@@ -114,7 +132,6 @@ public class SparkDataMonitor implements Serializable {
         List<String> data = new ArrayList<>();
         data.add("fileUsed," + currentDate);
         data.add("activeUser," + currentDate);
-//        data.add("registeredEndpoint," + currentDate);
         data.add("callDuration," + currentDate);
         data.add("callQuality," + currentDate);
         data.add("messageSent," + currentDate);
@@ -137,18 +154,6 @@ public class SparkDataMonitor implements Serializable {
         Dataset countPerOrg = aggregates
                 .where("relation_name = 'fileUsed'")
                 .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'fileUsed' ELSE CONCAT('fileUsed-', period) END AS relation_name", "pdate", "files as count");
-//
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'fileUsed'")
-//                .selectExpr("orgid", "CONCAT('filesize^', period) as relation_name", "pdate", "filesize as count"));
-
-//        Dataset countPerOrg= aggregates
-//                .where("relation_name = 'activeUser'")
-//                .selectExpr("orgid", "CONCAT('onetoonecount^', period) as relation_name", "pdate", "onetoonecount as count"));
-//
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'activeUser'")
-//                .selectExpr("orgid", "CONCAT('spacecount^', period) as relation_name", "pdate", "spacecount as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'activeUser'")
@@ -159,10 +164,6 @@ public class SparkDataMonitor implements Serializable {
                 .where("ua_category = 'DESKTOP'")
                 .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'messageSent' ELSE CONCAT('messageSent-', period) END AS relation_name", "pdate", "messages as count"));
 
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'callDuration'")
-//                .where("ep1 = 'Desktop client'")
-//                .selectExpr("orgid", "CONCAT('number_of_minutes^', period) as relation_name", "pdate", "number_of_minutes as count"));
 
         countPerOrg= countPerOrg.union(aggregates
                 .where("relation_name = 'callDuration'")
@@ -173,26 +174,7 @@ public class SparkDataMonitor implements Serializable {
                 .where("relation_name = 'callQuality'")
                 .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'number_of_good_calls' ELSE CONCAT('number_of_good_calls-', period) END AS relation_name", "pdate", "number_of_total_calls-number_of_bad_calls as count"));
 
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'callQuality'")
-//                .selectExpr("orgid", "CONCAT('number_of_bad_calls^', period) as relation_name", "pdate", "number_of_bad_calls as count"));
 
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'registeredEndpoint'")
-//                .where("model = 'SPARK-BOARD55'")
-//                .selectExpr("orgid", "CASE WHEN (period='daily') THEN 'registeredEndpoint' ELSE CONCAT('registeredEndpoint-', period) END AS relation_name", "pdate", "registeredEndpointCount as count"));
-
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'conv'")
-//                .selectExpr("orgid", "CONCAT('convCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
-//
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'locus'")
-//                .selectExpr("orgid", "CONCAT('locusCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
-//
-//        countPerOrg= countPerOrg.union(aggregates
-//                .where("relation_name = 'metrics'")
-//                .selectExpr("orgid", "CONCAT('metricsCount^', period) as relation_name", "pdate", "userCountByOrg as count"));
         countPerOrg.show(false);
         return countPerOrg;
     }
@@ -217,97 +199,11 @@ public class SparkDataMonitor implements Serializable {
 
     public class BusinessDay implements UDF1<String, Boolean> {
         public Boolean call(String startDate) throws Exception {
-            return isBusinessDay(startDate);
+            return DateUtil.isBusinessDay(startDate);
         }
     }
 
-    public boolean isBusinessDay(String startDate) throws Exception {
-        final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        final Date date = format.parse(startDate);
 
-        final Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-
-        // check if weekend
-        if(cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY){
-            return false;
-        }
-
-        // check if New Year's Day
-        if (cal.get(Calendar.MONTH) == Calendar.JANUARY
-                && cal.get(Calendar.DAY_OF_MONTH) == 1) {
-            return false;
-        }
-
-        // check if Christmas Eve
-        if (cal.get(Calendar.MONTH) == Calendar.DECEMBER
-                && cal.get(Calendar.DAY_OF_MONTH) == 24) {
-            return false;
-        }
-
-        // check if Christmas
-        if (cal.get(Calendar.MONTH) == Calendar.DECEMBER
-                && cal.get(Calendar.DAY_OF_MONTH) == 25) {
-            return false;
-        }
-
-        // check if 4th of July
-        if (cal.get(Calendar.MONTH) == Calendar.JULY
-                && cal.get(Calendar.DAY_OF_MONTH) == 4) {
-            return false;
-        }
-
-        // check Thanksgiving (4th Thursday of November)
-        if (cal.get(Calendar.MONTH) == Calendar.NOVEMBER
-                && cal.get(Calendar.DAY_OF_WEEK_IN_MONTH) == 4
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.THURSDAY) {
-            return false;
-        }
-
-        // check BlackFriday (4th Friday of November)
-        if (cal.get(Calendar.MONTH) == Calendar.NOVEMBER
-                && cal.get(Calendar.DAY_OF_WEEK_IN_MONTH) == 4
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) {
-            return false;
-        }
-
-        // check Memorial Day (last Monday of May)
-        if (cal.get(Calendar.MONTH) == Calendar.MAY
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY
-                && cal.get(Calendar.DAY_OF_MONTH) > (31 - 7) ) {
-            return false;
-        }
-
-        // check Labor Day (1st Monday of September)
-        if (cal.get(Calendar.MONTH) == Calendar.SEPTEMBER
-                && cal.get(Calendar.DAY_OF_WEEK_IN_MONTH) == 1
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY) {
-            return false;
-        }
-
-        // check President's Day (3rd Monday of February)
-        if (cal.get(Calendar.MONTH) == Calendar.FEBRUARY
-                && cal.get(Calendar.DAY_OF_WEEK_IN_MONTH) == 3
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY) {
-            return true;
-        }
-
-        // check Veterans Day (November 11)
-        if (cal.get(Calendar.MONTH) == Calendar.NOVEMBER
-                && cal.get(Calendar.DAY_OF_MONTH) == 11) {
-            return true;
-        }
-
-        // check MLK Day (3rd Monday of January)
-        if (cal.get(Calendar.MONTH) == Calendar.JANUARY
-                && cal.get(Calendar.DAY_OF_WEEK_IN_MONTH) == 3
-                && cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY) {
-            return true;
-        }
-
-        // IF NOTHING ELSE, IT'S A BUSINESS DAY
-        return true;
-    }
 
     private List getOrgList(JsonNode node){
         ArrayList<String> orgList=new ArrayList<>();

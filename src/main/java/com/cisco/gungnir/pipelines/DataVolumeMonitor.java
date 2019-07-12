@@ -49,6 +49,8 @@ public class DataVolumeMonitor implements Serializable {
         SparkSession spark = SparkSession.builder()
                 .appName("sparkDataMonitor").getOrCreate();
 
+        spark.sparkContext().setLogLevel("WARN");
+
         ConfigProvider appConfigProvider = new ConfigProvider(spark, configFile);
 
         SparkDataMonitor app = new SparkDataMonitor(spark, appConfigProvider);
