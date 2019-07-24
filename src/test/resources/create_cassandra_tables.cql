@@ -99,6 +99,12 @@ ua_category text,
 primary key((pdate, relation_name), time_stamp, dataid)
 );
 
+insert into license(pdate, relation_name, orgid, userid, status, dataid) values('2019-07-23', 'license', 'orgA', 'userA', 'SUCCESS', 't001');
+insert into license(pdate, relation_name, orgid, userid, status, dataid) values('2019-07-15', 'license', 'orgA', 'userA', 'SUCCESS', 't002');
+insert into license(pdate, relation_name, orgid, userid, status, dataid) values('2019-07-15', 'license', 'orgA', 'userB', 'SUCCESS', 't003');
+
+insert into license(pdate, relation_name, orgid, userid, status, dataid) values('2019-07-08', 'license', 'orgA', 'userA', 'SUCCESS', 't004');
+
 //INSERT INTO spark_data(pdate, relation_name, time_stamp, dataid) values('test','test', '2017-11-08T22:30:47.000Z', 'id');
 
 //INSERT INTO spark_data(pdate, relation_name, time_stamp, dataid) values('test2','test2', '2017-11-08T22:30:47.000Z', 'id2');

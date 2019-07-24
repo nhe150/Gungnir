@@ -1,44 +1,28 @@
 package com.cisco.gungnir.job;
 
-import com.cisco.gungnir.config.ConfigProvider;
-import com.cisco.gungnir.query.QueryFunctions;
 import com.cisco.gungnir.utils.DateUtil;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.api.java.UDF1;
-import org.apache.spark.sql.types.DataTypes;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
-import java.io.Serializable;
-import java.text.SimpleDateFormat;
-import java.util.*;
-
-import static org.apache.spark.sql.functions.col;
+import java.util.ArrayList;
+import java.util.List;
 import static org.apache.spark.sql.functions.callUDF;
+import static org.apache.spark.sql.functions.col;
 
-public class SparkDataMonitor implements Serializable {
-    private SparkSession spark;
-    private ConfigProvider configProvider;
-    private QueryFunctions queryFunctions;
+public class SparkDataMonitor extends DataMonitor {
 
-    public SparkDataMonitor(SparkSession spark, ConfigProvider appConfigProvider) throws Exception{
-        ConfigProvider gungnirConfigProvider = new ConfigProvider(spark, appConfigProvider.retrieveAppConfigValue("gungnirConfigFile"));
-        ConfigProvider mergedConfigProvider =  new ConfigProvider(spark, ConfigProvider.merge(gungnirConfigProvider.getAppConfig().deepCopy(), appConfigProvider.getAppConfig().deepCopy()));
 
-        this.spark = spark;
-        this.configProvider = mergedConfigProvider;
-        this.queryFunctions = new QueryFunctions(spark, mergedConfigProvider);
+    public SparkDataMonitor() {
+        super();
     }
 
     public void run(String currentDate, String threshold, String orgId) throws Exception {
-        if(currentDate==null) currentDate = new DateTime(DateTimeZone.UTC).plusDays(-1).toString("yyyy-MM-dd");
+        if(currentDate==null) {
+            currentDate = getDate(-1);
+        }
 
-        Dataset aggregates = queryFunctions.cassandra.readFromCassandra("batch", configProvider.getAppConfig());
-
+        Dataset aggregates = readFromCass();
         Dataset data = allCounts(aggregates, orgId, currentDate);
 
         Dataset dataWithFlag = dataWithFlag(currentDate, data, threshold);
@@ -49,7 +33,7 @@ public class SparkDataMonitor implements Serializable {
     }
 
     private Dataset allCounts(Dataset dataset, String orgId, String currentDate) throws Exception{
-        spark.udf().register("convertTime", new TimeConverter(), DataTypes.StringType);
+
         dataset.cache();
         dataset =  dataset.withColumn("pdate", callUDF("unix_timestamp", col("time_stamp"))).withColumn("pdate", callUDF("convertTime", col("pdate")));
 
@@ -74,9 +58,9 @@ public class SparkDataMonitor implements Serializable {
     }
 
     private Dataset dataWithFlag(String currentDate, Dataset data, String threshold) throws Exception {
-        spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
 
-        String startDate = new DateTime(DateTimeZone.UTC).plusDays(-64).toString("yyyy-MM-dd");
+
+        String startDate = getDate(-64);
 
         Dataset history = data.where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + currentDate + "')");
         Dataset currentData = data.where("pdate = '" + currentDate + "'");
@@ -188,30 +172,5 @@ public class SparkDataMonitor implements Serializable {
         return message;
     }
 
-    public class TimeConverter implements UDF1<Long, String> {
-        public String call(Long unixtimeStamp) throws Exception {
-            Date date = new Date(unixtimeStamp*1000L);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-            return sdf.format(date);
-        }
-    }
 
-    public class BusinessDay implements UDF1<String, Boolean> {
-        public Boolean call(String startDate) throws Exception {
-            return DateUtil.isBusinessDay(startDate);
-        }
-    }
-
-
-
-    private List getOrgList(JsonNode node){
-        ArrayList<String> orgList=new ArrayList<>();
-        if (node.get("orgids").isArray()) {
-            for (final JsonNode objNode : node.get("orgids")) {
-                orgList.add(objNode.asText());
-            }
-        }
-        return orgList;
-    }
 }
