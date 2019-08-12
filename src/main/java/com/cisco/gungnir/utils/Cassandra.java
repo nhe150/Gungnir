@@ -42,6 +42,8 @@ public class Cassandra implements Serializable {
         Map<String, String> cassandraConfigMap = new HashMap<>();
         cassandraConfigMap.put("table", ConfigProvider.retrieveConfigValue(merged, "cassandra.table"));
         cassandraConfigMap.put("keyspace",  ConfigProvider.retrieveConfigValue(merged, "cassandra.keyspace"));
+        cassandraConfigMap.put("spark.cassandra.sql.cluster",  ConfigProvider.retrieveConfigValue(merged, "cassandra.local_dc"));
+
         cassandraConfigMap.put("spark.cassandra.connection.host",  ConfigProvider.retrieveConfigValue(merged, "cassandra.host"));
         cassandraConfigMap.put("spark.cassandra.connection.port",  ConfigProvider.retrieveConfigValue(merged, "cassandra.port"));
         cassandraConfigMap.put("spark.cassandra.auth.username",  ConfigProvider.retrieveConfigValue(merged, "cassandra.username"));

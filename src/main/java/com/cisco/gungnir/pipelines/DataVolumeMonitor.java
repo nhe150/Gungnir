@@ -1,6 +1,7 @@
 package com.cisco.gungnir.pipelines;
 
 import com.cisco.gungnir.config.ConfigProvider;
+import com.cisco.gungnir.job.DataMonitor;
 import com.cisco.gungnir.job.SparkDataMonitor;
 import org.apache.commons.cli.*;
 import org.apache.spark.sql.*;
@@ -27,6 +28,10 @@ public class DataVolumeMonitor implements Serializable {
         orgIdOpt.setRequired(false);
         options.addOption(orgIdOpt);
 
+        Option clOpt = new Option("cl", "class", true, "Job class name");
+        orgIdOpt.setRequired(false);
+        options.addOption(clOpt);
+
         CommandLineParser parser = new GnuParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -45,16 +50,20 @@ public class DataVolumeMonitor implements Serializable {
         String currentDate  = cmd.getOptionValue("date");
         String threshold = cmd.getOptionValue("threshold")== null ? "0.3" : cmd.getOptionValue("threshold");
         String orgId = cmd.getOptionValue("orgId")== null ? "*" : "'" + cmd.getOptionValue("orgId") + "'";
+        String cl = cmd.getOptionValue("cl") == null ? "SparkDataMonitor" : cmd.getOptionValue("cl");
 
         SparkSession spark = SparkSession.builder()
-                .appName("sparkDataMonitor").getOrCreate();
+                .appName(cl).getOrCreate();
 
         spark.sparkContext().setLogLevel("WARN");
 
         ConfigProvider appConfigProvider = new ConfigProvider(spark, configFile);
 
-        SparkDataMonitor app = new SparkDataMonitor(spark, appConfigProvider);
+        String classS = "com.cisco.gungnir.job." + cl;
 
-        app.run(currentDate, threshold, orgId);
+        DataMonitor monitor = (DataMonitor) Class.forName(classS).newInstance();
+        monitor.set(spark, appConfigProvider);
+
+        monitor.run(currentDate, threshold, orgId);
     }
 }

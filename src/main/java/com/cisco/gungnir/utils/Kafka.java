@@ -3,6 +3,7 @@ package com.cisco.gungnir.utils;
 import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
 
@@ -46,6 +47,23 @@ public class Kafka implements Serializable {
         }
     }
 
+    //used for scala code. incase of type eraser, using extra parameter to distinguish --- 2019-07-23 Norman He@cisco
+    public void writeToKafka(Dataset<Row> dataset, String processType, JsonNode providedConfig, boolean diff) throws Exception {
+        if(dataset==null) throw new IllegalArgumentException("can't write to kafka: the input dataset is NULL, please check previous query");
+        JsonNode kafkaConfig = getKafkaConfig(providedConfig);
+
+        switch (processType) {
+            case "batch":
+                batchToKafka(dataset, kafkaConfig, diff);
+                break;
+            case "stream":
+                streamToKafka(dataset, kafkaConfig);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid process type: " + processType + " for writeToKafka");
+        }
+    }
+
     public void writeToKafka(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
         if(dataset==null) throw new IllegalArgumentException("can't write to kafka: the input dataset is NULL, please check previous query");
         JsonNode kafkaConfig = getKafkaConfig(providedConfig);
@@ -61,6 +79,8 @@ public class Kafka implements Serializable {
                 throw new IllegalArgumentException("Invalid process type: " + processType + " for writeToKafka");
         }
     }
+
+
 
     public Dataset readKafkaStream(JsonNode kafkaConfig) throws Exception {
         return spark
@@ -104,7 +124,7 @@ public class Kafka implements Serializable {
                 .select(from_json(col("value"), configProvider.readSchema(ConfigProvider.retrieveConfigValue(kafkaConfig, "schemaName"))).as("data"), col("value").as("raw")).select("data.*", "raw");
     }
 
-    public StreamingQuery streamToKafka(Dataset dataset, JsonNode kafkaConfig) throws Exception {
+    public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
         String topic = constructKafkaTopic(kafkaConfig);
 
         return  constructKafkaKeyValue(dataset, kafkaConfig)
@@ -125,6 +145,18 @@ public class Kafka implements Serializable {
                 .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamngTriggerWindow")))
                 .queryName("sinkToKafka_" + topic)
                 .start();
+    }
+
+    //used for scala code. incase of type eraser, using extra parameter to distinguish --- 2019-07-23 Norman He@cisco
+    public void batchToKafka(Dataset<Row> dataset, JsonNode kafkaConfig, boolean diff) throws Exception {
+        constructKafkaKeyValue(dataset, kafkaConfig)
+                .write()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                .option("topic", getKafkaTopicNames(constructKafkaTopic(kafkaConfig), kafkaConfig))
+                .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                .save();
     }
 
     public void batchToKafka(Dataset dataset, JsonNode kafkaConfig) throws Exception {

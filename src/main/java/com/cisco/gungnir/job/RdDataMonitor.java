@@ -1,49 +1,27 @@
 package com.cisco.gungnir.job;
 
-import com.cisco.gungnir.config.ConfigProvider;
-import com.cisco.gungnir.query.QueryFunctions;
-import com.cisco.gungnir.job.SparkDataMonitor;
-import com.cisco.gungnir.utils.DateUtil;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import java.util.logging.Logger;
 
-import javax.xml.crypto.Data;
-import java.io.Serializable;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.List;
+import java.util.logging.Logger;
 
 import static com.cisco.gungnir.utils.DateUtil.isBusinessDay;
 import static org.apache.spark.sql.functions.*;
 
-public class RdDataMonitor implements Serializable {
-    private SparkSession spark;
-    private ConfigProvider configProvider;
-    private QueryFunctions queryFunctions;
+public class RdDataMonitor extends DataMonitor {
 
     private static final Logger LOGGER = Logger.getLogger(RdDataMonitor.class.getName());
 
-    public RdDataMonitor(SparkSession spark, ConfigProvider appConfigProvider) throws Exception{
-        ConfigProvider gungnirConfigProvider = new ConfigProvider(spark, appConfigProvider.retrieveAppConfigValue("gungnirConfigFile"));
-        ConfigProvider mergedConfigProvider =  new ConfigProvider(spark, ConfigProvider.merge(gungnirConfigProvider.getAppConfig().deepCopy(), appConfigProvider.getAppConfig().deepCopy()));
-
-        this.spark = spark;
-        this.configProvider = mergedConfigProvider;
-        this.queryFunctions = new QueryFunctions(spark, mergedConfigProvider);
+    public RdDataMonitor(){
+        super();
     }
 
     private Dataset getAvgPerOrg(Dataset ds, String currentDate) {
 
-        spark.udf().register("isBusinessDay", new BusinessDay(), DataTypes.BooleanType);
-
-        String startDate = new DateTime(DateTimeZone.UTC).plusDays(-30).toString("yyyy-MM-dd");
+        String startDate = getDate(-30);
 
         Dataset history = ds.where( "to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + currentDate + "')")
                 .filter("isBusinessDay(pdate)");  // only count biz days within last 30 days.
@@ -79,8 +57,6 @@ public class RdDataMonitor implements Serializable {
 
     private Dataset getCurrentDateData(Dataset ds, String currentDate) {
 
-
-        LOGGER.info("@@@@@@@@@@@@@ Below is current date data @@@@@@@@@@@@\n");
         LOGGER.info("currentDate is: " +  currentDate);
 
         Dataset curr = ds.where("pdate='" + currentDate + "'");
@@ -99,7 +75,6 @@ public class RdDataMonitor implements Serializable {
                 .withColumn("wireless", col("wireless").divide(col("deviceCount")))
                 .withColumn("whiteboard", col("whiteboard").divide(col("deviceCount")));
 
-        LOGGER.info("@@@@@@@@@@@@ current date data @@@@@@@@@@@@\n");
         c2.show();
 
         return c2;
@@ -156,26 +131,12 @@ public class RdDataMonitor implements Serializable {
 
 
         List<String> orgList = getOrgList(configProvider.getAppConfig());
-
-        System.out.println("orgList:");
-
-        for (String org : orgList) {
-            System.out.println(org);
-        }
         String whereOrgIdClause = whereOrgId(orgList);
-
         Dataset dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ")");
 
-        System.out.println("dsFilteredByOrgs:\n");
-        dsFilteredByOrgs.show();
-
-
         Dataset avgPerOrg = getAvgPerOrg(dsFilteredByOrgs, currentDate);
-
         Dataset c2 = getCurrentDateData(dsFilteredByOrgs, currentDate);  // c means currentDate
-
         Dataset anomaly = getAnomaly(avgPerOrg, c2, Double.parseDouble(threshold));
-
 
         Dataset result = createMessages(anomaly);
 
@@ -212,42 +173,11 @@ public class RdDataMonitor implements Serializable {
         return message;
     }
 
-    public class TimeConverter implements UDF1<Long, String> {
-        public String call(Long unixtimeStamp) throws Exception {
-            Date date = new Date(unixtimeStamp*1000L);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-            return sdf.format(date);
-        }
-    }
-
-    private String whereOrgId(List<String> orgList) {
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < orgList.size(); i++) {
-            sb.append("'").append(orgList.get(i)).append("',");
-        }
-        sb.deleteCharAt(sb.length() - 1);  // remove last "'"
-        return sb.toString();
-    }
-
-    public class BusinessDay implements UDF1<String, Boolean> {
-        public Boolean call(String startDate) throws Exception {
-            return isBusinessDay(startDate);
-        }
-    }
 
 
 
-    private List getOrgList(JsonNode node){
-        ArrayList<String> orgList=new ArrayList<>();
-        if (node.get("orgids").isArray()) {
-            for (final JsonNode objNode : node.get("orgids")) {
-                orgList.add(objNode.asText());
-            }
-        }
-        return orgList;
-    }
+
+
+
 
 }

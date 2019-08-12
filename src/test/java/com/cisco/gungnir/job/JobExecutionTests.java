@@ -200,15 +200,25 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
     @Test
     public void testSparkDataMonitor() throws Exception {
         ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/sparkDataMonitor.conf");
-        SparkDataMonitor sparkDataMonitor = new SparkDataMonitor(spark, configProvider);
+        SparkDataMonitor sparkDataMonitor = new SparkDataMonitor();
+        sparkDataMonitor.set(spark, configProvider);
         sparkDataMonitor.run(null,"0.3", "*");
     }
 
     @Test
     public void testRdDataMonitor() throws Exception {
         ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/rdDataMonitor.conf");
-        RdDataMonitor rdDataMonitor = new RdDataMonitor(spark, configProvider);
+        RdDataMonitor rdDataMonitor = new RdDataMonitor();
+        rdDataMonitor.set(spark, configProvider);
         rdDataMonitor.run(null, "0.5", "*");
+    }
+
+    @Test
+    public void testLicenseMonitor() throws Exception {
+        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/licenseMonitor.conf");
+        LicenseMonitor licenseMonitor = new LicenseMonitor();
+        licenseMonitor.set(spark, configProvider);
+        licenseMonitor.run(null, "0.5", "*");
     }
 
     @Test
@@ -217,11 +227,11 @@ public class JobExecutionTests extends JavaDatasetSuiteBase implements Serializa
         QoSDataMonitor.run(50,"0.8", true, 30, true);
     }
 
-//    @Test
-//    public void testAppDatabase() throws Exception {
-//        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/application.conf");
-//        AppDatabase.run(configProvider);
-//    }
+   @Test
+    public void testAppDatabase() throws Exception {
+        ConfigProvider configProvider = new ConfigProvider(spark, "src/test/gungnir_job_repo/application.conf");
+        AppDatabase.run(configProvider);
+    }
 
 
     @After
