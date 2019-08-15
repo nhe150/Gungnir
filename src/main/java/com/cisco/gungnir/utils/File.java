@@ -40,7 +40,7 @@ public class File implements Serializable {
                     return readDataByDateBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                             ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null,
-                            getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
+                            DateUtil.getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
                             ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period"): null,
                             ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"): null,
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"),
@@ -60,7 +60,7 @@ public class File implements Serializable {
                     return readDataByDateStream(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                             ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null,
-                            getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
+                            DateUtil.getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
                             ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period"): null,
                             ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"): null,
                             ConfigProvider.retrieveConfigValue(fileConfig, "format"),
@@ -120,7 +120,10 @@ public class File implements Serializable {
 
     public StreamingQuery streamToFileByKey(Dataset dataset, String outputPath, String format, String saveMode, String partitionKey, String queryName) throws Exception{
         if(partitionKey != null){
-            return dataset
+
+            return
+                    dataset
+                   // .withWatermark("pdate", "25 hours")
                     .writeStream()
                     .queryName("sinkToFile_" + queryName)
                     .partitionBy(partitionKey)
@@ -267,12 +270,6 @@ public class File implements Serializable {
         }
     }
 
-    private String getDate(String date){
-        if(date.contains("days")){
-            int n = Integer.valueOf(date.replace("days", "").replaceAll("\\s",""));
-            return Aggregation.getPlusDays(n);
-        }
-        return date;
-    }
+
 
 }

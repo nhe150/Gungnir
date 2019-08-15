@@ -63,7 +63,10 @@ public class QueryExecutor implements Serializable {
         }
 
         if(parameters!= null && parameters.has("timeStampField") && result != null && result.columns().length!=0) {
-            result = setTimestampField(result, parameters.get("timeStampField").asText());
+            //if( !parameters.has("aggregatePeriod")) {
+                System.out.println("no aggregatePeroid, set timestamp field");
+                result = setTimestampField(result, parameters.get("timeStampField").asText());
+            //}
         }
 
         if(result!=null){
@@ -177,10 +180,12 @@ public class QueryExecutor implements Serializable {
         return expanded;
     }
 
+    //prepare for watermark
     private Dataset setTimestampField(Dataset ds, String timestampField) {
         if(!DatasetFunctions.hasColumn(ds, timestampField)) throw new IllegalArgumentException("Could not find timestamp field name: " + timestampField);
         StructField field = (StructField) ds.select(timestampField).schema().head();
         if(field.dataType().sameType(DataTypes.StringType)){
+            System.out.println("setTimeStampField calling toTimestamp UDF");
             return ds.withColumn(timestampField, callUDF("toTimestamp", col(timestampField)));
         }
         return ds;

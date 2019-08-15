@@ -21,6 +21,7 @@ import scala.collection.Seq;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -41,15 +42,15 @@ public class Cassandra implements Serializable {
 
         Map<String, String> cassandraConfigMap = new HashMap<>();
         cassandraConfigMap.put("table", ConfigProvider.retrieveConfigValue(merged, "cassandra.table"));
-        cassandraConfigMap.put("keyspace",  ConfigProvider.retrieveConfigValue(merged, "cassandra.keyspace"));
-        cassandraConfigMap.put("spark.cassandra.sql.cluster",  ConfigProvider.retrieveConfigValue(merged, "cassandra.local_dc"));
+        cassandraConfigMap.put("keyspace", ConfigProvider.retrieveConfigValue(merged, "cassandra.keyspace"));
+        //cassandraConfigMap.put("spark.cassandra.sql.cluster", ConfigProvider.retrieveConfigValue(merged, "cassandra.local_dc"));
 
-        cassandraConfigMap.put("spark.cassandra.connection.host",  ConfigProvider.retrieveConfigValue(merged, "cassandra.host"));
-        cassandraConfigMap.put("spark.cassandra.connection.port",  ConfigProvider.retrieveConfigValue(merged, "cassandra.port"));
-        cassandraConfigMap.put("spark.cassandra.auth.username",  ConfigProvider.retrieveConfigValue(merged, "cassandra.username"));
-        cassandraConfigMap.put("spark.cassandra.auth.password",  ConfigProvider.retrieveConfigValue(merged, "cassandra.password"));
-        cassandraConfigMap.put("spark.cassandra.output.consistency.level",  ConfigProvider.retrieveConfigValue(merged, "cassandra.consistencyLevel"));
-        cassandraConfigMap.put("spark.cassandra.read.timeout_ms",  ConfigProvider.retrieveConfigValue(merged, "cassandra.readTimeout"));
+        cassandraConfigMap.put("spark.cassandra.connection.host", ConfigProvider.retrieveConfigValue(merged, "cassandra.host"));
+        cassandraConfigMap.put("spark.cassandra.connection.port", ConfigProvider.retrieveConfigValue(merged, "cassandra.port"));
+        cassandraConfigMap.put("spark.cassandra.auth.username", ConfigProvider.retrieveConfigValue(merged, "cassandra.username"));
+        cassandraConfigMap.put("spark.cassandra.auth.password", ConfigProvider.retrieveConfigValue(merged, "cassandra.password"));
+        cassandraConfigMap.put("spark.cassandra.output.consistency.level", ConfigProvider.retrieveConfigValue(merged, "cassandra.consistencyLevel"));
+        cassandraConfigMap.put("spark.cassandra.read.timeout_ms", ConfigProvider.retrieveConfigValue(merged, "cassandra.readTimeout"));
 
         this.cassandraConfig = cassandraConfigMap;
         return merged;
@@ -59,7 +60,7 @@ public class Cassandra implements Serializable {
         getCassandraConfig(providedConfig);
         switch (processType) {
             case "batch":
-                return readCassandraBatch();
+                return readCassandraBatch(providedConfig);
             case "stream":
                 throw new IllegalArgumentException("Data source org.apache.spark.sql.cassandra does not support streamed reading");
             default:
@@ -68,7 +69,8 @@ public class Cassandra implements Serializable {
     }
 
     public void writeToCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
-        if(dataset==null) throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
+        if (dataset == null)
+            throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
         dataset = dataset.drop("raw");
         JsonNode mergedConfig = getCassandraConfig(providedConfig);
         switch (processType) {
@@ -84,13 +86,15 @@ public class Cassandra implements Serializable {
     }
 
     public void deleteFromCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
-        if(dataset==null) throw new IllegalArgumentException("can't delete from cassandra: the input dataset is NULL, please check previous query");
+        if (dataset == null) {
+            throw new IllegalArgumentException("can't delete from cassandra: the input dataset is NULL, please check previous query");
+        }
 
         getCassandraConfig(providedConfig);
 
         switch (processType) {
             case "batch":
-                deleteFromCassandra(dataset, cassandraConfig.get("keyspace"), cassandraConfig.get("table"));
+                deleteFromCassandra(dataset, cassandraConfig.get("keyspace"), cassandraConfig.get("table"), providedConfig);
                 break;
             case "stream":
                 throw new IllegalArgumentException("Data source org.apache.spark.sql.cassandra does not support streamed delete");
@@ -99,14 +103,37 @@ public class Cassandra implements Serializable {
         }
     }
 
-    public Dataset readCassandraBatch() throws Exception {
-        return spark.read()
+    public Dataset readCassandraBatch(JsonNode conf) throws Exception {
+        Dataset result = spark.read()
                 .format("org.apache.spark.sql.cassandra")
                 .options(cassandraConfig)
                 .load();
+
+        if (!ConfigProvider.hasConfigValue(conf, "date")) {
+            return result;
+        }
+
+
+        String date = DateUtil.getDate(ConfigProvider.retrieveConfigValue(conf, "date"));
+        System.out.println("cassconfig: " + conf.toString());
+        System.out.println("date to workon: " + date);
+
+        if (date != null) {
+            String relation = ConfigProvider.retrieveConfigValue(conf, "relation");
+            if (ConfigProvider.hasConfigValue(conf, "monthPartition")) {
+                //seperate table
+                String month = date.substring(0, 8);
+                System.out.println("month = " + month);
+                result = result.where(String.format("month = '%s' and time_stamp= '%s'", month, date));
+            } else {
+                result = result.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+            }
+        }
+
+        return result;
     }
 
-    public void batchToCassandra(Dataset dataset, String saveMode){
+    public void batchToCassandra(Dataset dataset, String saveMode) {
         columnNameToLowerCase(dataset).write()
                 .mode(File.getSaveMode(saveMode))
                 .format("org.apache.spark.sql.cassandra")
@@ -114,8 +141,9 @@ public class Cassandra implements Serializable {
                 .save();
     }
 
-    public StreamingQuery streamToCassandra(Dataset<Row> dataset, String queryName, String saveMode) throws Exception{
+    public StreamingQuery streamToCassandra(Dataset<Row> dataset, String queryName, String saveMode) throws Exception {
         return dataset
+                .coalesce(100)
                 .writeStream()
                 .outputMode(saveMode)
                 .foreach((ForeachWriter) new CassandraForeachWriter(getCassandraConnector(), cassandraConfig.get("keyspace"), cassandraConfig.get("table"), dataset.schema()))
@@ -124,7 +152,7 @@ public class Cassandra implements Serializable {
                 .start();
     }
 
-    private SparkConf getCassandraSparkConf(){
+    private SparkConf getCassandraSparkConf() {
         SparkConf sparkConf = new SparkConf();
         sparkConf.set("spark.cassandra.connection.host", cassandraConfig.get("spark.cassandra.connection.host"));
         sparkConf.set("spark.cassandra.connection.port", cassandraConfig.get("spark.cassandra.connection.port"));
@@ -134,25 +162,25 @@ public class Cassandra implements Serializable {
         return sparkConf;
     }
 
-    private CassandraConnector getCassandraConnector(){
+    private CassandraConnector getCassandraConnector() {
         CassandraConnector connector = CassandraConnector.apply(getCassandraSparkConf());
         return connector;
     }
 
-    private Dataset<Row> columnNameToLowerCase(Dataset dataset){
-        for (String col: dataset.columns()){
+    private Dataset<Row> columnNameToLowerCase(Dataset dataset) {
+        for (String col : dataset.columns()) {
             dataset = dataset.withColumnRenamed(col, col.toLowerCase());
         }
         return dataset;
     }
 
-    public void createCassandraTable(Dataset dataset, String partitionKeyColumns, String clusteringKeyColumns){
+    public void createCassandraTable(Dataset dataset, String partitionKeyColumns, String clusteringKeyColumns) {
         DataFrameFunctions dataFrameFunctions = new DataFrameFunctions(dataset);
 
-        partitionKeyColumns = partitionKeyColumns.replaceAll("\\s","");
+        partitionKeyColumns = partitionKeyColumns.replaceAll("\\s", "");
         String[] partitionKeyList = partitionKeyColumns.split(",");
 
-        clusteringKeyColumns = clusteringKeyColumns.replaceAll("\\s","");
+        clusteringKeyColumns = clusteringKeyColumns.replaceAll("\\s", "");
         String[] clusteringKeyList = clusteringKeyColumns.split(",");
 
         Seq<String> partitionKeysSeq = JavaConversions.asScalaBuffer(Arrays.asList(partitionKeyList)).seq();
@@ -163,45 +191,65 @@ public class Cassandra implements Serializable {
         dataFrameFunctions.createCassandraTable(cassandraConfig.get("keyspace"), cassandraConfig.get("table"), partitionKeys, clusteringKeys, getCassandraConnector());
     }
 
-    public void deleteFromCassandra(Dataset dataset, String keySpace, String tablename){
+    public void deleteFromCassandra(Dataset dataset, String keySpace, String tablename, JsonNode conf) throws Exception {
         util.Cassandra.deleteRecords(dataset, keySpace, tablename, getCassandraConnector());
     }
+
+    private static String whereOrgId(String[] orgList) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (String a : orgList) {
+            sb.append("'").append(a).append("',");
+        }
+        sb.deleteCharAt(sb.length() - 1);  // remove last "'"
+        return sb.toString();
+    }
+
 
     public class CassandraForeachWriter extends ForeachWriter<GenericRowWithSchema> {
         private CassandraConnector connector;
         private String keySpace;
         private String tablename;
         private StructType schema;
+        private boolean emptySchema;
         /**
          * ToDo: better resource sharing
          */
         private Session session;
-        public CassandraForeachWriter(CassandraConnector connector, String keySpace, String tablename, StructType schema){
+
+        public CassandraForeachWriter(CassandraConnector connector, String keySpace, String tablename, StructType schema) {
             this.connector = connector;
             this.keySpace = keySpace;
             this.tablename = tablename;
             this.schema = schema;
+            emptySchema = (schema == null) || schema.isEmpty();
+
 
         }
+
         @Override
         public boolean open(long partitionId, long version) {
+            if (emptySchema) {
+                return false;
+            }
+
             session = connector.openSession();
             return true;
         }
 
         /**
          * handle wrong schema case so the system don't blow up
+         *
          * @param values
          * @return
          */
-        private boolean isAllNull(String[] values)
-        {
-            for( String so : values){
-                if (so == null || so.equals("'null'") || so.equals("null"))
-                {
+        private boolean isAllNull(String[] values) {
+            for (String so : values) {
+                if (so == null || so.equals("'null'") || so.equals("null")) {
                     continue;
 
-                }else {
+                } else {
                     return false;
                 }
             }
@@ -211,32 +259,41 @@ public class Cassandra implements Serializable {
 
         @Override
         public void process(GenericRowWithSchema value) {
+            if (emptySchema) return;
 
             // write string to connection
-            StructField[] structField =schema.fields();
+            StructField[] structField = schema.fields();
             String[] values = new String[structField.length];
-            for(int i=0; i<structField.length; i++){
+            for (int i = 0; i < structField.length; i++) {
                 DataType type = structField[i].dataType();
                 values[i] = type.sameType(DataTypes.StringType)
                         || type.sameType(DataTypes.TimestampType) ? "'" + value.get(i) + "'" : value.get(i) + "";
             }
 
-            if( isAllNull(values)){
+            if (isAllNull(values)) {
                 return;
             }
 
             String fields = "(" + String.join(", ", schema.fieldNames()).toLowerCase() + ")";
-
-            String fieldValues =  "(" + String.join(", ", values) + ")";
-
+            String fieldValues = "(" + String.join(", ", values) + ")";
             String statement = "insert into " + keySpace + "." + tablename + " " + fields + " values" + fieldValues;
 
-            session.execute(statement);
+            try {
+                session.execute(statement);
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("sqlstat: " + statement);
+                throw e;
+            }
         }
 
         @Override
         public void close(Throwable errorOrNull) {
-            if( session != null ){
+            if (errorOrNull != null) {
+                errorOrNull.printStackTrace();
+            }
+
+            if (session != null) {
                 session.close();
             }
         }

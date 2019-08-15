@@ -6,6 +6,13 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class DateUtil implements Serializable {
+    public static String getDate(String date){
+        if(date.contains("days")){
+            int n = Integer.valueOf(date.replace("days", "").replaceAll("\\s",""));
+            return Aggregation.getPlusDays(n);
+        }
+        return date;
+    }
 
     public static boolean isBusinessDay(String startDate) throws Exception {
         final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
@@ -93,5 +100,10 @@ public class DateUtil implements Serializable {
 
         // IF NOTHING ELSE, IT'S A BUSINESS DAY
         return true;
+    }
+
+    public static void main(String[] args) {
+
+        System.out.println(String.format("month = '%s' and time_stamp= '%s'", "s1", "s2"));
     }
 }

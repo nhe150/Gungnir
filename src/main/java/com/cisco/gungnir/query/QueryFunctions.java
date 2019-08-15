@@ -36,23 +36,43 @@ public class QueryFunctions implements Serializable {
 
         String[] queryList = configProvider.readSql(queryName).split(";");
         String view = "SOURCE_VIEW";
-        if(ds!=null) setWatermark(ds, parameters).createOrReplaceTempView(view);
-        for(int i=0; i<queryList.length; i++){
-            String query = queryList[i].trim();
-            System.out.println("executing spark sql query: " + query);
-
-            if (query.contains("DropDuplicates")){
-                if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
-                ds = dropDuplicates(ds, query);
-            }
-            else if(query.startsWith("SELECT") || query.startsWith("select")) {
-                ds = spark.sql(query);
-            }else{
-                spark.sql(query);
-            }
+        if(ds!=null) {
+            System.out.println("setWaterMark for view  of " + queryName);
+            ds = setWatermark(ds, parameters);
+            ds.createOrReplaceTempView(view);
         }
 
-        return applySchema(ds, parameters);
+        for(int i=0; i<queryList.length; i++){
+            String query = queryList[i].trim();
+
+
+            if (query.contains("DropDuplicates")){
+                System.out.println("dropducliates query:" + query);
+                if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
+                ds = dropDuplicates(ds, query, parameters);
+            }
+            else if(query.startsWith("SELECT") || query.startsWith("select")) {
+                System.out.println("select query:" + query);
+
+                ds = spark.sql(query);
+               // ds = setWatermark(ds, parameters);
+
+            }else{
+                System.out.println("execute a query " + query);
+                ds = spark.sql(query);
+
+
+               // ds = setWatermark(ds, parameters);
+
+            }
+
+
+
+
+        }
+
+        ds = applySchema(ds, parameters);
+        return ds;
     }
 
     private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
@@ -67,18 +87,21 @@ public class QueryFunctions implements Serializable {
             Aggregation aggregationUtil = new Aggregation(parameters.get("aggregatePeriod").asText());
             aggregationUtil.registerAggregationFunctions(spark);
             String timestampField = parameters.has("timeStampField") ? parameters.get("timeStampField").asText(): "time_stamp";
+            System.out.println( "setwatermark " + timestampField + ": " + aggregationUtil.getWatermarkDelayThreshold());
             ds = ds.withWatermark(timestampField, aggregationUtil.getWatermarkDelayThreshold());
+
         }
         return ds;
     }
 
-    private Dataset dropDuplicates(Dataset ds, String query){
+    private Dataset dropDuplicates(Dataset ds, String query, JsonNode params){
         String f = query.split("DropDuplicates")[1].replaceAll("\\s+","");
         String[] fields = f.split(",");
         Dataset deduplicatedDs = ds.dropDuplicates(fields);
         String q = query.replaceAll("as", "AS").replaceAll("view", "VIEW");
         String view = StringUtils.substringBetween(q, "VIEW", "AS");
         deduplicatedDs.createOrReplaceTempView(view);
+       // deduplicatedDs = setWatermark(deduplicatedDs, params);
         return deduplicatedDs;
     }
 
