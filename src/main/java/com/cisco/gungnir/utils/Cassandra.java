@@ -122,9 +122,11 @@ public class Cassandra implements Serializable {
             String relation = ConfigProvider.retrieveConfigValue(conf, "relation");
             if (ConfigProvider.hasConfigValue(conf, "monthPartition")) {
                 //seperate table
-                String month = date.substring(0, 8);
+                String month = date.substring(0, 7);
                 System.out.println("month = " + month);
-                result = result.where(String.format("month = '%s' and pdate = '%s'", month, date));
+                String sql = String.format("month = '%s' and pdate = '%s'", month, date);
+                System.out.println("sqlstat: " + sql);
+                result = result.where(sql);
             } else {
                 result = result.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
             }
