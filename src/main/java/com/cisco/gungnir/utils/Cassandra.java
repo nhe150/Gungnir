@@ -124,7 +124,7 @@ public class Cassandra implements Serializable {
                 //seperate table
                 String month = date.substring(0, 8);
                 System.out.println("month = " + month);
-                result = result.where(String.format("month = '%s' and time_stamp= '%s'", month, date));
+                result = result.where(String.format("month = '%s' and pdate = '%s'", month, date));
             } else {
                 result = result.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
             }
