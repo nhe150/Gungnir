@@ -52,6 +52,11 @@ public class Cassandra implements Serializable {
         cassandraConfigMap.put("spark.cassandra.output.consistency.level", ConfigProvider.retrieveConfigValue(merged, "cassandra.consistencyLevel"));
         cassandraConfigMap.put("spark.cassandra.read.timeout_ms", ConfigProvider.retrieveConfigValue(merged, "cassandra.readTimeout"));
 
+        cassandraConfigMap.put("spark.cassandra.output.batch.grouping.key", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_batch_grouping_key"));
+        cassandraConfigMap.put("spark.cassandra.output.batch.grouping.buffer.size", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_batch_grouping_buffer_size"));
+        cassandraConfigMap.put("spark.cassandra.output.concurrent.writes", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_concurrent_writes"));
+        cassandraConfigMap.put("spark.cassandra.output.throughput_mb_per_sec", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_throughput_mb_per_sec"));
+
         this.cassandraConfig = cassandraConfigMap;
         return merged;
     }

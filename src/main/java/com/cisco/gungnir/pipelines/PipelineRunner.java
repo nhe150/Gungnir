@@ -27,6 +27,10 @@ public class PipelineRunner implements Serializable {
         codecs.setRequired(false);
         options.addOption(codecs);
 
+        Option runDate = new Option("rd", "rundate", true, "rundate parameter integration with cmp");
+        runDate.setRequired(false);
+        options.addOption(runDate);
+
         CommandLineParser parser = new GnuParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -44,6 +48,8 @@ public class PipelineRunner implements Serializable {
         String jobName = cmd.getOptionValue("job");
         String configFile = cmd.getOptionValue("config");
         String jobType = cmd.getOptionValue("type");
+        String dateS = cmd.getOptionValue("rundate");
+        System.out.println("rundate is " + dateS);
 
         SparkSession.Builder builder = SparkSession.builder().enableHiveSupport().appName(jobName);
         if(cmd.getOptionValue("codecs")!=null && cmd.getOptionValue("codecs").equals("lzo")){
