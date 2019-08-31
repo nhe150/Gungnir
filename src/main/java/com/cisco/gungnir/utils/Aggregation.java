@@ -10,6 +10,7 @@ import org.joda.time.LocalDate;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.util.*;
 
 public class Aggregation implements Serializable {
@@ -89,10 +90,10 @@ public class Aggregation implements Serializable {
     }
 
     public static DateTime getFirstDayOfWeek(DateTime other) {
-        if (other.getDayOfWeek() == 7)
+        if (other.getDayOfWeek() == DayOfWeek.SUNDAY.getValue())
             return other;
         else
-            return other.minusWeeks(1).withDayOfWeek(7);
+            return other.minusWeeks(1).withDayOfWeek(DayOfWeek.SUNDAY.getValue());
     }
 
     public static List<String> aggregateDates(String startDate, String period) throws Exception {
