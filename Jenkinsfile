@@ -1,7 +1,7 @@
 @Library('sapPipeline') _
 
 // Set the target version information.  
-def version = "0.2"
+def version = "0.4"
 env.version = version
 def TARGET_VERSION = version + "." + currentBuild.number
 env.TARGET_VERSION = TARGET_VERSION
