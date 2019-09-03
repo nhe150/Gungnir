@@ -18,7 +18,7 @@ object AppDatabase {
 
   val log: Logger = LoggerFactory.getLogger(AppDatabase.getClass);
 
-  class CassandraClusterConn(ips: java.util.List[String], keyspace: String, user: String, pass: String) {
+  class CassandraClusterConn(ips: Array[String], keyspace: String, user: String, pass: String) {
     var cluster: Cluster = null
     @volatile var session: core.Session = if (keyspace != null) {
       cluster = getCluster()
@@ -26,7 +26,7 @@ object AppDatabase {
       val se = cluster.connect(this.keyspace)
       val endTime = java.lang.System.currentTimeMillis();
       val timeInterval = endTime - startTime
-      log.info("$$$$$$$$$$$$ Time to call cluster.connect(keyspace) is " + timeInterval + " milliseconds (note, get cluster timing is NOT included here, just connecting to cluster to get session)")
+      log.info("call cluster.connect(keyspace) is " + timeInterval + " milliseconds (note, get cluster timing is NOT included here, just connecting to cluster to get session)")
       se
     } else {
       if (user!= null) getCluster().connect() else null
@@ -38,16 +38,16 @@ object AppDatabase {
     }
 
     def getCluster(): Cluster = {
-      val inets = ips.map(x => java.net.InetAddress.getByName(x)).toList
-      log.info("INET is " + inets(0))
+
       val startTime = java.lang.System.currentTimeMillis()
       val cl: Cluster = Cluster.builder()
-        .addContactPoints(inets) ////TODO just get the head for now. Need to use all ips later.
+        .addContactPoints(ips:_*)
+
         .withCredentials(user.trim(), pass.trim())
-        .build();
+        .build()
       val endTime = java.lang.System.currentTimeMillis()
       val interval = endTime - startTime
-      log.info("@@@@@@@@@@@@@@@ Time to build cassandra cluster is " + interval + " milliseconds")
+      log.info("build cassandra cluster takes " + interval + " milliseconds")
       cl
     }
   }
@@ -131,11 +131,11 @@ object AppDatabase {
   }
 
   def run(configProvider: ConfigProvider) = {
-    val ip = configProvider.retrieveAppConfigValue("cassandra.host")
+    val ip: String = configProvider.retrieveAppConfigValue("cassandra.host")
     val keyspace = configProvider.retrieveAppConfigValue("cassandra.keyspace")
     val user = configProvider.retrieveAppConfigValue("cassandra.username")
     val pass = configProvider.retrieveAppConfigValue("cassandra.password")
-    val ips = scala.List(ip)
+    val ips = ip.split(",")
     val cas = new CassandraClusterConn(ips, keyspace, user, pass)
     fillOrgIdRegionTable(cas.session)
     cas.close()
