@@ -1,6 +1,6 @@
 name := "Gungnir"
 
-version := "0.4.5"
+version := "0.4.6"
 
 scalaVersion := "2.11.11"
 val sparkVersion = "2.3.0"
