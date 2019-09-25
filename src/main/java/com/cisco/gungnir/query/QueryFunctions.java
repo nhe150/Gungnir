@@ -107,9 +107,10 @@ public class QueryFunctions implements Serializable {
 
     private void registerFunctions(String queryName, JsonNode parameters) throws Exception{
         if("splitData".equals(queryName)){
-            spark.udf().register("appFilter", new UdfFunctions.AppFilter("appname\":" + '"' + ConfigProvider.retrieveConfigValue(parameters, "appName") + '"'), DataTypes.BooleanType);
             if(ConfigProvider.hasConfigValue(parameters, "featureName")) {
                 spark.udf().register("appFilter", new UdfFunctions.AppFilter("featureName\":" + '"' + ConfigProvider.retrieveConfigValue(parameters, "featureName") + '"'), DataTypes.BooleanType);
+            } else {
+                spark.udf().register("appFilter", new UdfFunctions.AppFilter("appname\":" + '"' + ConfigProvider.retrieveConfigValue(parameters, "appName") + '"'), DataTypes.BooleanType);
             }
         }  
         
