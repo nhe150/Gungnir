@@ -3,9 +3,10 @@ package com.cisco.gungnir.job
 
 import java.util.logging.Logger
 
+import com.cisco.gungnir.config.ConfigProvider
 import com.cisco.gungnir.utils.DateUtil
 import org.apache.spark.sql.functions.{avg, countDistinct, lit}
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
 
 
 object LicenseMonitor {
@@ -68,6 +69,7 @@ class LicenseMonitor() extends DataMonitor {
 
 
   private def createMessages(dataset : Dataset[Row]) = {
+    val keyspace = ConfigProvider.retrieveConfigValue(configProvider.getAppConfig, "cassandra.keyspace")
     val message = dataset.selectExpr(
       "'crs' as component",
          "'metrics' as eventtype",
@@ -75,6 +77,7 @@ class LicenseMonitor() extends DataMonitor {
           + "'anomalyDetection' as phase, "
           + "CONCAT(pdate, 'T00:00:00Z') as sendTime, "
           + "struct("
+          + keyspace + " as keyspace, "
           + "pdate as date, licenseCount, isBusinessDay, orgid, avg ) as data )" +
           " as metrics ")
     message.show(false)

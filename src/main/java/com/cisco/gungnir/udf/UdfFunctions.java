@@ -184,16 +184,44 @@ public class UdfFunctions implements Serializable {
     }
 
     public static class AppFilter implements UDF1<String, Boolean> {
-        private String tag;
+
+        private String[] tags;
 
         public AppFilter(String tag) {
-            this.tag = tag;
+
+            String[] terms;
+            if(tag.contains(",")) {
+                terms = tag.split(":");
+                tags = terms[1].split(",");
+                tags[0]=tags[0] + "\"";
+                int pos = 1;
+                while(pos<tags.length-1) {
+                    tags[pos] = "\"" + tags[pos] + "\"";
+                    pos++;
+                }
+                tags[pos] = "\"" + tags[pos];
+                for(int index=0; index<tags.length; index++) {
+                    tags[index] = terms[0] + ":" + tags[index];
+                }
+            }
+            else {
+                tags = new String[1];
+                tags[0] = tag;
+            }
         }
 
         public Boolean call(String line) {
-            return line.contains(tag);
+
+            for(String tag:tags){
+
+
+                if(line.contains(tag)) return true;
+            }
+
+            return false;
         }
     }
+
 
     private static class calcAvgFromHistMin implements UDF1<WrappedArray<GenericRowWithSchema>, Float> {
         public Float call(WrappedArray<GenericRowWithSchema> array) throws Exception {

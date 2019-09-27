@@ -1,5 +1,6 @@
 package com.cisco.gungnir.job;
 
+import com.cisco.gungnir.config.ConfigProvider;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
@@ -145,6 +146,7 @@ public class RdDataMonitor extends DataMonitor {
 
 
     private Dataset createMessages(Dataset dataset) throws Exception {
+        String keyspace = ConfigProvider.retrieveConfigValue(configProvider.getAppConfig(), "cassandra.keyspace");
         Dataset message = dataset.selectExpr(
                 "'crs' as component",
                 "'metrics' as eventtype",
@@ -152,6 +154,7 @@ public class RdDataMonitor extends DataMonitor {
                         "'anomalyDetection' as phase, " +
                         "CONCAT(pdate, 'T00:00:00Z') as sendTime, " +
                         "struct(" +
+                            keyspace + " as keyspace, " +
                             "c2.orgid, " +
                             "incall, " +
                             "cable, " +
