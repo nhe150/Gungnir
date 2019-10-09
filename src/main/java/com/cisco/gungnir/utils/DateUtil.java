@@ -1,17 +1,44 @@
 package com.cisco.gungnir.utils;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
+import org.joda.time.format.DateTimeFormat;
+
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class DateUtil implements Serializable {
+    private static String runDateS;
+
+    public static void setRunDateS(String date )
+    {
+        runDateS = date;
+    }
+
     public static String getDate(String date){
         if(date.contains("days")){
             int n = Integer.valueOf(date.replace("days", "").replaceAll("\\s",""));
-            return Aggregation.getPlusDays(n);
+            return getPlusDays(n);
         }
         return date;
+    }
+
+    public static String getPlusDays(int n){
+        DateTime dateTime;
+        if( runDateS == null )
+        {
+            dateTime = new DateTime(DateTimeZone.UTC);
+        }else {
+            dateTime = DateTime.parse(runDateS, DateTimeFormat.forPattern("yyyy-MM-dd").withZoneUTC());
+
+        }
+        return dateTime.plusDays(n).toString("yyyy-MM-dd");
     }
 
     public static boolean isBusinessDay(String startDate) throws Exception {
@@ -102,8 +129,25 @@ public class DateUtil implements Serializable {
         return true;
     }
 
-    public static void main(String[] args) {
+    public static List<String> getDaysBetweenDates(String startDate, String endDate) throws Exception {
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        List<String> totalDates = new ArrayList<>();
+        while (!start.isAfter(end)) {
+            totalDates.add(start.toString("yyyy-MM-dd"));
+            start = start.plusDays(1);
+        }
+
+        return totalDates;
+    }
+
+    public static void main(String[] args) throws Exception {
 
         System.out.println(String.format("month = '%s' and time_stamp= '%s'", "s1", "s2"));
+        List<String> days = DateUtil.getDaysBetweenDates("2019-09-04", "2019-09-04");
+        for(String day: days)
+        {
+            System.out.println(day);
+        }
     }
 }
