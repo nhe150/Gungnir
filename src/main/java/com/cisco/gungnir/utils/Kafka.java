@@ -9,6 +9,7 @@ import org.apache.spark.sql.streaming.StreamingQuery;
 
 import java.io.Serializable;
 import com.cisco.gungnir.utils.*;
+import org.apache.spark.streaming.Checkpoint;
 
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.from_json;
@@ -126,8 +127,8 @@ public class Kafka implements Serializable {
     }
 
     public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
-        String topic = constructKafkaTopic(kafkaConfig);
-        String checkpoint = Checkpoint.constructCheckpoint(kafkaConfig);
+        String topic = Construct.constructKafkaTopic(kafkaConfig);
+        String checkpoint = Construct.constructCheckpoint(kafkaConfig);
 
         return  constructKafkaKeyValue(dataset, kafkaConfig)
                 .writeStream()
@@ -155,7 +156,7 @@ public class Kafka implements Serializable {
                 .write()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(constructKafkaTopic(kafkaConfig), kafkaConfig))
+                .option("topic", getKafkaTopicNames(Construct.constructKafkaTopic(kafkaConfig), kafkaConfig))
                 .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
                 .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
                 .save();
@@ -166,24 +167,14 @@ public class Kafka implements Serializable {
                 .write()
                 .format("kafka")
                 .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(constructKafkaTopic(kafkaConfig), kafkaConfig))
+                .option("topic", getKafkaTopicNames(Construct.constructKafkaTopic(kafkaConfig), kafkaConfig))
                 .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
                 .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
                 .save();
     }
 
 
-    protected static String constructKafkaTopic(JsonNode kafkaConfig) throws Exception{
-        String topic = "";
-        if(ConfigProvider.hasConfigValue(kafkaConfig, "kafka.topic")){
-            topic = ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic");
-        } else {
-            if(ConfigProvider.hasConfigValue(kafkaConfig, "output")) topic = ConfigProvider.retrieveConfigValue(kafkaConfig, "output");
-        }
 
-        if(topic.isEmpty()) throw new IllegalArgumentException("WriteToKafka: Can't find output topic in the config for writing data");
-        return topic;
-    }
 
 
     private Dataset constructKafkaKeyValue(Dataset dataset, JsonNode kafkaConfig) throws Exception{
