@@ -8,6 +8,7 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
 
 import java.io.Serializable;
+import com.cisco.gungnir.utils.*;
 
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.from_json;
@@ -126,6 +127,7 @@ public class Kafka implements Serializable {
 
     public StreamingQuery streamToKafka(Dataset<Row> dataset, JsonNode kafkaConfig) throws Exception {
         String topic = constructKafkaTopic(kafkaConfig);
+        String checkpoint = Checkpoint.constructCheckpoint(kafkaConfig);
 
         return  constructKafkaKeyValue(dataset, kafkaConfig)
                 .writeStream()
@@ -143,7 +145,7 @@ public class Kafka implements Serializable {
                 .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
                 .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
                 .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamngTriggerWindow")))
-                .queryName("sinkToKafka_" + topic)
+                .queryName("sinkToKafka_" + checkpoint)
                 .start();
     }
 
@@ -170,7 +172,8 @@ public class Kafka implements Serializable {
                 .save();
     }
 
-    private String constructKafkaTopic(JsonNode kafkaConfig) throws Exception{
+
+    protected static String constructKafkaTopic(JsonNode kafkaConfig) throws Exception{
         String topic = "";
         if(ConfigProvider.hasConfigValue(kafkaConfig, "kafka.topic")){
             topic = ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic");
@@ -181,6 +184,7 @@ public class Kafka implements Serializable {
         if(topic.isEmpty()) throw new IllegalArgumentException("WriteToKafka: Can't find output topic in the config for writing data");
         return topic;
     }
+
 
     private Dataset constructKafkaKeyValue(Dataset dataset, JsonNode kafkaConfig) throws Exception{
         if(!ConfigProvider.hasConfigValue(kafkaConfig, "kafka.topicKey")) {
