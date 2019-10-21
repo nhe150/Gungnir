@@ -5,11 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.Serializable;
 
-public class Construct implements Serializable {
+public class Checkpoint implements Serializable {
     protected static String constructCheckpoint(JsonNode config) throws Exception {
         String checkpoint = "";
-        if(ConfigProvider.hasConfigValue(config, "checkpoint")) checkpoint = ConfigProvider.retrieveConfigValue(config, "checkpoint");
-        else checkpoint = constructKafkaTopic(config);
+        if(ConfigProvider.hasConfigValue(config, "checkpoint")) {
+            checkpoint = ConfigProvider.retrieveConfigValue(config, "checkpoint");
+        }
+        else {
+            checkpoint = constructKafkaTopic(config);
+        }
         return checkpoint;
     }
 
