@@ -1,6 +1,6 @@
 name := "Gungnir"
 
-version := "0.4.6"
+version := "0.4.9"
 
 
 scalaVersion := "2.11.11"

@@ -5,7 +5,6 @@ import org.apache.spark.sql.api.java.UDF1;
 import org.apache.spark.sql.types.DataTypes;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
@@ -56,30 +55,17 @@ public class Aggregation implements Serializable {
         return this.watermarkDelayThreshold;
     }
 
-    public static String getPlusDays(int n){
-        DateTime dateTime = new DateTime(DateTimeZone.UTC);
-        return dateTime.plusDays(n).toString("yyyy-MM-dd");
-    }
+
 
     public static Set<String> getPeriodStartDateList(String startDate, String endDate, String period) throws Exception{
         Set<String> dates = new HashSet<>();
-        for(String date: getDaysBetweenDates(startDate, endDate)){
+        for(String date: DateUtil.getDaysBetweenDates(startDate, endDate)){
             dates.add(getPeriodStartDate(date, period));
         }
         return dates;
     }
 
-    public static List<String> getDaysBetweenDates(String startDate, String endDate) throws Exception{
-        LocalDate start = LocalDate.parse(startDate);
-        LocalDate end = LocalDate.parse(endDate);
-        List<String> totalDates = new ArrayList<>();
-        while (!start.isAfter(end)) {
-            totalDates.add(start.toString("yyyy-MM-dd"));
-            start = start.plusDays(1);
-        }
 
-        return totalDates;
-    }
 
     public static String getPeriodStartDate(String otherDate, String period) throws Exception {
         final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
@@ -148,4 +134,5 @@ public class Aggregation implements Serializable {
             return period;
         }
     }
+
 }

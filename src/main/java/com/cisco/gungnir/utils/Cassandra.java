@@ -109,16 +109,16 @@ public class Cassandra implements Serializable {
     }
 
     public Dataset readCassandraBatch(JsonNode conf) throws Exception {
-        Dataset result = spark.read()
+        Dataset ds = spark.read()
                 .format("org.apache.spark.sql.cassandra")
                 .options(cassandraConfig)
                 .load();
 
         if (!ConfigProvider.hasConfigValue(conf, "date")) {
-            return result;
+            return ds;
         }
 
-
+        Dataset result = null;
         String date = DateUtil.getDate(ConfigProvider.retrieveConfigValue(conf, "date"));
         System.out.println("cassconfig: " + conf.toString());
         System.out.println("date to workon: " + date);
@@ -131,9 +131,23 @@ public class Cassandra implements Serializable {
                 System.out.println("month = " + month);
                 String sql = String.format("month = '%s' and pdate = '%s'", month, date);
                 System.out.println("sqlstat: " + sql);
-                result = result.where(sql);
+                result = ds.where(sql);
             } else {
-                result = result.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                if (relation.contains(",")) {
+                    String[] whereClauses = Util.buildWhereClauses(date, relation);
+
+                    for (String whereC : whereClauses) {
+                        System.out.println("build where clause:" + whereC);
+                        if (result == null) {
+                            result = ds.where(whereC);
+                        } else {
+                            result = result.union(ds.where(whereC));
+                        }
+                    }
+
+                } else {
+                    result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                }
             }
         }
 

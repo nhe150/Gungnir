@@ -2,6 +2,7 @@ package com.cisco.gungnir.pipelines;
 
 import com.cisco.gungnir.config.ConfigProvider;
 import com.cisco.gungnir.job.JobExecutor;
+import com.cisco.gungnir.utils.DateUtil;
 import org.apache.commons.cli.*;
 import org.apache.spark.sql.SparkSession;
 
@@ -49,6 +50,7 @@ public class PipelineRunner implements Serializable {
         String configFile = cmd.getOptionValue("config");
         String jobType = cmd.getOptionValue("type");
         String dateS = cmd.getOptionValue("rundate");
+        DateUtil.setRunDateS(dateS);
         System.out.println("rundate is " + dateS);
 
         SparkSession.Builder builder = SparkSession.builder().enableHiveSupport().appName(jobName);
