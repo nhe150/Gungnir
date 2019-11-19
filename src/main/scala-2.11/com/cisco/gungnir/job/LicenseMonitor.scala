@@ -28,7 +28,7 @@ class LicenseMonitor() extends DataMonitor {
 
       val byDates =  history.groupBy("orgid", "pdate").agg(countDistinct("userid").as("licenseCount"))
 
-      val avgByDates = byDates.groupBy("orgid").agg(avg("licenseCount").as("avg"))
+      val avgByDates = byDates.groupBy("orgid").agg(avg("licenseCount").cast("int").as("avg"))
       avgByDates.show(false)
       avgByDates
   }

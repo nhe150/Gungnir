@@ -29,8 +29,8 @@ class RdDataMonitor() extends DataMonitor {
       .withColumn("cable",  col("cable").divide(col("deviceCount")))
       .withColumn("wireless", col("wireless").divide(col("deviceCount")))
       .withColumn("whiteboard", col("whiteboard").divide(col("deviceCount")))
-    val avgPerOrg = ds3.groupBy("orgid").agg(avg("incall").as("incallAvg"), avg(col("cable")).as("cableAvg"), avg("wireless").as("wirelessAvg"), avg("whiteboard").as("whiteboardAvg"))
-    System.out.println("@@@@@@@@@@@@@ getAvgPerOrg: @@@@@@@@@@@@@")
+    val avgPerOrg = ds3.groupBy("orgid").agg(avg("incall").cast("int").as("incallAvg"), avg(col("cable")).cast("int").as("cableAvg"), avg("wireless").cast("int").as("wirelessAvg"), avg("whiteboard").cast("int").as("whiteboardAvg"))
+    System.out.println("@@@@@@@@ getAvgPerOrg: @@@@@@@@@@@@")
     avgPerOrg.show()
     avgPerOrg
   }
