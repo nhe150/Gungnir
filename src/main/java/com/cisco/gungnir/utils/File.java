@@ -2,6 +2,8 @@ package com.cisco.gungnir.utils;
 
 import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -20,10 +22,12 @@ import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 public class File implements Serializable {
     private ConfigProvider configProvider;
     private SparkSession spark;
+    private FileSystem fs;
 
     public File(SparkSession spark, ConfigProvider configProvider) throws Exception {
         this.spark = spark;
         this.configProvider = configProvider;
+        fs = FileSystem.get(spark.sparkContext().hadoopConfiguration());
     }
 
     private JsonNode getFileConfig(JsonNode providedConfig) throws Exception {
@@ -176,6 +180,8 @@ public class File implements Serializable {
             if(inputs[i].split("\\.").length>1){
                 loadPath = dataLocation + inputs[i];
             }
+
+
             dataset = dataset.union(spark
                     .readStream()
                     .format(format)
@@ -183,8 +189,26 @@ public class File implements Serializable {
                     .option("multiline", multiline)
                     .option("header", "true")
                     .load(loadPath));
+
         }
         return dataset;
+    }
+
+    public Dataset read(String format, boolean multiline, String path){
+        boolean exists = false;
+        try {
+            exists = fs.exists(new Path(path));
+        } catch(Exception e)
+        {
+            System.out.println("cannot find file:" + path);
+        }
+
+        if( exists){
+           return  spark.read().format(format).option("multiline", multiline).option("header", "true").load(path );
+        }
+
+        return null;
+
     }
 
     public Dataset readFileBatch(String dataLocation, String input, String format, boolean multiline, String regex){
@@ -194,23 +218,30 @@ public class File implements Serializable {
         if(inputs[0].split("\\.").length>1){
             loadPath = dataLocation + inputs[0];
         }
-        Dataset dataset = spark.read().format(format).option("multiline", multiline).option("header", "true").load(loadPath );
+
+
+        Dataset dataset = read(format, multiline, loadPath );
         for(int i=1; i<inputs.length; i++){
             loadPath = dataLocation + inputs[i] + "/" + regex;
             if(inputs[i].split("\\.").length>1){
                 loadPath = dataLocation + inputs[i];
             }
-            dataset = dataset.union(spark
-                    .read()
-                    .format(format)
-                    .option("multiline", multiline)
-                    .option("header", "true")
-                    .load(loadPath));
+
+            Dataset ds= read(format, multiline, loadPath);
+            if( ds != null ) {
+                dataset = dataset.union(ds);
+
+            }
+
         }
         return dataset;
     }
 
     public Dataset withSchema(Dataset dataset, StructType schema){
+        if( dataset == null ){
+            return null;
+        }
+
         if(!DatasetFunctions.hasColumn(dataset, "value")){
             if(DatasetFunctions.hasColumn(dataset, "raw")) {
                 schema = schema.add("raw", DataTypes.StringType);
@@ -232,7 +263,10 @@ public class File implements Serializable {
 
         for(int i=1; i< dateList.size(); i++){
             regex = partitionKey!=null? partitionKey + "=" + dateList.get(i): dateList.get(i);
-            dataset = dataset.union(schema!=null? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex));
+            Dataset ds = schema!=null? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
+            if( ds != null ) {
+                dataset = dataset.union(ds);
+            }
         }
         return dataset;
     }
@@ -245,7 +279,10 @@ public class File implements Serializable {
 
         for(int i=1; i< dateList.size(); i++){
             regex = partitionKey!=null? partitionKey + "=" + dateList.get(i): dateList.get(i);
-            dataset = dataset.union(schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex), schema): readFileBatch(dataLocation,input, format, multiline, regex));
+            Dataset ds = schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex), schema): readFileBatch(dataLocation,input, format, multiline, regex);
+            if( ds != null ) {
+                dataset = dataset.union(ds);
+            }
         }
 
         return dataset;
