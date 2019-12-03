@@ -18,7 +18,7 @@ import scala.Some;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -43,20 +43,24 @@ public class Cassandra implements Serializable {
         Map<String, String> cassandraConfigMap = new HashMap<>();
         cassandraConfigMap.put("table", ConfigProvider.retrieveConfigValue(merged, "cassandra.table"));
         cassandraConfigMap.put("keyspace", ConfigProvider.retrieveConfigValue(merged, "cassandra.keyspace"));
-        //cassandraConfigMap.put("spark.cassandra.sql.cluster", ConfigProvider.retrieveConfigValue(merged, "cassandra.local_dc"));
-
         cassandraConfigMap.put("spark.cassandra.connection.host", ConfigProvider.retrieveConfigValue(merged, "cassandra.host"));
         cassandraConfigMap.put("spark.cassandra.connection.port", ConfigProvider.retrieveConfigValue(merged, "cassandra.port"));
         cassandraConfigMap.put("spark.cassandra.auth.username", ConfigProvider.retrieveConfigValue(merged, "cassandra.username"));
         cassandraConfigMap.put("spark.cassandra.auth.password", ConfigProvider.retrieveConfigValue(merged, "cassandra.password"));
         cassandraConfigMap.put("spark.cassandra.output.consistency.level", ConfigProvider.retrieveConfigValue(merged, "cassandra.consistencyLevel"));
+        cassandraConfigMap.put("spark.cassandra.input.consistency.level", ConfigProvider.retrieveConfigValue(merged,"cassandra.consistencyLevel"));
         cassandraConfigMap.put("spark.cassandra.read.timeout_ms", ConfigProvider.retrieveConfigValue(merged, "cassandra.readTimeout"));
-
         cassandraConfigMap.put("spark.cassandra.output.batch.grouping.key", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_batch_grouping_key"));
         cassandraConfigMap.put("spark.cassandra.output.batch.grouping.buffer.size", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_batch_grouping_buffer_size"));
         cassandraConfigMap.put("spark.cassandra.output.concurrent.writes", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_concurrent_writes"));
         cassandraConfigMap.put("spark.cassandra.output.throughput_mb_per_sec", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_throughput_mb_per_sec"));
-
+        //configs for SSL
+        cassandraConfigMap.put("spark.cassandra.connection.ssl.enabled", ConfigProvider.retrieveConfigValue(merged,
+                "cassandra.ssl_enabled"));
+        cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.password",
+                ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_password"));
+        cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.path",
+                ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_path"));
         this.cassandraConfig = cassandraConfigMap;
         return merged;
     }
@@ -180,6 +184,7 @@ public class Cassandra implements Serializable {
         sparkConf.set("spark.cassandra.auth.username", cassandraConfig.get("spark.cassandra.auth.username"));
         sparkConf.set("spark.cassandra.auth.password", cassandraConfig.get("spark.cassandra.auth.password"));
         sparkConf.set("spark.cassandra.output.consistency.level", cassandraConfig.get("spark.cassandra.output.consistency.level"));
+        sparkConf.set("spark.cassandra.input.consistency.level", cassandraConfig.get("spark.cassandra.input.consistency.level"));
         return sparkConf;
     }
 
