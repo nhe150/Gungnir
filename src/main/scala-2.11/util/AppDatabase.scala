@@ -68,12 +68,12 @@ object AppDatabase {
     content
   }
 
-  def fillOrgIdRegionTable(session: core.Session) = {
+  def fillOrgIdRegionTable(session: core.Session, region: String) = {
     var table = "ci_region"
     val select = "SELECT " + "*" + " FROM " + table;
     val rs: ResultSet = session.execute(select);
     val rows: util.List[Row] = rs.all()
-    val endpoints = getRestEndpoints(session)
+    val endpoints = getRestEndpoints(session, region)
     val insert = "insert into " + table + " (orgid,region) values (?,?);"
     val insertStatement: PreparedStatement = session.prepare(insert)
     for(row <- rows) {
@@ -110,9 +110,9 @@ object AppDatabase {
     region
   }
 
-  def getRestEndpoints(session: core.Session): util.List[Row] = {
-    var table = "inv_hosts_v2"
-    val select = "SELECT " + "*" + " FROM " + table;
+  def getRestEndpoints(session: core.Session, region: String): util.List[Row] = {
+    var table = "inv_hosts_v3"
+    val select = "SELECT " + "*" + " FROM " + table + " where region= '" + region + "'";
     val rs: ResultSet = session.execute(select);
     val rows: util.List[Row] = rs.all()
     rows
@@ -132,12 +132,13 @@ object AppDatabase {
 
   def run(configProvider: ConfigProvider) = {
     val ip: String = configProvider.retrieveAppConfigValue("cassandra.host")
-    val keyspace = configProvider.retrieveAppConfigValue("cassandra.keyspace")
+    val keyspace = configProvider.retrieveAppConfigValue("app.keyspace")
     val user = configProvider.retrieveAppConfigValue("cassandra.username")
     val pass = configProvider.retrieveAppConfigValue("cassandra.password")
+    val region = configProvider.retrieveAppConfigValue("app.region")
     val ips = ip.split(",")
     val cas = new CassandraClusterConn(ips, keyspace, user, pass)
-    fillOrgIdRegionTable(cas.session)
+    fillOrgIdRegionTable(cas.session, region)
     cas.close()
   }
 

@@ -55,12 +55,15 @@ public class Cassandra implements Serializable {
         cassandraConfigMap.put("spark.cassandra.output.concurrent.writes", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_concurrent_writes"));
         cassandraConfigMap.put("spark.cassandra.output.throughput_mb_per_sec", ConfigProvider.retrieveConfigValue(merged, "cassandra.output_throughput_mb_per_sec"));
         //configs for SSL
-        cassandraConfigMap.put("spark.cassandra.connection.ssl.enabled", ConfigProvider.retrieveConfigValue(merged,
-                "cassandra.ssl_enabled"));
-        cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.password",
-                ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_password"));
-        cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.path",
-                ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_path"));
+        if (ConfigProvider.hasConfigValue(merged,  "cassandra.ssl_enabled") &&
+                ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_enabled").equals("true") ) {
+            cassandraConfigMap.put("spark.cassandra.connection.ssl.enabled", ConfigProvider.retrieveConfigValue(merged,
+                    "cassandra.ssl_enabled"));
+            cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.password",
+                    ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_password"));
+            cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.path",
+                    ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_path"));
+        }
         this.cassandraConfig = cassandraConfigMap;
         return merged;
     }
