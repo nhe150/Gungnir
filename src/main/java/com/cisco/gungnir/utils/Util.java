@@ -1,6 +1,10 @@
 package com.cisco.gungnir.utils;
 
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
+
 import java.io.Serializable;
+import java.util.List;
 
 public class Util implements Serializable  {
     public static String[] buildWhereClauses(String date, String relation){
@@ -26,6 +30,10 @@ public class Util implements Serializable  {
                 sb.append(" OR ");
         }
         return sb.toString();
+    }
+
+    public static Seq<String> convertListToSeq(List<String> inputList) {
+        return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
     }
 
 

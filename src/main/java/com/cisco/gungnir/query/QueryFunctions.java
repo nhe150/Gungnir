@@ -20,6 +20,7 @@ public class QueryFunctions implements Serializable {
     public final Kafka kafka;
     public final Cassandra cassandra;
     public final File file;
+    public final Hive hive;
 
     public QueryFunctions(SparkSession spark, ConfigProvider configProvider) throws Exception{
         this.spark = spark;
@@ -27,6 +28,7 @@ public class QueryFunctions implements Serializable {
         this.kafka = new Kafka(spark, configProvider);
         this.cassandra = new Cassandra(spark, configProvider);
         this.file = new File(spark, configProvider);
+        this.hive = new Hive(spark, configProvider);
         UdfFunctions udfFunctions = new UdfFunctions(spark, configProvider);
         udfFunctions.registerFunctions();
     }

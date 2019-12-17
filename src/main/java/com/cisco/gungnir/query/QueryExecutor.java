@@ -52,6 +52,9 @@ public class QueryExecutor implements Serializable {
             case "deleteFromCassandra":
                 queryFunctions.cassandra.deleteFromCassandra(previous, queryType, parameters);
                 break;
+            case "writeToHive":
+                queryFunctions.hive.writeToHive(previous, queryType, parameters);
+                break;
             case "readFromFile":
                 result = queryFunctions.file.readFromFile(queryType, parameters);
                 break;
