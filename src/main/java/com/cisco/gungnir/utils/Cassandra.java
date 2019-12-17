@@ -112,11 +112,24 @@ public class Cassandra implements Serializable {
         }
     }
 
+    /**
+     * Need refract this part
+     * @param conf
+     * @return
+     * @throws Exception
+     */
     public Dataset readCassandraBatch(JsonNode conf) throws Exception {
         Dataset ds = spark.read()
                 .format("org.apache.spark.sql.cassandra")
                 .options(cassandraConfig)
                 .load();
+        if (!ConfigProvider.hasConfigValue(conf, "date") && !ConfigProvider.hasConfigValue(conf, "month")) {
+            return ds;
+        }
+
+        if (ConfigProvider.hasConfigValue(conf, "month")) {
+            ds = ds.where(String.format("month = '%s'", ConfigProvider.retrieveConfigValue(conf, "month")));
+        }
 
         if (!ConfigProvider.hasConfigValue(conf, "date")) {
             return ds;
@@ -150,7 +163,12 @@ public class Cassandra implements Serializable {
                     }
 
                 } else {
-                    result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                    if( ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")){
+                        result = ds.where(String.format("time_stamp = '%s' and relation_name = '%s'", date, relation));
+                    }
+                    else {
+                        result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                    }
                 }
             }
         }

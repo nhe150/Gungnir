@@ -58,6 +58,9 @@ public class QueryExecutor implements Serializable {
             case "writeToFile":
                 queryFunctions.file.writeToFile(previous, queryType, parameters);
                 break;
+            case "writeToOracle":
+                queryFunctions.oracle.writeToOracle(previous, queryType, parameters);
+                break;
             default:
                 result = queryFunctions.executeSqlQueries(previous, queryName, parameters);
         }
