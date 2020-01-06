@@ -76,7 +76,7 @@ public class OracleStreamWriter extends ForeachWriter<GenericRowWithSchema> {
     }
 
     @Override
-    public void process(GenericRowWithSchema value) {
+    public void process(GenericRowWithSchema row) {
         if (emptySchema) return;
 
         // write string to connection
@@ -88,53 +88,57 @@ public class OracleStreamWriter extends ForeachWriter<GenericRowWithSchema> {
         Set<String> nonPk_KeyValue = new HashSet<>();
 
 
-        for (int i = 0; i < structField.length; i++) {
-            DataType type = structField[i].dataType();
-            if(type.sameType(DataTypes.StringType)){
-                values[i] = "'" + value.get(i) + "'";
-            }else if(type.sameType(DataTypes.TimestampType)){
-                //if format is '2019-07-16 17:53:58.606'
-                values[i] = "to_date( substr('" + value.get(i) + "' , 1, 19), 'YYYY-MM-DD HH24:MI:SS')";
-            }else{
-                values[i] = value.get(i)+"";
-            }
+//        for (int i = 0; i < structField.length; i++) {
+//            DataType type = structField[i].dataType();
+//            if(type.sameType(DataTypes.StringType)){
+//                values[i] = "'" + value.get(i) + "'";
+//            }else if(type.sameType(DataTypes.TimestampType)){
+//                //if format is '2019-07-16 17:53:58.606'
+//                values[i] = "to_date( substr('" + value.get(i) + "' , 1, 19), 'YYYY-MM-DD HH24:MI:SS')";
+//            }else{
+//                values[i] = value.get(i)+"";
+//            }
+//
+//            if(pkSet.contains(names[i])){
+//                pk_KeyValue.add(names[i] +" = "+values[i]);
+//            }else{
+//                nonPk_KeyValue.add(names[i] +" = "+values[i]);
+//            }
+//        }
+//
+//        if (isAllNull(values)) {
+//            return;
+//        }
+//
+//        String fields = "(" + String.join(", ", schema.fieldNames()).toLowerCase() + ")";
+//        String fieldValues = "(" + String.join(", ", values) + ")";
+//        String statement = "insert into " + tableName + " " + fields + " values" + fieldValues;
+//
+//        String insertStatement = "insert into " + tableName + " " + fields + " values " + fieldValues +" ;";
+//
+//        String updateStatement =
+//                "update " + tableName + " SET " + String.join(",", nonPk_KeyValue) + " where " + String.join(" and ", pk_KeyValue) +" ;";
+//
+//
+//        /**
+//         * Idea:
+//         * UPDATE tablename SET val1 = in_val1, val2 = in_val2
+//         *     WHERE val3 = in_val3;
+//         * IF ( sql%notfound ) THEN
+//         *     INSERT INTO tablename
+//         *         VALUES (in_val1, in_val2, in_val3);
+//         * END IF;
+//         */
+//
+//        String sqlStr = "BEGIN " + updateStatement + " IF sql%notfound THEN " +  insertStatement + " END IF; END;";
 
-            if(pkSet.contains(names[i])){
-                pk_KeyValue.add(names[i] +" = "+values[i]);
-            }else{
-                nonPk_KeyValue.add(names[i] +" = "+values[i]);
-            }
-        }
-
-        if (isAllNull(values)) {
-            return;
-        }
-
-        String fields = "(" + String.join(", ", schema.fieldNames()).toLowerCase() + ")";
-        String fieldValues = "(" + String.join(", ", values) + ")";
-        String statement = "insert into " + tableName + " " + fields + " values" + fieldValues;
-
-        String insertStatement = "insert into " + tableName + " " + fields + " values " + fieldValues +" ;";
-
-        String updateStatement =
-                "update " + tableName + " SET " + String.join(",", nonPk_KeyValue) + " where " + String.join(" and ", pk_KeyValue) +" ;";
-
-
-        /**
-         * Idea:
-         * UPDATE tablename SET val1 = in_val1, val2 = in_val2
-         *     WHERE val3 = in_val3;
-         * IF ( sql%notfound ) THEN
-         *     INSERT INTO tablename
-         *         VALUES (in_val1, in_val2, in_val3);
-         * END IF;
-         */
+        String sqlStr = Util.getInsertSQLStr(schema,tableName,row,values,pkSet,pk_KeyValue,nonPk_KeyValue);
 
         try {
-            session.execute(updateStatement);
+            session.execute(sqlStr);
         } catch (SQLException e) {
             e.printStackTrace();
-            System.out.println("sqlstat: " + statement);
+            System.out.println("sqlstat: " + sqlStr);
         }
     }
 
