@@ -188,6 +188,15 @@ public class Cassandra implements Serializable {
         sparkConf.set("spark.cassandra.auth.password", cassandraConfig.get("spark.cassandra.auth.password"));
         sparkConf.set("spark.cassandra.output.consistency.level", cassandraConfig.get("spark.cassandra.output.consistency.level"));
         sparkConf.set("spark.cassandra.input.consistency.level", cassandraConfig.get("spark.cassandra.input.consistency.level"));
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled")){
+            sparkConf.set("spark.cassandra.connection.ssl.enabled", cassandraConfig.get("spark.cassandra.connection.ssl.enabled"));
+        }
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.password")){
+            sparkConf.set("spark.cassandra.connection.ssl.trustStore.password", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.password"));
+        }
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.path")){
+            sparkConf.set("spark.cassandra.connection.ssl.trustStore.path", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.path"));
+        }
         return sparkConf;
     }
 
