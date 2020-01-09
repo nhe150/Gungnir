@@ -16,7 +16,9 @@ libraryDependencies ++= Seq(
   "org.elasticsearch" %% "elasticsearch-spark-20" % "6.3.0",
   "com.webex.dap.oneportal" % "spark2-streaming-job-metrics_cdh-5.14_2.11" % "3.0" % "provided" from "file:///"+file("").getAbsolutePath+"/lib/spark2-streaming-job-metrics_cdh-5.14_2.11-3.0.jar",
   //"com.datastax.cassandra" % "cassandra-driver-core" % "3.5.1",
-  //Test dependencies
+  "com.oracle.ojdbc" % "ojdbc8" % "19.3.0.0",
+
+//Test dependencies
   "com.holdenkarau" %% "spark-testing-base" % "2.3.0_0.9.0" % Test excludeAll( ExclusionRule(organization = "io.netty")),
   "org.apache.spark" %% "spark-hive"       % "2.3.0" % Test,
   "com.novocode" % "junit-interface" % "0.11" % Test,
