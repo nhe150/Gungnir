@@ -6,7 +6,10 @@ import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.ForeachWriter;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
@@ -21,9 +24,7 @@ import scala.collection.Seq;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
 
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 
@@ -115,11 +116,24 @@ public class Cassandra implements Serializable {
         }
     }
 
+    /**
+     * Need refract this part
+     * @param conf
+     * @return
+     * @throws Exception
+     */
     public Dataset readCassandraBatch(JsonNode conf) throws Exception {
         Dataset ds = spark.read()
                 .format("org.apache.spark.sql.cassandra")
                 .options(cassandraConfig)
                 .load();
+        if (!ConfigProvider.hasConfigValue(conf, "date") && !ConfigProvider.hasConfigValue(conf, "month")) {
+            return ds;
+        }
+
+        if (ConfigProvider.hasConfigValue(conf, "month")) {
+            ds = ds.where(String.format("month = '%s'", ConfigProvider.retrieveConfigValue(conf, "month")));
+        }
 
         if (!ConfigProvider.hasConfigValue(conf, "date")) {
             return ds;
@@ -153,7 +167,12 @@ public class Cassandra implements Serializable {
                     }
 
                 } else {
-                    result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                    if( ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")){
+                        result = ds.where(String.format("time_stamp = '%s' and relation_name = '%s'", date, relation));
+                    }
+                    else {
+                        result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
+                    }
                 }
             }
         }
@@ -188,6 +207,12 @@ public class Cassandra implements Serializable {
         sparkConf.set("spark.cassandra.auth.password", cassandraConfig.get("spark.cassandra.auth.password"));
         sparkConf.set("spark.cassandra.output.consistency.level", cassandraConfig.get("spark.cassandra.output.consistency.level"));
         sparkConf.set("spark.cassandra.input.consistency.level", cassandraConfig.get("spark.cassandra.input.consistency.level"));
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled") && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.password")
+            && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.path")){
+            sparkConf.set("spark.cassandra.connection.ssl.enabled", cassandraConfig.get("spark.cassandra.connection.ssl.enabled"));
+            sparkConf.set("spark.cassandra.connection.ssl.trustStore.password", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.password"));
+            sparkConf.set("spark.cassandra.connection.ssl.trustStore.path", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.path"));
+        }
         return sparkConf;
     }
 
@@ -264,7 +289,8 @@ public class Cassandra implements Serializable {
             }
 
             session = connector.openSession();
-            return true;
+            boolean result = session != null && !session.isClosed();
+            return result;
         }
 
         /**

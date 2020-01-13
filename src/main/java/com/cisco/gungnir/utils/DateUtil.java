@@ -141,13 +141,4 @@ public class DateUtil implements Serializable {
         return totalDates;
     }
 
-    public static void main(String[] args) throws Exception {
-
-        System.out.println(String.format("month = '%s' and time_stamp= '%s'", "s1", "s2"));
-        List<String> days = DateUtil.getDaysBetweenDates("2019-09-04", "2019-09-04");
-        for(String day: days)
-        {
-            System.out.println(day);
-        }
-    }
 }
