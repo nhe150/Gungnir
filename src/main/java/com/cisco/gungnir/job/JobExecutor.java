@@ -34,6 +34,29 @@ public class JobExecutor implements Serializable {
         spark.sqlContext().setConf("spark.streaming.backpressure.enabled", configProvider.retrieveAppConfigValue("spark.streamingBackpressureEnabled"));
         spark.sqlContext().setConf("spark.network.timeout", configProvider.retrieveAppConfigValue("spark.networkTimeout"));
         spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
+
+        //enable orc Hive support using native in spark 2.3
+        spark.sqlContext().setConf("spark.sql.orc.impl","native");
+        spark.sqlContext().setConf("spark.sql.orc.enableVectorizedReader","true");
+        spark.sqlContext().setConf("spark.sql.orc.filterPushdown", "true");
+        spark.sqlContext().setConf("spark.sql.orc.enabled", "true");
+        spark.sqlContext().setConf("spark.sql.hive.convertMetastoreOrc", "true");
+        spark.sqlContext().setConf("spark.sql.orc.char.enabled", "true");
+
+        //make hive partition dynamic
+        spark.sqlContext().setConf("hive.exec.dynamic.partition","true");
+        spark.sqlContext().setConf("hive.exec.dynamic.partition.mode", "nonstrict");
+
+        //set orc compression to zlib
+        spark.sqlContext().setConf("spark.sql.orc.compression.codec", "zlib");
+        spark.sqlContext().setConf("spark.sql.parquet.compression.codec","none");
+
+        //enable hive bucketing
+        spark.sqlContext().setConf("hive.enforce.bucketing", "false");
+        spark.sqlContext().setConf("hive.enforce.sorting", "false");
+
+
+
         spark.sparkContext().setLogLevel(configProvider.retrieveAppConfigValue("spark.logLevel"));
     }
 }

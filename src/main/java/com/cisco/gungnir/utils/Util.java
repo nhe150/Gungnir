@@ -5,8 +5,11 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import scala.collection.JavaConverters;
+import scala.collection.Seq;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 
 public class Util implements Serializable  {
@@ -35,7 +38,11 @@ public class Util implements Serializable  {
         return sb.toString();
     }
 
-    public static String getInsertSQLStr(StructType schema,String tableName, Row row, String[] values,Set<String> pkSet,Set<String> pk_KeyValue,Set<String> nonPk_KeyValue){
+    public static Seq<String> convertListToSeq(List<String> inputList) {
+        return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
+    }
+
+    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue){
 
         StructField[] structField = schema.fields();
         String[] names = schema.fieldNames();

@@ -20,6 +20,7 @@ public class QueryFunctions implements Serializable {
     public final Kafka kafka;
     public final Cassandra cassandra;
     public final File file;
+    public final Hive hive;
     public final Oracle oracle;
 
     public QueryFunctions(SparkSession spark, ConfigProvider configProvider) throws Exception{
@@ -28,6 +29,7 @@ public class QueryFunctions implements Serializable {
         this.kafka = new Kafka(spark, configProvider);
         this.cassandra = new Cassandra(spark, configProvider);
         this.file = new File(spark, configProvider);
+        this.hive = new Hive(spark, configProvider);
         this.oracle = new Oracle(spark, configProvider);
         UdfFunctions udfFunctions = new UdfFunctions(spark, configProvider);
         udfFunctions.registerFunctions();
