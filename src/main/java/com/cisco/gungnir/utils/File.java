@@ -23,11 +23,13 @@ public class File implements Serializable {
     private ConfigProvider configProvider;
     private SparkSession spark;
     private FileSystem fs;
+    private boolean localTest;
 
     public File(SparkSession spark, ConfigProvider configProvider) throws Exception {
         this.spark = spark;
         this.configProvider = configProvider;
         fs = FileSystem.get(spark.sparkContext().hadoopConfiguration());
+        localTest = ConfigProvider.hasConfigValue(configProvider.getAppConfig(), "local");
     }
 
     private JsonNode getFileConfig(JsonNode providedConfig) throws Exception {
@@ -203,7 +205,7 @@ public class File implements Serializable {
             System.out.println("cannot find file:" + path);
         }
 
-        if( exists){
+        if( exists || localTest ){
            return  spark.read().format(format).option("multiline", multiline).option("header", "true").load(path );
         }
 
@@ -217,6 +219,7 @@ public class File implements Serializable {
         String loadPath = dataLocation + inputs[0] + "/" + regex;
         if(inputs[0].split("\\.").length>1){
             loadPath = dataLocation + inputs[0];
+            System.out.println(loadPath);
         }
 
 
@@ -225,12 +228,15 @@ public class File implements Serializable {
             loadPath = dataLocation + inputs[i] + "/" + regex;
             if(inputs[i].split("\\.").length>1){
                 loadPath = dataLocation + inputs[i];
+                System.out.println(" readFile" + i + loadPath);
             }
 
             Dataset ds= read(format, multiline, loadPath);
             if( ds != null ) {
                 dataset = dataset.union(ds);
 
+            }else{
+                System.out.println("error empty dataset");
             }
 
         }
