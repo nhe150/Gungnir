@@ -36,7 +36,8 @@ public class JobExecutor implements Serializable {
         spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
 
         //enable orc Hive support using native in spark 2.3
-        spark.sqlContext().setConf("spark.sql.orc.impl","native");
+        // comment out due to issue with spark2.4 integratio in cmp 
+        //spark.sqlContext().setConf("spark.sql.orc.impl","native");
         spark.sqlContext().setConf("spark.sql.orc.enableVectorizedReader","true");
         spark.sqlContext().setConf("spark.sql.orc.filterPushdown", "true");
         spark.sqlContext().setConf("spark.sql.orc.enabled", "true");
