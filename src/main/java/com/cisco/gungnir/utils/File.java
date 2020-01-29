@@ -22,7 +22,7 @@ import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 public class File implements Serializable {
     private ConfigProvider configProvider;
     private SparkSession spark;
-    private FileSystem fs;
+    private transient FileSystem fs;
     private boolean localTest;
 
     public File(SparkSession spark, ConfigProvider configProvider) throws Exception {
