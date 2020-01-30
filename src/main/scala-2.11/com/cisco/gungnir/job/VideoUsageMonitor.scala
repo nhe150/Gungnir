@@ -18,7 +18,7 @@ class VideoUsageMonitor() extends DataMonitor {
 
   private def getSumPerOrg(ds: Dataset[_], currentDate: String) = {
     val sumPerOrg = ds.groupBy("orgid", "pdate").agg(
-      sum("video time").as("video time "))
+      sum("videotime").as("video time "))
     // note: the # of DISTINCT deviceID could change everyday.)
 
     System.out.println("@@@@@@@@ getSumPerOrg: @@@@@@@@@@@@")
@@ -43,18 +43,18 @@ class VideoUsageMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='videoUsage' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='videoUsage' and pdate = '" + myDate + "'")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
-    val activeUserMsges = createMessages(sumPerOrg, true)
-    writeToKafka(activeUserMsges, false)
+    val videoUsageMsges = createMessages(sumPerOrg, true)
+    writeToKafka(videoUsageMsges, false)
   }
 
   @throws[Exception]
   private def createMessages(dataset: Dataset[Row], alert: Boolean) = {
     val message = dataset.selectExpr("'crs' as component",
       "'metrics' as eventtype",
-      "struct('activeUser' as pipeLine, " +
+      "struct('videoUsage' as pipeLine, " +
         "struct(" + "orgid, " + "videotime, " +
         "pdate as reportDate )" +
         " as data ) " +

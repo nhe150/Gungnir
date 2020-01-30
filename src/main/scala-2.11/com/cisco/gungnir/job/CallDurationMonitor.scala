@@ -43,18 +43,18 @@ class CallDurationMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callDuration' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callDuration' and pdate = '" + myDate + "' ")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
-    val activeUserMsges = createMessages(sumPerOrg, true)
-    writeToKafka(activeUserMsges, false)
+    val callDurationMsges = createMessages(sumPerOrg, true)
+    writeToKafka(callDurationMsges, false)
   }
 
   @throws[Exception]
   private def createMessages(dataset: Dataset[Row], alert: Boolean) = {
     val message = dataset.selectExpr("'crs' as component",
       "'metrics' as eventtype",
-      "struct('activeUser' as pipeLine, " +
+      "struct('callDuration' as pipeLine, " +
         "struct(" + "orgid, " + "legduration, " +
         "pdate as reportDate )" +
         " as data ) " +

@@ -44,7 +44,7 @@ class ActiveUserMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='activeUserRollUp' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='activeUserRollUp' and pdate = '" + myDate + "'")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
     val activeUserMsges = createMessages(sumPerOrg, true)

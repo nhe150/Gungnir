@@ -44,18 +44,18 @@ class CallQualityMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callQuality' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callQuality' and pdate = '" + myDate + "' ")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
-    val activeUserMsges = createMessages(sumPerOrg, true)
-    writeToKafka(activeUserMsges, false)
+    val callQualityMsges = createMessages(sumPerOrg, true)
+    writeToKafka(callQualityMsges, false)
   }
 
   @throws[Exception]
   private def createMessages(dataset: Dataset[Row], alert: Boolean) = {
     val message = dataset.selectExpr("'crs' as component",
       "'metrics' as eventtype",
-      "struct('activeUser' as pipeLine, " +
+      "struct('callQuality' as pipeLine, " +
         "struct(" + "orgid, " + "duration, " + "audio_is_good, " +
         "pdate as reportDate )" +
         " as data ) " +
