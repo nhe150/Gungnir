@@ -7,18 +7,17 @@ import org.joda.time.DateTimeZone
 import java.util
 import java.util.logging.Logger
 
-
 import org.apache.spark.sql.functions._
 
-object VideoUsageMonitor {
-  val LOGGER = Logger.getLogger(classOf[VideoUsageMonitor].getName)
+object BCDurationMonitor {
+  val LOGGER = Logger.getLogger(classOf[BCDurationMonitor].getName)
 }
 
-class VideoUsageMonitor() extends DataMonitor {
+class BCDurationMonitor() extends DataMonitor {
 
   private def getSumPerOrg(ds: Dataset[_], currentDate: String) = {
     val sumPerOrg = ds.groupBy("orgid", "pdate").agg(
-      sum("videotime").as("videotime"))
+      sum("legduration").as("legduration"))
     // note: the # of DISTINCT deviceID could change everyday.)
 
     System.out.println("@@@@@@@@ getSumPerOrg: @@@@@@@@@@@@")
@@ -35,7 +34,7 @@ class VideoUsageMonitor() extends DataMonitor {
       xcurrentDate
 
 
-    VideoUsageMonitor.LOGGER.info("Entering program. currentDate: " + myDate)
+    BCDurationMonitor.LOGGER.info("Entering program. currentDate: " + myDate)
     
 
     //need to scrutinize
@@ -43,19 +42,19 @@ class VideoUsageMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='videoUsage' and pdate = '" + myDate + "'")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callDuration' and source='bc' and pdate = '" + myDate + "' ")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
-    val videoUsageMsges = createMessages(sumPerOrg, true)
-    writeToKafka(videoUsageMsges, false)
+    val BCDurationMsges = createMessages(sumPerOrg, true)
+    writeToKafka(BCDurationMsges, false)
   }
 
   @throws[Exception]
   private def createMessages(dataset: Dataset[Row], alert: Boolean) = {
     val message = dataset.selectExpr("'crs' as component",
       "'metrics' as eventtype",
-      "struct('videoUsage' as pipeLine, " +
-        "struct(" + "orgid, " + "videotime, " +
+      "struct('BCDuration' as pipeLine, " +
+        "struct(" + "orgid, " + "legduration, " +
         "pdate as reportDate )" +
         " as data ) " +
         "as metrics")

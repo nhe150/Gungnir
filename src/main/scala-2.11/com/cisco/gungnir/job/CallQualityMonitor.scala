@@ -7,7 +7,7 @@ import org.joda.time.DateTimeZone
 import java.util
 import java.util.logging.Logger
 
-import com.cisco.gungnir.utils.DateUtil.isBusinessDay
+
 import org.apache.spark.sql.functions._
 
 object CallQualityMonitor {
@@ -37,7 +37,7 @@ class CallQualityMonitor() extends DataMonitor {
 
 
     CallQualityMonitor.LOGGER.info("Entering program. currentDate: " + myDate)
-    if (!isBusinessDay(myDate)) return
+    
 
     //need to scrutinize
     val input = readFromCass().toDF()
