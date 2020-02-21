@@ -58,7 +58,7 @@ class SparkMessageSentMonitor() extends DataMonitor {
     val message = dataset.selectExpr("'crs' as component",
       "'metrics' as eventtype",
       "struct('Spark' as pipeLine, " +
-        "struct(" + "orgid, " + "message, " +  
+        "struct(" + "orgid, " + "message, " +  "number_of_ua_category, " +
         "time_stamp as reportDate, " + "usercountbyorg as volume )" +
         " as data ) " +
         "as metrics")
