@@ -7,6 +7,7 @@ import org.joda.time.DateTimeZone
 import java.util
 import java.util.logging.Logger
 
+
 import org.apache.spark.sql.functions._
 
 object BCDurationMonitor {
@@ -42,7 +43,7 @@ class BCDurationMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callDuration' and source='bc' and pdate = '" + myDate + "' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callDuration' and and source='bc' and pdate = '" + myDate + "' ")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
     val BCDurationMsges = createMessages(sumPerOrg, true)

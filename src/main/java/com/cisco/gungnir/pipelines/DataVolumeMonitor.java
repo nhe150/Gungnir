@@ -29,8 +29,16 @@ public class DataVolumeMonitor implements Serializable {
         options.addOption(orgIdOpt);
 
         Option clOpt = new Option("cl", "class", true, "Job class name");
-        orgIdOpt.setRequired(false);
+        clOpt.setRequired(false);
         options.addOption(clOpt);
+        
+        Option regionOpt = new Option("region", "region", true, "Region Name");
+        regionOpt.setRequired(false);
+        options.addOption(regionOpt);
+
+        Option relationNamesOpt = new Option("rn", "relation", true, "Relation names to be read from cassandra");
+        relationNamesOpt.setRequired(false);
+        options.addOption(relationNamesOpt);
 
         CommandLineParser parser = new GnuParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -51,6 +59,8 @@ public class DataVolumeMonitor implements Serializable {
         String threshold = cmd.getOptionValue("threshold")== null ? "0.3" : cmd.getOptionValue("threshold");
         String orgId = cmd.getOptionValue("orgId")== null ? "*" : "'" + cmd.getOptionValue("orgId") + "'";
         String cl = cmd.getOptionValue("cl") == null ? "SparkDataMonitor" : cmd.getOptionValue("cl");
+        String region  = cmd.getOptionValue("region");
+        String relationNames  = cmd.getOptionValue("rn");
 
         SparkSession spark = SparkSession.builder()
                 .appName(cl).getOrCreate();
@@ -64,6 +74,6 @@ public class DataVolumeMonitor implements Serializable {
         DataMonitor monitor = (DataMonitor) Class.forName(classS).newInstance();
         monitor.set(spark, appConfigProvider);
 
-        monitor.run(currentDate, threshold, orgId);
+        monitor.run(currentDate, threshold, orgId, region, relationNames);
     }
 }

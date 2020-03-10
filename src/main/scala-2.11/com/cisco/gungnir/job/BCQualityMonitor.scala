@@ -44,7 +44,7 @@ class BCQualityMonitor() extends DataMonitor {
     val orgList = getOrgList(configProvider.getAppConfig)
     val whereOrgIdClause = whereOrgId(orgList)
 
-    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callQuality' and source='bc' and pdate = '" + myDate + "' ")
+    val dsFilteredByOrgs = input.where("orgid in (" + whereOrgIdClause + ") and relation_name='callQuality' and pdate = '" + myDate + "' ")
 
     val sumPerOrg = getSumPerOrg(dsFilteredByOrgs, myDate)
     val BCQualityMsges = createMessages(sumPerOrg, true)

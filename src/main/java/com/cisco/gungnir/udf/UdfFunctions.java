@@ -131,7 +131,8 @@ public class UdfFunctions implements Serializable {
         }
 
         public String call(String orgId) throws Exception {
-            return excludedOrgList.contains(orgId) ? "1" : "0";
+            //return excludedOrgList.contains(orgId) ? "1" : "0";
+            return "0";
         }
     }
 
