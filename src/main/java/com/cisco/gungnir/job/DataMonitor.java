@@ -104,6 +104,7 @@ public abstract class DataMonitor implements Serializable {
         return orgList;
     }
 
+    // this method will create default list of relation_names for Spark Data table
     List<String> getRelationNamesSparkData() {
         List<String> relationNames = new ArrayList<>();
         relationNames.add("activeUserRollUp"); 
@@ -114,7 +115,7 @@ public abstract class DataMonitor implements Serializable {
         relationNames.add("videoUsage"); 
         return relationNames;
     }
-
+    // this method will create default list of relation_names for Spark Aggregation table
     List<String> getRelationNamesSparkAgg() {
         List<String> relationNames = new ArrayList<>();
         relationNames.add("activeUser"); 
