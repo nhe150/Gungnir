@@ -14,6 +14,7 @@ import org.joda.time.DateTimeZone;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -63,6 +64,12 @@ public abstract class DataMonitor implements Serializable {
 
     public abstract void run(String currentDate, String threshold, String orgId) throws Exception;
 
+    public void run(String currentDate, String threshold, String orgId, String region, String relationNames) throws Exception {
+        run(currentDate, threshold, orgId);
+        // do nothing
+        // adding concrete method to avoid changes in exisitng monitor jobs
+        // add implementation in new child classes. Likes SpartDataTableMonitor, SparkAggV2TableMonitor
+    }
 
     public class TimeConverter implements UDF1<Long, String> {
         public String call(Long unixtimeStamp) throws Exception {
@@ -87,9 +94,6 @@ public abstract class DataMonitor implements Serializable {
         return new DateTime(DateTimeZone.UTC).plusDays(addedDay).toString("yyyy-MM-dd");
     }
 
-
-
-
     List<String> getOrgList(JsonNode node) {
         ArrayList<String> orgList = new ArrayList<>();
         if (node.get("orgids").isArray()) {
@@ -100,6 +104,29 @@ public abstract class DataMonitor implements Serializable {
         return orgList;
     }
 
+    // this method will create default list of relation_names for Spark Data table
+    List<String> getRelationNamesSparkData() {
+        List<String> relationNames = new ArrayList<>();
+        relationNames.add("activeUserRollUp"); 
+        relationNames.add("callDuration"); 
+        relationNames.add("callQuality"); 
+        relationNames.add("fileUsed"); 
+        relationNames.add("rtUser"); 
+        relationNames.add("videoUsage"); 
+        return relationNames;
+    }
+    // this method will create default list of relation_names for Spark Aggregation table
+    List<String> getRelationNamesSparkAgg() {
+        List<String> relationNames = new ArrayList<>();
+        relationNames.add("activeUser"); 
+        relationNames.add("callDuration"); 
+        relationNames.add("callQuality"); 
+        relationNames.add("fileUsed"); 
+        relationNames.add("topUser"); 
+        relationNames.add("messageSent"); 
+        return relationNames;
+    }
+    
     String whereOrgId(List<String> orgList) {
 
         StringBuilder sb = new StringBuilder();
@@ -111,5 +138,21 @@ public abstract class DataMonitor implements Serializable {
         return sb.toString();
     }
 
+    String getInClauseFromString(String values) {
+        List<String> relationNames = new ArrayList<>();
+        relationNames.addAll(Arrays.asList(values.split(",")));
+        return getInClauseFromList(relationNames);
+    }
+
+    String getInClauseFromList(List<String> strList) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < strList.size(); i++) {
+            sb.append("'").append(strList.get(i)).append("',");
+        }
+        sb.deleteCharAt(sb.length() - 1);  // remove last "'"
+        return sb.toString();
+    }
 
 }
