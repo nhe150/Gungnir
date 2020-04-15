@@ -4,6 +4,7 @@ import com.cisco.gungnir.config.ConfigProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.DataFrameReader;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
@@ -59,7 +60,8 @@ public class File implements Serializable {
                         ConfigProvider.retrieveConfigValue(fileConfig, "input"),
                         ConfigProvider.retrieveConfigValue(fileConfig, "format"),
                         ConfigProvider.hasConfigValue(fileConfig, "multiline") && fileConfig.get("multiline").asBoolean(),
-                        "*", false, false);
+                        "*", false, false,
+                        ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null);
 
                 if(ConfigProvider.hasConfigValue(fileConfig, "schemaName")){
                     return withSchema(datasetBatch, configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")));
@@ -177,7 +179,7 @@ public class File implements Serializable {
     public Dataset readFileStream(String dataLocation, String input, String format, boolean multiline, String regex){
         input = input.replaceAll("\\s","");
         String[] inputs = input.split(",");
-        Dataset ds = readFileBatch(dataLocation, inputs[0], format, multiline, regex, false, false);
+        Dataset ds = readFileBatch(dataLocation, inputs[0], format, multiline, regex, false, false, null);
         String loadPath = dataLocation + inputs[0] + "/" + regex;
         if(inputs[0].split("\\.").length>1){
             loadPath = dataLocation + inputs[0];
@@ -205,48 +207,35 @@ public class File implements Serializable {
     /**
      * no header=true support yet, before it is wrong to have header = true since our wap daa having no header; spark default header false
      */
-    public Dataset read(String format, boolean multiline, String path, String basePath, boolean enableBasePath, boolean tabDelimited){
+    public Dataset read(String format, boolean multiline, String path, String basePath, boolean enableBasePath, boolean tabDelimited, StructType schema) {
         boolean exists = false;
         try {
             exists = fs.exists(new Path(path));
-        } catch(Exception e)
-        {
+        } catch (Exception e) {
             System.out.println("cannot find file:" + path);
         }
 
-        if( exists || localTest ){
-            if( enableBasePath) {
-                if( tabDelimited)
-                {
-                    return spark.read().format(format).option("multiline", multiline)
-                            .option("basePath", basePath)
-                            .option("delimiter", "\t")
-                            .load(path);
-                } else {
-                    return spark.read().format(format).option("multiline", multiline)
-                            .option("basePath", basePath)
-                            .load(path);
-                }
-            } else {
-                if( tabDelimited)
-                {
-                    return spark.read().format(format).option("multiline", multiline)
-                            .option("delimiter", "\t")
-                            .load(path);
-                } else {
-                    return spark.read().format(format).option("multiline", multiline)
-                            .load(path);
-                }
-
+        DataFrameReader reader = null;
+        if (exists || localTest) {
+            reader = spark.read().format(format).option("multiline", multiline);
+            if (enableBasePath) {
+                reader.option("basePath", basePath);
             }
+            if (tabDelimited) {
+                reader.option("delimiter", "\t");
+            }
+            if (schema != null && "csv".equals(format)) {
+                reader.schema(schema);
+            }
+
+            return reader.load(path);
         }
 
         return null;
-
     }
 
     public Dataset readFileBatch(String dataLocation, String input, String format, boolean multiline,
-                                 String regex, boolean enableBasePath, boolean tabDelimited){
+                                 String regex, boolean enableBasePath, boolean tabDelimited, StructType schema){
         input = input.replaceAll("\\s","");
         String[] inputs = input.split(",");
         String loadPath = dataLocation + inputs[0] + "/" + regex;
@@ -257,7 +246,7 @@ public class File implements Serializable {
         }
 
 
-        Dataset dataset = read(format, multiline, loadPath, basePath, enableBasePath, tabDelimited );
+        Dataset dataset = read(format, multiline, loadPath, basePath, enableBasePath, tabDelimited, schema );
         for(int i=1; i<inputs.length; i++){
             loadPath = dataLocation + inputs[i] + "/" + regex;
             basePath = dataLocation + inputs[i] + "/";
@@ -266,7 +255,7 @@ public class File implements Serializable {
                 System.out.println(" readFile" + i + loadPath);
             }
 
-            Dataset ds= read(format, multiline, loadPath, basePath, enableBasePath, tabDelimited);
+            Dataset ds= read(format, multiline, loadPath, basePath, enableBasePath, tabDelimited, schema);
             if( ds != null ) {
                 dataset = dataset.union(ds);
 
@@ -302,11 +291,11 @@ public class File implements Serializable {
         List<String> dateList = Aggregation.aggregateDates(Aggregation.getPeriodStartDate(date, period), period);
 
         String regex = getPartitionString(alias, partitionKey, dateList.get(0));
-        Dataset dataset = schema!=null? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
+        Dataset dataset = filterBySchema(schema, format) ? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
 
         for(int i=1; i< dateList.size(); i++){
             regex = getPartitionString(alias, partitionKey,  dateList.get(i));
-            Dataset ds = schema!=null? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
+            Dataset ds = filterBySchema(schema, format)? withSchema(readFileStream(dataLocation,input, format, multiline, regex), schema): readFileStream(dataLocation,input, format, multiline, regex);
             if( ds != null ) {
                 dataset = dataset.union(ds);
             }
@@ -314,18 +303,23 @@ public class File implements Serializable {
         return dataset;
     }
 
+    private boolean filterBySchema(StructType schema, String format) {
+        return schema != null && !"csv".equals(format);
+    }
+
     public Dataset readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey,
                                        boolean enableBasePath, String alias, boolean tabDelimited,
                                        String format, boolean multiline) throws Exception {
         List<String> dateList = Aggregation.aggregateDates(Aggregation.getPeriodStartDate(date, period), period);
         String regex = getPartitionString(alias, partitionKey, dateList.get(0));
-        Dataset dataset = schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited), schema):
-                readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited);
+
+        Dataset dataset = filterBySchema(schema, format) ? withSchema(readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited, schema), schema):
+                readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited, schema);
 
         for(int i=1; i< dateList.size(); i++){
             regex = getPartitionString(alias, partitionKey ,  dateList.get(i));
-            Dataset ds = schema!=null? withSchema(readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited), schema):
-                    readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited);
+            Dataset ds = filterBySchema(schema, format) ? withSchema(readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited, schema), schema):
+                    readFileBatch(dataLocation,input, format, multiline, regex, enableBasePath, tabDelimited, schema);
             if( ds != null ) {
                 dataset = dataset.union(ds);
             }
@@ -335,13 +329,14 @@ public class File implements Serializable {
     }
 
     private static String getPartitionString(String alias, String partitionKey, String partitionValue) {
-        String regex = partitionKey != null ? partitionKey + "=" + partitionValue : partitionValue;
+        String result = partitionKey != null ? partitionKey + "=" + partitionValue : partitionValue;
         //alias overwrite regex for non conforming partitionkeys format like webex meeting /pda/chartLibrary data
         if (alias != null) {
-            regex = alias.format(partitionValue);
+            System.out.println("alias=" + alias);
+            result = String.format(alias, partitionValue);
         }
-
-        return regex;
+        System.out.println("partitionString=" + result);
+        return result;
     }
 
     public static SaveMode getSaveMode(String mode){
