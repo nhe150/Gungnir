@@ -16,8 +16,7 @@ import util.DatasetFunctions;
 import java.io.Serializable;
 import java.util.List;
 
-import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.from_json;
+import static org.apache.spark.sql.functions.*;
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 
 public class File implements Serializable {
@@ -43,18 +42,22 @@ public class File implements Serializable {
 
         switch (processType) {
             case "batch":
-                if(ConfigProvider.hasConfigValue(fileConfig, "date")){
+                if (ConfigProvider.hasConfigValue(fileConfig, "date")) {
+                    String format = ConfigProvider.retrieveConfigValue(fileConfig, "format");
                     return readDataByDateBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                             ConfigProvider.retrieveConfigValue(fileConfig, "input"),
-                            ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName")): null,
+                            ConfigProvider.hasConfigValue(fileConfig, "schemaName") ? ("csv".equals(format) ?
+                                    configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName"), true)
+                                    : configProvider.readSchema(ConfigProvider.retrieveConfigValue(fileConfig, "schemaName"))) : null,
                             DateUtil.getDate(ConfigProvider.retrieveConfigValue(fileConfig, "date")),
-                            ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period"): null,
-                            ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey"): null,
-                            ConfigProvider.hasConfigValue(fileConfig, "enableBasePath") ? fileConfig.get( "enableBasePath").asBoolean(): false,
-                            ConfigProvider.hasConfigValue(fileConfig, "alias") ? ConfigProvider.retrieveConfigValue(fileConfig, "alias"): null,
-                            ConfigProvider.hasConfigValue(fileConfig, "tabDelimited") ? fileConfig.get( "tabDelimited").asBoolean(): false,
-                            ConfigProvider.retrieveConfigValue(fileConfig, "format"),
-                            ConfigProvider.hasConfigValue(fileConfig, "multiline") && fileConfig.get("multiline").asBoolean());
+                            ConfigProvider.hasConfigValue(fileConfig, "period") ? ConfigProvider.retrieveConfigValue(fileConfig, "period") : null,
+                            ConfigProvider.hasConfigValue(fileConfig, "partitionKey") ? ConfigProvider.retrieveConfigValue(fileConfig, "partitionKey") : null,
+                            ConfigProvider.hasConfigValue(fileConfig, "enableBasePath") ? fileConfig.get("enableBasePath").asBoolean() : false,
+                            ConfigProvider.hasConfigValue(fileConfig, "alias") ? ConfigProvider.retrieveConfigValue(fileConfig, "alias") : null,
+                            ConfigProvider.hasConfigValue(fileConfig, "tabDelimited") ? fileConfig.get("tabDelimited").asBoolean() : false,
+                            format,
+                            ConfigProvider.hasConfigValue(fileConfig, "multiline") && fileConfig.get("multiline").asBoolean(),
+                            ConfigProvider.hasConfigValue(fileConfig, "aliasColumn") ? ConfigProvider.retrieveConfigValue(fileConfig, "aliasColumn") : null);
                 }
                 Dataset datasetBatch = readFileBatch(ConfigProvider.retrieveConfigValue(fileConfig, "dataLocation"),
                         ConfigProvider.retrieveConfigValue(fileConfig, "input"),
@@ -225,6 +228,7 @@ public class File implements Serializable {
                 reader.option("delimiter", "\t");
             }
             if (schema != null && "csv".equals(format)) {
+                System.out.println("schema is:" +schema.prettyJson());
                 reader.schema(schema);
             }
 
@@ -309,7 +313,7 @@ public class File implements Serializable {
 
     public Dataset readDataByDateBatch(String dataLocation, String input, StructType schema, String date, String period, String partitionKey,
                                        boolean enableBasePath, String alias, boolean tabDelimited,
-                                       String format, boolean multiline) throws Exception {
+                                       String format, boolean multiline, String aliasColumn) throws Exception {
         List<String> dateList = Aggregation.aggregateDates(Aggregation.getPeriodStartDate(date, period), period);
         String regex = getPartitionString(alias, partitionKey, dateList.get(0));
 
@@ -323,6 +327,10 @@ public class File implements Serializable {
             if( ds != null ) {
                 dataset = dataset.union(ds);
             }
+        }
+
+        if( !enableBasePath && aliasColumn != null ) {
+            dataset = dataset.withColumn(aliasColumn,  lit(date));
         }
 
         return dataset;

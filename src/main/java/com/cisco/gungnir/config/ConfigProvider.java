@@ -1,5 +1,6 @@
 package com.cisco.gungnir.config;
 
+import org.apache.spark.sql.types.DataType;
 import util.DatasetFunctions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +49,20 @@ public class ConfigProvider implements Serializable {
 
     public JsonNode readJobConfig(String configName) throws Exception {
         return LoadConfig(retrieveConfigValue(appConfig, "jobLocation") + configName + ".json");
+    }
+
+    /**
+     * Reading from a schema as string from sqlQuery location
+     * @param schemaName sqlname under sqlQuery
+     * @param isSchema   use to distinguish with readSchema
+     * @return
+     * @throws Exception
+     */
+    public StructType readSchema(String schemaName, boolean isSchema) throws Exception {
+        String schemaString = readSql(schemaName);
+        StructType result = (StructType)DataType.fromJson(schemaString);
+        return result;
+
     }
 
     public StructType readSchema(String schemaName) throws Exception {
