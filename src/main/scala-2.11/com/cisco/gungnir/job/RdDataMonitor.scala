@@ -7,7 +7,6 @@ import org.joda.time.DateTimeZone
 import java.util
 import java.util.logging.Logger
 
-import com.cisco.gungnir.utils.DateUtil.isBusinessDay
 import org.apache.spark.sql.functions._
 
 object RdDataMonitor {
@@ -17,7 +16,7 @@ object RdDataMonitor {
 class RdDataMonitor() extends DataMonitor {
   private def getAvgPerOrg(ds: Dataset[_], currentDate: String) = {
     val startDate = getDate(-30)
-    val history = ds.where("to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + currentDate + "')").filter("isBusinessDay(pdate)") // only count biz days within last 30 days.
+    val history = ds.where("to_date('" + startDate + "') < to_date(pdate)" + " AND " + "to_date(pdate) < to_date('" + currentDate + "')") // only count biz days within last 30 days.
     val ds2 = history.groupBy("orgid", "pdate").agg(sum("incall").as("incall"),
       sum("local_share_cable").as("cable"),
       sum("local_share_wireless").as("wireless"),
@@ -76,7 +75,7 @@ class RdDataMonitor() extends DataMonitor {
 
 
     RdDataMonitor.LOGGER.info("Entering program. currentDate: " + myDate)
-    if (!isBusinessDay(myDate)) return
+    
 
     //need to scrutinize
     val input = readFromCass().toDF()
