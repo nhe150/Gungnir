@@ -1,7 +1,9 @@
 package com.cisco.gungnir.utils;
 
 import com.cisco.gungnir.config.ConfigProvider;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -83,6 +85,7 @@ public class Cassandra implements Serializable {
             default:
                 throw new IllegalArgumentException("Invalid process type: " + processType + " for readFromCassandra");
         }
+
     }
 
     public void writeToCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
@@ -90,6 +93,7 @@ public class Cassandra implements Serializable {
             throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
         dataset = dataset.drop("raw");
         JsonNode mergedConfig = getCassandraConfig(providedConfig);
+
         switch (processType) {
             case "batch":
                 batchToCassandra(dataset, ConfigProvider.retrieveConfigValue(mergedConfig, "cassandra.saveMode"));
@@ -292,8 +296,14 @@ public class Cassandra implements Serializable {
             if (emptySchema) {
                 return false;
             }
+            try {
+                session = connector.openSession();
+            }catch (Exception e)
+            {
+                System.out.println("openC* Session failed:" + e.getMessage());
+                session = null;
+            }
 
-            session = connector.openSession();
             boolean result = session != null && !session.isClosed();
             return result;
         }
@@ -339,7 +349,9 @@ public class Cassandra implements Serializable {
             String statement = "insert into " + keySpace + "." + tablename + " " + fields + " values" + fieldValues;
 
             try {
-                session.execute(statement);
+                SimpleStatement simple = new SimpleStatement(statement);
+                simple.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+                session.execute(simple);
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("sqlstat: " + statement);
@@ -349,8 +361,9 @@ public class Cassandra implements Serializable {
 
         @Override
         public void close(Throwable errorOrNull) {
+
             if (errorOrNull != null) {
-                errorOrNull.printStackTrace();
+                System.out.println("Cassandra-foreach close called with error:" + errorOrNull.getMessage());
             }
 
             if (session != null) {
