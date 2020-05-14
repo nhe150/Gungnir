@@ -64,6 +64,10 @@ public class Cassandra implements Serializable {
                     ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_password"));
             cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.path",
                     ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_path"));
+
+            cassandraConfigMap.put("spark.cassandra.connection.factory",
+                    "com.cisco.gungnir.utils.CustomCassandraConnectionFactory");
+
         }
         this.cassandraConfig = cassandraConfigMap;
         return merged;
@@ -207,11 +211,12 @@ public class Cassandra implements Serializable {
         sparkConf.set("spark.cassandra.auth.password", cassandraConfig.get("spark.cassandra.auth.password"));
         sparkConf.set("spark.cassandra.output.consistency.level", cassandraConfig.get("spark.cassandra.output.consistency.level"));
         sparkConf.set("spark.cassandra.input.consistency.level", cassandraConfig.get("spark.cassandra.input.consistency.level"));
-        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled") && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.password")
-            && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.path")){
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled") ){
             sparkConf.set("spark.cassandra.connection.ssl.enabled", cassandraConfig.get("spark.cassandra.connection.ssl.enabled"));
             sparkConf.set("spark.cassandra.connection.ssl.trustStore.password", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.password"));
             sparkConf.set("spark.cassandra.connection.ssl.trustStore.path", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.path"));
+            //use customer ConnectionFactory for truststore distribution
+            sparkConf.set("spark.cassandra.connection.factory", "com.cisco.gungnir.utils.CustomCassandraConnectionFactory");
         }
         return sparkConf;
     }
