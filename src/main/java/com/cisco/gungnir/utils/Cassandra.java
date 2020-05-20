@@ -149,15 +149,16 @@ public class Cassandra implements Serializable {
 
         Dataset result = null;
         String date = DateUtil.getDate(ConfigProvider.retrieveConfigValue(conf, "date"));
+        String month = date.substring(0, 7);
         System.out.println("cassconfig: " + conf.toString());
         System.out.println("date to workon: " + date);
+        System.out.println("month = " + month);
 
         if (date != null) {
             String relation = ConfigProvider.retrieveConfigValue(conf, "relation");
             if (ConfigProvider.hasConfigValue(conf, "monthPartition")) {
                 //seperate table
-                String month = date.substring(0, 7);
-                System.out.println("month = " + month);
+
                 String sql = String.format("month = '%s' and pdate = '%s'", month, date);
                 System.out.println("sqlstat: " + sql);
                 result = ds.where(sql);
@@ -175,8 +176,12 @@ public class Cassandra implements Serializable {
                     }
 
                 } else {
-                    if( ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")){
-                        result = ds.where(String.format("time_stamp = '%s' and relation_name = '%s'", date, relation));
+                    if (ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")) {
+                        if (ConfigProvider.hasConfigValue(conf, "wholeMonth")) {
+                            result = ds.where(String.format("relation_name = '%s'", relation));
+                        } else {
+                            result = ds.where(String.format("month = '%s' and time_stamp = '%s' and relation_name = '%s'", month, date, relation));
+                        }
                     }
                     else {
                         result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
