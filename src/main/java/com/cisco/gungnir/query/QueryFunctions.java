@@ -15,6 +15,9 @@ import static org.apache.spark.sql.functions.col;
 
 
 public class QueryFunctions implements Serializable {
+    //DEBUG can only turned to debug batch job instead of streaming jobs --- 5/14/2020 Norman He@cisco.com
+    static boolean DEBUG = false;
+
     private SparkSession spark;
     private ConfigProvider configProvider;
     public final Kafka kafka;
@@ -54,24 +57,22 @@ public class QueryFunctions implements Serializable {
                 System.out.println("dropducliates query:" + query);
                 if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
                 ds = dropDuplicates(ds, query, parameters);
+
+
             }
             else if(query.startsWith("SELECT") || query.startsWith("select")) {
                 System.out.println("select query:" + query);
-
                 ds = spark.sql(query);
-               // ds = setWatermark(ds, parameters);
 
             }else{
                 System.out.println("execute a query " + query);
                 ds = spark.sql(query);
-
-
-               // ds = setWatermark(ds, parameters);
-
             }
 
-
-
+            if( DEBUG ) {
+                System.out.println("GungnirQueryFunction:" + queryName + ":" + query.substring(0, 25));
+                ds.show(10);
+            }
 
         }
 
@@ -81,7 +82,17 @@ public class QueryFunctions implements Serializable {
 
     private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
         if(parameters!= null && parameters.has("schemaName") && ds != null && ds.columns().length!=0) {
-            return ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
+            Dataset  result = ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
+
+            if( result != null ) {
+                if(DEBUG) {
+                    System.out.println("apply schema");
+                    result.show(10);
+                }
+            }else {
+                System.out.println("Error in apply schema");
+            }
+            return  result;
         }
         return ds;
     }
