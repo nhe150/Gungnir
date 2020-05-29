@@ -34,7 +34,7 @@ public class HttpRequest implements Serializable {
             case "batch":
                 dataset.show();
                 HttpClient client = new DefaultHttpClient();
-                HttpPost post = new HttpPost("http://dbt1caw001.webex.com:8089/v1/api/todo/userInfo/getUserInfoBatch");
+                HttpPost post = new HttpPost("http://dpr2caw007.webex.com:8089/v1/api/todo/userInfo/getUserInfoBatch");
                 post.addHeader(HttpHeaders.CONTENT_TYPE,"application/json");
                 String json_str=dataset.toJSON().toJavaRDD().collect().toString();
                 post.setEntity(new StringEntity(json_str));
