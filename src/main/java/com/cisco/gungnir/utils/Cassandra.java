@@ -1,7 +1,9 @@
 package com.cisco.gungnir.utils;
 
 import com.cisco.gungnir.config.ConfigProvider;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,6 +66,10 @@ public class Cassandra implements Serializable {
                     ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_password"));
             cassandraConfigMap.put("spark.cassandra.connection.ssl.trustStore.path",
                     ConfigProvider.retrieveConfigValue(merged, "cassandra.ssl_trustStore_path"));
+
+            cassandraConfigMap.put("spark.cassandra.connection.factory",
+                    "com.cisco.gungnir.utils.CustomCassandraConnectionFactory");
+
         }
         this.cassandraConfig = cassandraConfigMap;
         return merged;
@@ -79,6 +85,7 @@ public class Cassandra implements Serializable {
             default:
                 throw new IllegalArgumentException("Invalid process type: " + processType + " for readFromCassandra");
         }
+
     }
 
     public void writeToCassandra(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
@@ -86,6 +93,7 @@ public class Cassandra implements Serializable {
             throw new IllegalArgumentException("can't write to cassandra: the input dataset is NULL, please check previous query");
         dataset = dataset.drop("raw");
         JsonNode mergedConfig = getCassandraConfig(providedConfig);
+
         switch (processType) {
             case "batch":
                 batchToCassandra(dataset, ConfigProvider.retrieveConfigValue(mergedConfig, "cassandra.saveMode"));
@@ -141,15 +149,16 @@ public class Cassandra implements Serializable {
 
         Dataset result = null;
         String date = DateUtil.getDate(ConfigProvider.retrieveConfigValue(conf, "date"));
+        String month = date.substring(0, 7);
         System.out.println("cassconfig: " + conf.toString());
         System.out.println("date to workon: " + date);
+        System.out.println("month = " + month);
 
         if (date != null) {
             String relation = ConfigProvider.retrieveConfigValue(conf, "relation");
             if (ConfigProvider.hasConfigValue(conf, "monthPartition")) {
                 //seperate table
-                String month = date.substring(0, 7);
-                System.out.println("month = " + month);
+
                 String sql = String.format("month = '%s' and pdate = '%s'", month, date);
                 System.out.println("sqlstat: " + sql);
                 result = ds.where(sql);
@@ -167,8 +176,12 @@ public class Cassandra implements Serializable {
                     }
 
                 } else {
-                    if( ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")){
-                        result = ds.where(String.format("time_stamp = '%s' and relation_name = '%s'", date, relation));
+                    if (ConfigProvider.retrieveConfigValue(conf, "cassandra.table").equals("spark_agg_v2")) {
+                        if (ConfigProvider.hasConfigValue(conf, "wholeMonth")) {
+                            result = ds.where(String.format("relation_name = '%s'", relation));
+                        } else {
+                            result = ds.where(String.format("month = '%s' and time_stamp = '%s' and relation_name = '%s'", month, date, relation));
+                        }
                     }
                     else {
                         result = ds.where(String.format("pdate = '%s' and relation_name = '%s'", date, relation));
@@ -207,11 +220,12 @@ public class Cassandra implements Serializable {
         sparkConf.set("spark.cassandra.auth.password", cassandraConfig.get("spark.cassandra.auth.password"));
         sparkConf.set("spark.cassandra.output.consistency.level", cassandraConfig.get("spark.cassandra.output.consistency.level"));
         sparkConf.set("spark.cassandra.input.consistency.level", cassandraConfig.get("spark.cassandra.input.consistency.level"));
-        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled") && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.password")
-            && cassandraConfig.containsKey("spark.cassandra.connection.ssl.trustStore.path")){
+        if(cassandraConfig.containsKey("spark.cassandra.connection.ssl.enabled") ){
             sparkConf.set("spark.cassandra.connection.ssl.enabled", cassandraConfig.get("spark.cassandra.connection.ssl.enabled"));
             sparkConf.set("spark.cassandra.connection.ssl.trustStore.password", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.password"));
             sparkConf.set("spark.cassandra.connection.ssl.trustStore.path", cassandraConfig.get("spark.cassandra.connection.ssl.trustStore.path"));
+            //use customer ConnectionFactory for truststore distribution
+            sparkConf.set("spark.cassandra.connection.factory", "com.cisco.gungnir.utils.CustomCassandraConnectionFactory");
         }
         return sparkConf;
     }
@@ -287,8 +301,14 @@ public class Cassandra implements Serializable {
             if (emptySchema) {
                 return false;
             }
+            try {
+                session = connector.openSession();
+            }catch (Exception e)
+            {
+                System.out.println("openC* Session failed:" + e.getMessage());
+                session = null;
+            }
 
-            session = connector.openSession();
             boolean result = session != null && !session.isClosed();
             return result;
         }
@@ -334,7 +354,9 @@ public class Cassandra implements Serializable {
             String statement = "insert into " + keySpace + "." + tablename + " " + fields + " values" + fieldValues;
 
             try {
-                session.execute(statement);
+                SimpleStatement simple = new SimpleStatement(statement);
+                simple.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+                session.execute(simple);
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("sqlstat: " + statement);
@@ -344,8 +366,9 @@ public class Cassandra implements Serializable {
 
         @Override
         public void close(Throwable errorOrNull) {
+
             if (errorOrNull != null) {
-                errorOrNull.printStackTrace();
+                System.out.println("Cassandra-foreach close called with error:" + errorOrNull.getMessage());
             }
 
             if (session != null) {

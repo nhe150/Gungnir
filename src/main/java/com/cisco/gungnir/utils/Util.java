@@ -9,14 +9,15 @@ import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Util implements Serializable  {
-    public static String[] buildWhereClauses(String date, String relation){
+public class Util implements Serializable {
+    public static String[] buildWhereClauses(String date, String relation) {
         String[] names = relation.split(",");
         String[] results = new String[names.length];
-        for( int i= 0; i < names.length; i++) {
+        for (int i = 0; i < names.length; i++) {
 
             String one = String.format("pdate = '%s' and relation_name = '%s'", date, names[i].trim());
             results[i] = one;
@@ -25,14 +26,14 @@ public class Util implements Serializable  {
     }
 
 
-    public static String buildWhereClause(String date, String relation){
+    public static String buildWhereClause(String date, String relation) {
         String[] names = relation.split(",");
         StringBuilder sb = new StringBuilder();
-        for( int i= 0; i < names.length; i++) {
+        for (int i = 0; i < names.length; i++) {
 
             String one = String.format(" ( pdate = '%s' and relation_name = '%s' )", date, names[i].trim());
             sb.append(one);
-            if( i != names.length - 1)
+            if (i != names.length - 1)
                 sb.append(" OR ");
         }
         return sb.toString();
@@ -42,27 +43,25 @@ public class Util implements Serializable  {
         return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
     }
 
-    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue){
-
+    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue) {
         StructField[] structField = schema.fields();
         String[] names = schema.fieldNames();
 
         for (int i = 0; i < structField.length; i++) {
-
             DataType type = structField[i].dataType();
-            if(type.sameType(DataTypes.StringType)){
+            if (type.sameType(DataTypes.StringType)) {
                 values[i] = "'" + row.get(i) + "'";
-            }else if(type.sameType(DataTypes.TimestampType)){
+            } else if (type.sameType(DataTypes.TimestampType)) {
                 //if format is '2019-07-16 17:53:58.606'
                 values[i] = "to_date( substr('" + row.get(i) + "' , 1, 19), 'YYYY-MM-DD HH24:MI:SS')";
-            }else{
-                values[i] = row.get(i)+"";
+            } else {
+                values[i] = row.get(i) + "";
             }
 
-            if(pkSet.contains(names[i])){
-                pk_KeyValue.add(names[i] +" = "+values[i]);
-            }else{
-                nonPk_KeyValue.add(names[i] +" = "+values[i]);
+            if (pkSet.contains(names[i])) {
+                pk_KeyValue.add(escapeOraclePreserve(names[i]) + " = " + values[i]);
+            } else {
+                nonPk_KeyValue.add( escapeOraclePreserve(names[i]) + " = " + values[i]);
             }
         }
 
@@ -70,12 +69,12 @@ public class Util implements Serializable  {
             return "";
         }
 
-        String fields = "(" + String.join(", ", schema.fieldNames()).toLowerCase() + ")";
+        String fields = "(" + String.join(", ", escapeOraclePreserve(schema.fieldNames())) + ")";
         String fieldValues = "(" + String.join(", ", values) + ")";
-        String insertStatement = "insert into " + tableName + " " + fields + " values " + fieldValues +" ;";
+        String insertStatement = "insert into " + tableName + " " + fields + " values " + fieldValues + " ;";
 
         String updateStatement =
-                "update " + tableName + " SET " + String.join(",", nonPk_KeyValue) + " where " + String.join(" and ", pk_KeyValue) +" ;";
+                "update " + tableName + " SET " + String.join(",", nonPk_KeyValue) + " where " + String.join(" and ", pk_KeyValue) + " ;";
 
 
         /**
@@ -88,9 +87,32 @@ public class Util implements Serializable  {
          * END IF;
          */
 
-        String sqlStr = "BEGIN " + updateStatement + " IF sql%notfound THEN " +  insertStatement + " END IF; END;";
+        String sqlStr = "BEGIN " + updateStatement + " IF sql%notfound THEN " + insertStatement + " END IF; END;";
 
         return sqlStr;
+    }
+
+    static String QUOTE = "\"";
+    static Set<String> oracleSpecials = new HashSet<String>();
+
+    static {
+        oracleSpecials.add("DATE");
+    }
+
+    private static String escapeOraclePreserve(String name) {
+        if (oracleSpecials.contains(name.toUpperCase())) {
+            return QUOTE + name + QUOTE;
+        }
+
+        return name;
+    }
+
+    private static String[] escapeOraclePreserve(String[] names) {
+        for (int i = 0; i < names.length; i++) {
+            names[i] = escapeOraclePreserve(names[i]);
+        }
+
+        return names;
     }
 
 
