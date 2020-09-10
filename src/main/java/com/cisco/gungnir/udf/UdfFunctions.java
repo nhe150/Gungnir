@@ -46,6 +46,8 @@ public class UdfFunctions implements Serializable {
         spark.udf().register("convertTimeString", new ConvertTimeString("yyyy-MM-dd"), DataTypes.StringType);
         spark.udf().register("toTimestamp", new ToTimestamp(), DataTypes.TimestampType);
         spark.udf().register("calcAvgFromHistMin", new calcAvgFromHistMin(), DataTypes.FloatType);
+        spark.udf().register("validClient", new ValidClientLookup(configProvider.retrieveAppConfigValue("configLocation") + "clientNames.csv"), DataTypes.BooleanType);
+        spark.udf().register("clientMapping", new clientMapping(configProvider.retrieveAppConfigValue("configLocation") + "clientNames.csv"), DataTypes.StringType);
 
         spark.udf()
                 .register("get_only_file_name", (String fullPath) -> {
@@ -135,6 +137,48 @@ public class UdfFunctions implements Serializable {
         }
     }
 
+    private class ValidClientLookup implements UDF1<String, Boolean> {
+        private List<String> validClientList;
+
+        public ValidClientLookup(String configPath){
+            Dataset clientList = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            validClientList = clientList.map((MapFunction<Row, String>) row -> row.<String>getString(0), Encoders.STRING()).collectAsList();
+        }
+
+        public Boolean call(String client) throws Exception {
+
+            return validClientList.contains(client);
+        }
+    }
+
+    private class clientMapping implements UDF1<String, String> {
+        private Map<String, String> clientMap;
+
+        public clientMapping(String configPath){
+            Dataset clientType = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            JavaPairRDD<String, String> javaPairRDD = clientType.toJavaRDD().mapToPair(new PairFunction<Row, String, String>() {
+                public Tuple2<String, String> call(Row row) throws Exception {
+                    return new Tuple2<String, String>((String) row.get(0), (String) row.get(1));
+                }
+            });
+
+            clientMap = new HashMap<>(javaPairRDD.collectAsMap());
+        }
+
+        public String call(String client) throws Exception {
+            String key = (client==null ? "": client);
+            return clientMap.containsKey(key)?  clientMap.get(key): "OTHER";
+        }
+    }
+
     private class UaMapping implements UDF1<String, String> {
         private Map<String, String> deviceTypeMap;
 
@@ -209,7 +253,7 @@ public class UdfFunctions implements Serializable {
                 tags[0] = tag;
             }
         }
-        
+
 
         public Boolean call(String line) {
 
