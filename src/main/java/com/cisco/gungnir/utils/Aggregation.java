@@ -24,7 +24,7 @@ public class Aggregation implements Serializable {
         if(period == null) return;
         switch (period){
             case "daily":
-                setWatermarkDelayThreshold("4 hours");
+                setWatermarkDelayThreshold("28 hours");
                 break;
             case "weekly":
                 setWatermarkDelayThreshold("8 days");
