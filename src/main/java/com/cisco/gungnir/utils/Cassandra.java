@@ -8,10 +8,7 @@ import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.ForeachWriter;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
@@ -27,7 +24,9 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import static org.apache.spark.sql.functions.*;
 
+import static org.apache.commons.lang3.StringUtils.replace;
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 
 public class Cassandra implements Serializable {
@@ -194,7 +193,8 @@ public class Cassandra implements Serializable {
     }
 
     public void batchToCassandra(Dataset dataset, String saveMode) {
-        columnNameToLowerCase(dataset).write()
+        columnNameToLowerCase(escapeSingleQuotes(dataset))
+                .write()
                 .mode(File.getSaveMode(saveMode))
                 .format("org.apache.spark.sql.cassandra")
                 .options(cassandraConfig)
@@ -202,7 +202,7 @@ public class Cassandra implements Serializable {
     }
 
     public StreamingQuery streamToCassandra(Dataset<Row> dataset, String queryName, String saveMode) throws Exception {
-        return dataset
+        return escapeSingleQuotes(dataset)
                 .coalesce(100)
                 .writeStream()
                 .outputMode(saveMode)
@@ -235,9 +235,17 @@ public class Cassandra implements Serializable {
         return connector;
     }
 
+
     private Dataset<Row> columnNameToLowerCase(Dataset dataset) {
         for (String col : dataset.columns()) {
             dataset = dataset.withColumnRenamed(col, col.toLowerCase());
+        }
+        return dataset;
+    }
+
+    private Dataset<Row> escapeSingleQuotes(Dataset dataset) {
+        for (String columnName : dataset.columns()) {
+            dataset = dataset.withColumn(columnName, regexp_replace(col(columnName), "'", "''"));
         }
         return dataset;
     }
