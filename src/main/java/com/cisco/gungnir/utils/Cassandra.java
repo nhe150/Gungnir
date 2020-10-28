@@ -8,7 +8,10 @@ import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.ForeachWriter;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
@@ -24,9 +27,9 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import static org.apache.spark.sql.functions.*;
+import static org.apache.spark.sql.functions.regexp_replace;
+import static org.apache.spark.sql.functions.col;
 
-import static org.apache.commons.lang3.StringUtils.replace;
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
 
 public class Cassandra implements Serializable {
