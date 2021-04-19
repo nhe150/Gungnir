@@ -44,9 +44,12 @@ public class UdfFunctions implements Serializable {
         spark.udf().register("uuid", new Uuid(), DataTypes.StringType);
         spark.udf().register("shortUuid", new shortUuid(), DataTypes.StringType);
         spark.udf().register("convertTimeString", new ConvertTimeString("yyyy-MM-dd"), DataTypes.StringType);
+        spark.udf().register("convertTimeToMinutePrecision", new ConvertTimeToMinutePrecision("yyyy-MM-dd HH:mm"), DataTypes.StringType);
         spark.udf().register("toTimestamp", new ToTimestamp(), DataTypes.TimestampType);
         spark.udf().register("calcAvgFromHistMin", new calcAvgFromHistMin(), DataTypes.FloatType);
         spark.udf().register("clientMapping", new clientMapping(configProvider.retrieveAppConfigValue("configLocation") + "clientNames.csv"), DataTypes.StringType);
+        spark.udf().register("onboardMethodMapping", new onboardMethodMapping(configProvider.retrieveAppConfigValue("configLocation") + "onboard-method-mapping.csv"), DataTypes.StringType);
+        spark.udf().register("licenseMapping", new licenseMapping(configProvider.retrieveAppConfigValue("configLocation") + "license-mapping.csv"), DataTypes.StringType);
 
         spark.udf()
                 .register("get_only_file_name", (String fullPath) -> {
@@ -88,6 +91,17 @@ public class UdfFunctions implements Serializable {
     private static class ConvertTime implements UDF1<Timestamp, String> {
         private TimeConverter timeConverter;
         public ConvertTime(String toPattern){
+            this.timeConverter = new TimeConverter(toPattern);
+        }
+
+        public String call(Timestamp timeStamp) throws Exception {
+            return timeConverter.convert(timeStamp);
+        }
+    }
+
+    private static class ConvertTimeToMinutePrecision implements UDF1<Timestamp, String> {
+        private TimeConverter timeConverter;
+        public ConvertTimeToMinutePrecision(String toPattern){
             this.timeConverter = new TimeConverter(toPattern);
         }
 
@@ -245,6 +259,54 @@ public class UdfFunctions implements Serializable {
         public String call(String client) throws Exception {
             String key = (client==null ? "": client);
             return clientMap.containsKey(key)?  clientMap.get(key): "OTHER";
+        }
+    }
+
+    private class onboardMethodMapping implements UDF1<String, String> {
+        private Map<String, String> onboardMethodMap;
+
+        public onboardMethodMapping(String configPath){
+            Dataset clientType = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            JavaPairRDD<String, String> javaPairRDD = clientType.toJavaRDD().mapToPair(new PairFunction<Row, String, String>() {
+                public Tuple2<String, String> call(Row row) throws Exception {
+                    return new Tuple2<String, String>((String) row.get(0), (String) row.get(1));
+                }
+            });
+
+            onboardMethodMap = new HashMap<>(javaPairRDD.collectAsMap());
+        }
+
+        public String call(String client) throws Exception {
+            String key = (client==null ? "": client);
+            return onboardMethodMap.containsKey(key)?  onboardMethodMap.get(key): "Unknown";
+        }
+    }
+
+    private class licenseMapping implements UDF1<String, String> {
+        private Map<String, String> licenseMap;
+
+        public licenseMapping(String configPath){
+            Dataset clientType = spark.read().format("csv")
+                    .option("header", "true")
+                    .option("inferSchema", "true")
+                    .option("delimiter", ",")
+                    .load(configPath);
+            JavaPairRDD<String, String> javaPairRDD = clientType.toJavaRDD().mapToPair(new PairFunction<Row, String, String>() {
+                public Tuple2<String, String> call(Row row) throws Exception {
+                    return new Tuple2<String, String>((String) row.get(0), (String) row.get(1));
+                }
+            });
+
+            licenseMap = new HashMap<>(javaPairRDD.collectAsMap());
+        }
+
+        public String call(String client) throws Exception {
+            String key = (client==null ? "": client);
+            return licenseMap.containsKey(key)?  licenseMap.get(key): "Unknown";
         }
     }
 
