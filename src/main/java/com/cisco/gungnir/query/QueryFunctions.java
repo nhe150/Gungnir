@@ -9,15 +9,14 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.Serializable;
+import java.net.URL;
+import java.net.URLConnection;
 
 import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.functions.col;
 
 
 public class QueryFunctions implements Serializable {
-    //DEBUG can only turned to debug batch job instead of streaming jobs --- 5/14/2020 Norman He@cisco.com
-    static boolean DEBUG = false;
-
     private SparkSession spark;
     private ConfigProvider configProvider;
     public final Kafka kafka;
@@ -25,6 +24,7 @@ public class QueryFunctions implements Serializable {
     public final File file;
     public final Hive hive;
     public final Oracle oracle;
+    public final HttpRequest httpRequest;
 
     public QueryFunctions(SparkSession spark, ConfigProvider configProvider) throws Exception{
         this.spark = spark;
@@ -34,11 +34,13 @@ public class QueryFunctions implements Serializable {
         this.file = new File(spark, configProvider);
         this.hive = new Hive(spark, configProvider);
         this.oracle = new Oracle(spark, configProvider);
+        this.httpRequest = new HttpRequest(spark, configProvider);
         UdfFunctions udfFunctions = new UdfFunctions(spark, configProvider);
         udfFunctions.registerFunctions();
     }
 
     public Dataset executeSqlQueries(Dataset ds, String queryName, JsonNode parameters) throws Exception {
+
         registerFunctions(queryName, parameters);
 
         String[] queryList = configProvider.readSql(queryName).split(";");
@@ -57,21 +59,20 @@ public class QueryFunctions implements Serializable {
                 System.out.println("dropducliates query:" + query);
                 if(ds==null) throw new IllegalArgumentException("can't execute sql query " + queryName + ": the input dataset is NULL, please check previous query");
                 ds = dropDuplicates(ds, query, parameters);
-
-
             }
             else if(query.startsWith("SELECT") || query.startsWith("select")) {
                 System.out.println("select query:" + query);
+
                 ds = spark.sql(query);
+               // ds = setWatermark(ds, parameters);
 
             }else{
                 System.out.println("execute a query " + query);
                 ds = spark.sql(query);
-            }
 
-            if( DEBUG ) {
-                System.out.println("GungnirQueryFunction:" + queryName + ":" + query.substring(0, 25));
-                ds.show(10);
+
+               // ds = setWatermark(ds, parameters);
+
             }
 
         }
@@ -80,7 +81,7 @@ public class QueryFunctions implements Serializable {
         return ds;
     }
 
-    private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
+   private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
         if(parameters!= null && parameters.has("schemaName") && ds != null && ds.columns().length!=0) {
             Dataset  result = ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
 

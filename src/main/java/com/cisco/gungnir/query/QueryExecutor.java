@@ -64,6 +64,9 @@ public class QueryExecutor implements Serializable {
             case "writeToOracle":
                 queryFunctions.oracle.writeToOracle(previous, queryType, parameters);
                 break;
+            case "readHttpRequest":
+                result = queryFunctions.httpRequest.readFromHttpRequest(previous, queryType, parameters);
+                break;
             default:
                 result = queryFunctions.executeSqlQueries(previous, queryName, parameters);
         }
