@@ -75,18 +75,25 @@ public class QueryFunctions implements Serializable {
 
             }
 
-
-
-
         }
 
         ds = applySchema(ds, parameters);
         return ds;
     }
 
-    private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
+   private Dataset applySchema(Dataset ds, JsonNode parameters) throws Exception {
         if(parameters!= null && parameters.has("schemaName") && ds != null && ds.columns().length!=0) {
-            return ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
+            Dataset  result = ds.select(from_json(col("value"), configProvider.readSchema(parameters.get("schemaName").asText())).as("data"), col("value").as("raw")).select("data.*", "raw");
+
+            if( result != null ) {
+                if(DEBUG) {
+                    System.out.println("apply schema");
+                    result.show(10);
+                }
+            }else {
+                System.out.println("Error in apply schema");
+            }
+            return  result;
         }
         return ds;
     }
