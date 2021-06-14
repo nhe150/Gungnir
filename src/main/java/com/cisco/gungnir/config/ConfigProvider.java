@@ -40,7 +40,7 @@ public class ConfigProvider implements Serializable {
 
     public JsonNode LoadConfig(String configPath) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
-        Dataset config = spark.read().option("multiline", true).json(configPath);
+        Dataset config = spark.read().format("org.apache.spark.sql.execution.datasources.json.JsonFileFormat").option("multiline", true).load(configPath);
         if(DatasetFunctions.hasColumn(config, "_corrupt_record")){
             throw new IllegalArgumentException("the provided config in "+ configPath + " is not a valid json");
         }
@@ -66,7 +66,8 @@ public class ConfigProvider implements Serializable {
     }
 
     public StructType readSchema(String schemaName) throws Exception {
-        Dataset schema = spark.read().option("multiline", true).json(retrieveConfigValue(appConfig, "schemaLocation") + schemaName + ".json");
+        Dataset schema = spark.read().format("org.apache.spark.sql.execution.datasources.json.JsonFileFormat")
+                .option("multiline", true).load(retrieveConfigValue(appConfig, "schemaLocation") + schemaName + ".json");
         if(DatasetFunctions.hasColumn(schema, "_corrupt_record")){
             throw new IllegalArgumentException("the provided schema "+ schemaName + " is not a valid json");
         }
@@ -75,7 +76,8 @@ public class ConfigProvider implements Serializable {
     }
 
     public String readSql(String sqlName) throws Exception {
-        Dataset queries = spark.read().textFile(retrieveConfigValue(appConfig, "queryLocation"))
+        Dataset queries = spark.read().format("org.apache.spark.sql.execution.datasources.text.TextFileFormat")
+                .load(retrieveConfigValue(appConfig, "queryLocation"))
                 .withColumn("filename", input_file_name()).selectExpr("get_only_file_name(filename) as name", "value")
                 .groupBy("name").agg(collect_list("value").as("value")).selectExpr("name", "concat_ws(' ', value) as query");
         Dataset query = queries.select( "query").where("name='"+ sqlName + "'");

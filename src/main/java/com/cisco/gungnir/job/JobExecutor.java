@@ -32,7 +32,7 @@ public class JobExecutor implements Serializable {
         spark.sqlContext().setConf("spark.sql.streaming.checkpointLocation", configProvider.retrieveAppConfigValue("spark.streamingCheckpointLocation"));
         spark.sqlContext().setConf("spark.streaming.stopGracefullyOnShutdown", configProvider.retrieveAppConfigValue("spark.streamingStopGracefullyOnShutdown"));
         spark.sqlContext().setConf("spark.streaming.backpressure.enabled", configProvider.retrieveAppConfigValue("spark.streamingBackpressureEnabled"));
-        spark.sqlContext().setConf("spark.network.timeout", configProvider.retrieveAppConfigValue("spark.networkTimeout"));
+        //spark.sqlContext().setConf("spark.network.timeout", configProvider.retrieveAppConfigValue("spark.networkTimeout"));
         spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
 
         //enable orc Hive support using native in spark 2.3

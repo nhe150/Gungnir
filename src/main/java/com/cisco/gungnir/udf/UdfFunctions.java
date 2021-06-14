@@ -124,7 +124,7 @@ public class UdfFunctions implements Serializable {
     private class TestUser implements UDF1<String, Integer> {
         private List<String> testUserList;
         public TestUser(String configPath){
-            Dataset testUser = spark.read().option("multiline", true).json(configPath).selectExpr("explode(testUsers) as testUser");
+            Dataset testUser = spark.read().format("org.apache.spark.sql.execution.datasources.json.JsonFileFormat").option("multiline", true).load(configPath).selectExpr("explode(testUsers) as testUser");
             testUserList = testUser.map((MapFunction<Row, String>) row -> row.<String>getString(0), Encoders.STRING()).collectAsList();
         }
         public Integer call(String userId) throws Exception {
@@ -136,7 +136,7 @@ public class UdfFunctions implements Serializable {
         private List<String> excludedOrgList;
 
         public ValidOrgLookup(String configPath){
-            Dataset orgList = spark.read().format("csv")
+            Dataset orgList = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")
@@ -154,7 +154,7 @@ public class UdfFunctions implements Serializable {
         private Map<String, String> deviceTypeMap;
 
         public UaMapping(String configPath){
-            Dataset deviceUaType = spark.read().format("csv")
+            Dataset deviceUaType = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")
@@ -178,7 +178,7 @@ public class UdfFunctions implements Serializable {
         private Map<String, String> deviceTypeMap;
 
         public DeviceMapping(String configPath){
-            Dataset deviceUaType = spark.read().format("csv")
+            Dataset deviceUaType = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")
@@ -242,7 +242,7 @@ public class UdfFunctions implements Serializable {
         private Map<String, String> clientMap;
 
         public clientMapping(String configPath){
-            Dataset clientType = spark.read().format("csv")
+            Dataset clientType = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")
@@ -266,7 +266,7 @@ public class UdfFunctions implements Serializable {
         private Map<String, String> onboardMethodMap;
 
         public onboardMethodMapping(String configPath){
-            Dataset clientType = spark.read().format("csv")
+            Dataset clientType = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")
@@ -290,7 +290,7 @@ public class UdfFunctions implements Serializable {
         private Map<String, String> licenseMap;
 
         public licenseMapping(String configPath){
-            Dataset clientType = spark.read().format("csv")
+            Dataset clientType = spark.read().format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
                     .option("header", "true")
                     .option("inferSchema", "true")
                     .option("delimiter", ",")

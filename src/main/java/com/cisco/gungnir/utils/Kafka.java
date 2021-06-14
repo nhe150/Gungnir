@@ -83,20 +83,55 @@ public class Kafka implements Serializable {
 
 
     public Dataset readKafkaStream(JsonNode kafkaConfig) throws Exception {
-        return spark
-                .readStream()
-                .format("kafka")
-                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.topic"), kafkaConfig))
-                .option("maxOffsetsPerTrigger", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.maxOffsetsPerTrigger"))
-                .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
-                .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
-                .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
-                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", ""): "latest")
-                .load()
-                .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-                .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+
+        String is_ssl = ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.ssl");
+
+        if(is_ssl.equals("true")) {
+            return spark
+                    .readStream()
+                    .format("kafka")
+//                    .option("kafka.security.protocol", "SASL_SSL")
+//                    .option("kafka.sasl.kerberos.service.name", "kafka")
+//                    .option("kafka.ssl.truststore.location", "./rpbt1.truststore.keystore.jks")
+//                    .option("kafka.ssl.truststore.password", "Test@1234")
+//                    .option("kafka.ssl.keystore.location", "./rpbt1.server.keystore.jks")
+//                    .option("kafka.ssl.keystore.password", "Test@1234")
+//                    .option("kafka.ssl.key.password", "Test@1234")
+                    .option("kafka.security.protocol", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.securityProtocol"))
+                    .option("kafka.sasl.kerberos.service.name", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.kerberosServiceName"))
+                    .option("kafka.ssl.truststore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.truststore"))
+                    .option("kafka.ssl.truststore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.trustStorePassword"))
+                    .option("kafka.ssl.keystore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keystore"))
+                    .option("kafka.ssl.keystore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keyStorePassword"))
+                    .option("kafka.ssl.key.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.sslPassword"))
+                    .option("groupIdPrefix",ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.groupIdPrefix"))
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"), kafkaConfig))
+                    .option("maxOffsetsPerTrigger", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.maxOffsetsPerTrigger"))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetRetryIntervalMs"))
+                    .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig, "spark.streamingKafkaFailOnDataLoss"))
+                    .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets") ? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", "") : "latest")
+                    .load()
+                    .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                    .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+        }
+        else {
+            return spark.readStream()
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.topic"), kafkaConfig))
+                    .option("maxOffsetsPerTrigger", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.maxOffsetsPerTrigger"))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
+                    .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
+                    .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", ""): "latest")
+                    .load()
+                    .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                    .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+        }
     }
+
 
     public Dataset readKafkaStreamWithSchema(JsonNode kafkaConfig) throws Exception {
         return readKafkaStream(kafkaConfig)
@@ -104,19 +139,47 @@ public class Kafka implements Serializable {
     }
 
     public Dataset readKafkaBatch(JsonNode kafkaConfig) throws Exception {
-        return spark
-                .read()
-                .format("kafka")
-                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.topic"), kafkaConfig))
-                .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
-                .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
-                .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamingKafkaFailOnDataLoss"))
-                .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets")? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", ""): "earliest")
-                .option("endingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.endingOffsets")? kafkaConfig.get("kafka").get("endingOffsets").toString().replaceAll("^\"|\"$", ""): "latest")
-                .load()
-                .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
-                .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+
+        String is_ssl = ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.ssl");
+
+        if(is_ssl.equals("true")) {
+            return spark
+                    .read()
+                    .format("kafka")
+                    .option("kafka.security.protocol", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.securityProtocol"))
+                    .option("kafka.sasl.kerberos.service.name", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.kerberosServiceName"))
+                    .option("kafka.ssl.truststore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.truststore"))
+                    .option("kafka.ssl.truststore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.trustStorePassword"))
+                    .option("kafka.ssl.keystore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keystore"))
+                    .option("kafka.ssl.keystore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keyStorePassword"))
+                    .option("kafka.ssl.key.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.sslPassword"))
+                    .option("groupIdPrefix",ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.groupIdPrefix"))
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"), kafkaConfig))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetRetryIntervalMs"))
+                    .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig, "spark.streamingKafkaFailOnDataLoss"))
+                    .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets") ? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", "") : "earliest")
+                    .option("endingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.endingOffsets") ? kafkaConfig.get("kafka").get("endingOffsets").toString().replaceAll("^\"|\"$", "") : "latest")
+                    .load()
+                    .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                    .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+        }
+        else {
+            return spark
+                    .read()
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("subscribe", getKafkaTopicNames(ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.topic"), kafkaConfig))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetRetryIntervalMs"))
+                    .option("failOnDataLoss", ConfigProvider.retrieveConfigValue(kafkaConfig, "spark.streamingKafkaFailOnDataLoss"))
+                    .option("startingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.startingOffsets") ? kafkaConfig.get("kafka").get("startingOffsets").toString().replaceAll("^\"|\"$", "") : "earliest")
+                    .option("endingOffsets", ConfigProvider.hasConfigValue(kafkaConfig, "kafka.endingOffsets") ? kafkaConfig.get("kafka").get("endingOffsets").toString().replaceAll("^\"|\"$", "") : "latest")
+                    .load()
+                    .selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+                    .selectExpr("CASE WHEN (key IS NOT NULL) THEN split(key, '^')[0] ELSE key END as key", "value");
+        }
     }
 
     public Dataset readKafkaBatchWithSchema(JsonNode kafkaConfig) throws Exception {
@@ -128,47 +191,132 @@ public class Kafka implements Serializable {
         String topic = Checkpoint.constructKafkaTopic(kafkaConfig);
         String checkpoint = Checkpoint.constructCheckpoint(kafkaConfig);
 
-        return  constructKafkaKeyValue(dataset, kafkaConfig)
-                .writeStream()
-                .format("kafka")
-                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(topic, kafkaConfig))
-                .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.retries"))
-                .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.retryBackoffMs"))
-                .option("kafka.metadata.fetch.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.metadataFetchTimeoutMs"))
-                .option("kafka.linger.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.lingerMs"))
-                .option("kafka.batch.size", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.batchSize"))
-                .option("kafka.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.timeoutMs"))
-                .option("kafka.request.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.requestTimeoutMs"))
-                .option("kafka.max.request.size", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.maxRequestSize"))
-                .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetNumRetries"))
-                .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.fetchOffsetRetryIntervalMs"))
-                .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig,"spark.streamngTriggerWindow")))
-                .queryName("sinkToKafka_" + checkpoint)
-                .start();
+        String is_ssl = ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.ssl");
+
+        if(is_ssl.equals("true")) {
+
+            return constructKafkaKeyValue(dataset, kafkaConfig)
+                    .writeStream()
+                    .format("kafka")
+                    .option("kafka.security.protocol", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.securityProtocol"))
+                    .option("kafka.sasl.kerberos.service.name", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.kerberosServiceName"))
+                    .option("kafka.ssl.truststore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.truststore"))
+                    .option("kafka.ssl.truststore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.trustStorePassword"))
+                    .option("kafka.ssl.keystore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keystore"))
+                    .option("kafka.ssl.keystore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keyStorePassword"))
+                    .option("kafka.ssl.key.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.sslPassword"))
+                    .option("groupIdPrefix",ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.groupIdPrefix"))
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(topic, kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .option("kafka.metadata.fetch.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.metadataFetchTimeoutMs"))
+                    .option("kafka.linger.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.lingerMs"))
+                    .option("kafka.batch.size", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.batchSize"))
+                    .option("kafka.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.timeoutMs"))
+                    .option("kafka.request.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.requestTimeoutMs"))
+                    .option("kafka.max.request.size", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.maxRequestSize"))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetRetryIntervalMs"))
+                    .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig, "spark.streamngTriggerWindow")))
+                    .queryName("sinkToKafka_" + checkpoint)
+                    .start();
+
+        }
+
+        else {
+
+            return constructKafkaKeyValue(dataset, kafkaConfig)
+                    .writeStream()
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(topic, kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .option("kafka.metadata.fetch.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.metadataFetchTimeoutMs"))
+                    .option("kafka.linger.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.lingerMs"))
+                    .option("kafka.batch.size", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.batchSize"))
+                    .option("kafka.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.timeoutMs"))
+                    .option("kafka.request.timeout.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.requestTimeoutMs"))
+                    .option("kafka.max.request.size", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.maxRequestSize"))
+                    .option("fetchOffset.numRetries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetNumRetries"))
+                    .option("fetchOffset.retryIntervalMs", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.fetchOffsetRetryIntervalMs"))
+                    .trigger(ProcessingTime(ConfigProvider.retrieveConfigValue(kafkaConfig, "spark.streamngTriggerWindow")))
+                    .queryName("sinkToKafka_" + checkpoint)
+                    .start();
+        }
     }
 
     //used for scala code. incase of type eraser, using extra parameter to distinguish --- 2019-07-23 Norman He@cisco
     public void batchToKafka(Dataset<Row> dataset, JsonNode kafkaConfig, boolean diff) throws Exception {
-        constructKafkaKeyValue(dataset, kafkaConfig)
-                .write()
-                .format("kafka")
-                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
-                .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
-                .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
-                .save();
+        String is_ssl = ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.ssl");
+
+        if(is_ssl.equals("true")) {
+            System.out.println("Inserting the data into the kafka topic -- SASL");
+            constructKafkaKeyValue(dataset, kafkaConfig)
+                    .write()
+                    .format("kafka")
+                    .option("kafka.security.protocol", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.securityProtocol"))
+                    .option("kafka.sasl.kerberos.service.name", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.kerberosServiceName"))
+                    .option("kafka.ssl.truststore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.truststore"))
+                    .option("kafka.ssl.truststore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.trustStorePassword"))
+                    .option("kafka.ssl.keystore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keystore"))
+                    .option("kafka.ssl.keystore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keyStorePassword"))
+                    .option("kafka.ssl.key.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.sslPassword"))
+                    .option("groupIdPrefix",ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.groupIdPrefix"))
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .save();
+        }
+
+         else {
+            constructKafkaKeyValue(dataset, kafkaConfig)
+                    .write()
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .save();
+        }
     }
 
     public void batchToKafka(Dataset dataset, JsonNode kafkaConfig) throws Exception {
-        constructKafkaKeyValue(dataset, kafkaConfig)
-                .write()
-                .format("kafka")
-                .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
-                .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
-                .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
-                .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
-                .save();
+
+        String is_ssl = ConfigProvider.retrieveConfigValue(kafkaConfig,"kafka.ssl");
+
+        if(is_ssl.equals("true")) {
+            System.out.println("Inserting the data into the kafka topic -- SASL");
+            constructKafkaKeyValue(dataset, kafkaConfig)
+                    .write()
+                    .format("kafka")
+                    .option("kafka.security.protocol", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.securityProtocol"))
+                    .option("kafka.sasl.kerberos.service.name", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.kerberosServiceName"))
+                    .option("kafka.ssl.truststore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.truststore"))
+                    .option("kafka.ssl.truststore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.trustStorePassword"))
+                    .option("kafka.ssl.keystore.location", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keystore"))
+                    .option("kafka.ssl.keystore.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.keyStorePassword"))
+                    .option("groupIdPrefix",ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.groupIdPrefix"))
+                    .option("kafka.ssl.key.password", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.sslPassword"))
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .save();
+        }
+
+        else {
+            constructKafkaKeyValue(dataset, kafkaConfig)
+                    .write()
+                    .format("kafka")
+                    .option("kafka.bootstrap.servers", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.broker"))
+                    .option("topic", getKafkaTopicNames(Checkpoint.constructKafkaTopic(kafkaConfig), kafkaConfig))
+                    .option("kafka.retries", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retries"))
+                    .option("kafka.retry.backoff.ms", ConfigProvider.retrieveConfigValue(kafkaConfig, "kafka.retryBackoffMs"))
+                    .save();
+        }
     }
 
 
