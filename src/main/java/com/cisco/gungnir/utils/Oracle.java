@@ -31,6 +31,12 @@ public class Oracle implements Serializable {
         oracleConfigMap.put("user", ConfigProvider.retrieveConfigValue(merged, "oracle.username"));
         oracleConfigMap.put("password", ConfigProvider.retrieveConfigValue(merged, "oracle.password"));
         oracleConfigMap.put("dbtable", ConfigProvider.retrieveConfigValue(merged, "oracle.table"));
+        if( ConfigProvider.hasConfigValue(merged, "oracle.driver") ) {
+            oracleConfigMap.put("driver", ConfigProvider.retrieveConfigValue(merged, "oracle.driver"));
+        }else {
+            oracleConfigMap.put("driver", "oracle.jdbc.driver.OracleDriver");
+        }
+
         oracleConfigMap.put("oracle.jdbc.timezoneAsRegion", "false");
 
         this.oracleConfig = oracleConfigMap;
@@ -48,9 +54,12 @@ public class Oracle implements Serializable {
         switch (processType) {
             case "batch":
                 if(ConfigProvider.hasConfigValue(mergedConfig,"oracle.pk")){
-                    batchUpSertToOracle(dataset, ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.saveMode"), ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.pk"));
+                    batchUpSertToOracle(dataset,
+                            ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.driver"),
+                            ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.saveMode"), ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.pk"));
                 }else{
-                    batchToOracle(dataset, ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.saveMode"));
+                    batchToOracle(dataset, ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.saveMode"),
+                            ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.driver"));
                 }
                 break;
             case "stream":
@@ -67,18 +76,18 @@ public class Oracle implements Serializable {
     }
 
 
-    public void batchToOracle(Dataset dataset, String saveMode) {
+    public void batchToOracle(Dataset dataset, String saveMode, String driver) {
         columnNameToLowerCase(dataset)
                 .write()
                 .mode(File.getSaveMode(saveMode))
                 .format("jdbc")
-                .option("driver", "oracle.jdbc.driver.OracleDriver")
+                .option("driver", driver)
                 .options(oracleConfig)
                 .save();
     }
 
-    public void batchUpSertToOracle(Dataset dataset, String saveMode, String pk) {
-        columnNameToLowerCase(dataset).coalesce(1).foreachPartition( new OracleUpsertWriter(oracleConfig,
+    public void batchUpSertToOracle(Dataset dataset, String driver, String saveMode, String pk) {
+        columnNameToLowerCase(dataset).coalesce(1).foreachPartition( new OracleUpsertWriter(oracleConfig, driver,
                 dataset.schema(),pk) );
 
     }
@@ -91,7 +100,7 @@ public class Oracle implements Serializable {
                 .outputMode(saveMode)
                 .foreach((ForeachWriter) new OracleStreamWriter(oracleConfig,oracleConfig.get("dbtable"), dataset.schema(), pk))
                 .trigger(ProcessingTime(configProvider.retrieveAppConfigValue("spark.streamngTriggerWindow")))
-                .queryName("sinkToOracle_" + queryName)
+                .queryName("sinkToJDBC_" + queryName)
                 .start();
     }
 

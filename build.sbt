@@ -1,9 +1,9 @@
 name := "Gungnir"
 
-version := "0.6.10"
+version := "0.8.1"
 
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.12"
 val sparkVersion = "3.1.1"
 
 libraryDependencies ++= Seq(
@@ -12,9 +12,9 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion % "provided",
   "com.datastax.spark" %% "spark-cassandra-connector" % "2.4.2",
-  "org.elasticsearch" %% "elasticsearch-spark-20" % "7.13.0",
-  "com.webex.dap.oneportal" % "spark-streaming-job-metrics_cdh-6.3.0_2.11" % "3.0" % "provided" from "file:///"+file("").getAbsolutePath+"/lib/spark-streaming-job-metrics_cdh-6.3.0_2.11-3.0.jar",
+
   "com.oracle.ojdbc" % "ojdbc8" % "19.3.0.0",
+  "org.postgresql" % "postgresql" % "42.2.18",
 
   //donot enforce the driver here
   //"com.datastax.cassandra" % "cassandra-driver-core" % "3.5.1",

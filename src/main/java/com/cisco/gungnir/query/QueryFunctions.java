@@ -4,16 +4,15 @@ import com.cisco.gungnir.config.ConfigProvider;
 import com.cisco.gungnir.udf.UdfFunctions;
 import com.cisco.gungnir.utils.*;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.commons.lang.StringUtils;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataTypes;
 
 import java.io.Serializable;
-import java.net.URL;
-import java.net.URLConnection;
 
-import static org.apache.spark.sql.functions.from_json;
 import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.from_json;
 
 
 public class QueryFunctions implements Serializable {
@@ -67,11 +66,14 @@ public class QueryFunctions implements Serializable {
                // ds = setWatermark(ds, parameters);
 
             }else{
+                //start to do query replace based on parameter using $parametername like $date -- 6/16/2021 nohe
+                if (parameters.has("date")) {
+                    String date = DateUtil.getDate(ConfigProvider.retrieveConfigValue(parameters, "date"));
+                    query = query.replaceAll("\\$date", date);
+                }
+
                 System.out.println("execute a query " + query);
                 ds = spark.sql(query);
-
-
-               // ds = setWatermark(ds, parameters);
 
             }
 

@@ -57,7 +57,10 @@ public class PipelineRunner implements Serializable {
         if(cmd.getOptionValue("codecs")!=null && cmd.getOptionValue("codecs").equals("lzo")){
             builder = builder.config("spark.hadoop.io.compression.codecs", "com.hadoop.compression.lzo.LzoCodec");
         }
+
+        builder.config("spark.network.timeout", "800s");
         SparkSession spark = builder.getOrCreate();
+
 
         ConfigProvider configProvider = new ConfigProvider(spark, configFile);
         JobExecutor jobExecutor = new JobExecutor(spark, configProvider);

@@ -85,7 +85,7 @@ public class OracleStreamWriter extends ForeachWriter<GenericRowWithSchema> {
         Set<String> pk_KeyValue = new HashSet<>();
         Set<String> nonPk_KeyValue = new HashSet<>();
 
-        String sqlStr = Util.getInsertSQLStr(schema,tableName,row,values,pkSet,pk_KeyValue,nonPk_KeyValue);
+        String sqlStr = Util.getInsertSQLStr(schema,tableName,row,values,pkSet,pk_KeyValue,nonPk_KeyValue, true);
 
         try {
             session.execute(sqlStr);

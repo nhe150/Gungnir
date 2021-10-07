@@ -17,25 +17,29 @@ public class OracleUpsertWriter  implements ForeachPartitionFunction<Row> {
     private String pk;
     private StructType schema;
     private boolean emptySchema;
+    private String driver;
 
     private Connection connection;
     private Statement session;
     private Map<String, String> oracleConfig;
 
-    public OracleUpsertWriter(Map<String, String> oracleConfig, StructType schema, String pk) {
+    public OracleUpsertWriter(Map<String, String> oracleConfig, String driver, StructType schema, String pk) {
         this.schema=schema;
         this.pk=pk;
         this.oracleConfig=oracleConfig;
+        this.driver = driver;
     }
 
     @Override
     public void call(Iterator<Row> t) throws Exception {
 
-        Class.forName("oracle.jdbc.driver.OracleDriver");
+        Class.forName(driver);
         Properties info = new java.util.Properties();
         info.put ("user", oracleConfig.get("user"));
         info.put ("password",oracleConfig.get("password"));
-        info.put ("oracle.jdbc.timezoneAsRegion","false");
+        if( driver.contains("oracle")) {
+            info.put("oracle.jdbc.timezoneAsRegion", "false");
+        }
         this.connection = DriverManager.getConnection(oracleConfig.get("url"),info);
 
         this.session = connection.createStatement();
@@ -56,7 +60,10 @@ public class OracleUpsertWriter  implements ForeachPartitionFunction<Row> {
             String[] values = new String[structField.length];
 
 
-            String sqlStr = Util.getInsertSQLStr(schema,tableName,row,values,pkSet,pk_KeyValue,nonPk_KeyValue);
+            String sqlStr = Util.getInsertSQLStr(schema,tableName,row,values,pkSet,pk_KeyValue,nonPk_KeyValue, driver.contains("oracle"));
+            System.out.println("sqlStr:" + sqlStr);
+
+            //check execution boolean value
             session.execute(sqlStr);
         }
 

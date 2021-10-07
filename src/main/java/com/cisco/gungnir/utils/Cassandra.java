@@ -8,10 +8,7 @@ import com.datastax.spark.connector.DataFrameFunctions;
 import com.datastax.spark.connector.cql.CassandraConnector;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.spark.SparkConf;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.ForeachWriter;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
@@ -133,10 +130,14 @@ public class Cassandra implements Serializable {
      * @throws Exception
      */
     public Dataset readCassandraBatch(JsonNode conf) throws Exception {
-        Dataset ds = spark.read()
-                .format("org.apache.spark.sql.cassandra")
-                .options(cassandraConfig)
-                .load();
+        DataFrameReader reader = spark.read().format("org.apache.spark.sql.cassandra");
+        for (Map.Entry<String,String> entry : cassandraConfig.entrySet())
+        {
+            reader = reader.option(entry.getKey(), entry.getValue());
+        }
+
+        Dataset ds = reader.load();
+
         if (!ConfigProvider.hasConfigValue(conf, "date") && !ConfigProvider.hasConfigValue(conf, "month")) {
             return ds;
         }

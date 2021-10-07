@@ -1,10 +1,7 @@
 package com.cisco.gungnir.utils;
 
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.*;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -25,8 +22,14 @@ public class Util implements Serializable {
         return results;
     }
 
-
-    public static String buildWhereClause(String date, String relation) {
+    /**
+     * will deprecate
+     * @param date
+     * @param relation
+     * @return
+     */
+    @Deprecated
+    public static String buildWhereClauseSS(String date, String relation) {
         String[] names = relation.split(",");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < names.length; i++) {
@@ -43,13 +46,15 @@ public class Util implements Serializable {
         return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
     }
 
-    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue) {
+    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue,
+                                         boolean isOracle) {
         StructField[] structField = schema.fields();
         String[] names = schema.fieldNames();
 
         for (int i = 0; i < structField.length; i++) {
             DataType type = structField[i].dataType();
-            if (type.sameType(DataTypes.StringType)) {
+            //need DateType to be based on sink instead of source
+            if (type.sameType(DataTypes.StringType) || type.sameType(DataTypes.DateType) ) {
                 values[i] = "'" + row.get(i) + "'";
             } else if (type.sameType(DataTypes.TimestampType)) {
                 //if format is '2019-07-16 17:53:58.606'
@@ -89,7 +94,15 @@ public class Util implements Serializable {
 
         String sqlStr = "BEGIN " + updateStatement + " IF sql%notfound THEN " + insertStatement + " END IF; END;";
 
-        return sqlStr;
+        if ( isOracle) {
+            return sqlStr;
+        }
+
+        //for postgress upsert
+        String upsertPostgres = "insert into " + tableName + " " + fields + " values " + fieldValues + "  ON CONFLICT (" +  String.join(",", pkSet)
+                 + " )  DO UPDATE SET " + String.join(",", nonPk_KeyValue) +  " ;" ;
+
+        return upsertPostgres;
     }
 
     static String QUOTE = "\"";

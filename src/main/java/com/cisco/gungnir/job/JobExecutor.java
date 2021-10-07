@@ -32,7 +32,6 @@ public class JobExecutor implements Serializable {
         spark.sqlContext().setConf("spark.sql.streaming.checkpointLocation", configProvider.retrieveAppConfigValue("spark.streamingCheckpointLocation"));
         spark.sqlContext().setConf("spark.streaming.stopGracefullyOnShutdown", configProvider.retrieveAppConfigValue("spark.streamingStopGracefullyOnShutdown"));
         spark.sqlContext().setConf("spark.streaming.backpressure.enabled", configProvider.retrieveAppConfigValue("spark.streamingBackpressureEnabled"));
-        //spark.sqlContext().setConf("spark.network.timeout", configProvider.retrieveAppConfigValue("spark.networkTimeout"));
         spark.sqlContext().setConf("spark.sql.session.timeZone", "GMT");
 
         //enable orc Hive support using native in spark 2.3
@@ -41,6 +40,7 @@ public class JobExecutor implements Serializable {
         spark.sqlContext().setConf("spark.sql.orc.enableVectorizedReader","true");
         spark.sqlContext().setConf("spark.sql.orc.filterPushdown", "true");
         spark.sqlContext().setConf("spark.sql.orc.enabled", "true");
+        spark.sqlContext().setConf("orc.schema.evolution.case.sensitive", "false");
         spark.sqlContext().setConf("spark.sql.hive.convertMetastoreOrc", "true");
         spark.sqlContext().setConf("spark.sql.orc.char.enabled", "true");
 
