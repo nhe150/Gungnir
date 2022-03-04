@@ -6,6 +6,7 @@ import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,10 +47,16 @@ public class Util implements Serializable {
         return JavaConverters.asScalaIteratorConverter(inputList.iterator()).asScala().toSeq();
     }
 
-    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String[] values, Set<String> pkSet, Set<String> pk_KeyValue, Set<String> nonPk_KeyValue,
-                                         boolean isOracle) {
+    public static String getInsertSQLStr(StructType schema, String tableName, Row row, String pk, boolean isOracle) {
         StructField[] structField = schema.fields();
         String[] names = schema.fieldNames();
+
+        Set<String> pkSet = new HashSet<>(Arrays.asList(pk.replace(" ","").split(",")));
+        String[] values = new String[structField.length];
+
+
+        Set<String> pk_KeyValue = new HashSet<String>();
+        Set<String> nonPk_KeyValue = new HashSet<String>();
 
         for (int i = 0; i < structField.length; i++) {
             DataType type = structField[i].dataType();
@@ -99,8 +106,15 @@ public class Util implements Serializable {
         }
 
         //for postgress upsert
-        String upsertPostgres = "insert into " + tableName + " " + fields + " values " + fieldValues + "  ON CONFLICT (" +  String.join(",", pkSet)
-                 + " )  DO UPDATE SET " + String.join(",", nonPk_KeyValue) +  " ;" ;
+        String upsertPostgres = "";
+        if( nonPk_KeyValue.isEmpty()) {
+            upsertPostgres = "insert into " + tableName + " " + fields + " values " + fieldValues + "  ON CONFLICT (" + String.join(",", pkSet)
+                    + " )  DO Nothing;";
+        }else
+        {
+            upsertPostgres = "insert into " + tableName + " " + fields + " values " + fieldValues + "  ON CONFLICT (" + String.join(",", pkSet)
+                    + " )  DO UPDATE SET " + String.join(",", nonPk_KeyValue) + " ;";
+        }
 
         return upsertPostgres;
     }

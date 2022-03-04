@@ -7,11 +7,13 @@ import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.streaming.StreamingQuery;
+import util.JDBCUpserter;
 
 import java.io.Serializable;
 import java.util.*;
 
 import static org.apache.spark.sql.streaming.Trigger.ProcessingTime;
+
 
 public class Oracle implements Serializable {
     private ConfigProvider configProvider;
@@ -43,7 +45,51 @@ public class Oracle implements Serializable {
         return merged;
     }
 
+    public Dataset readFromOracle(String processType, JsonNode providedConfig) throws Exception {
+        switch (processType.toLowerCase()) {
+            case "batch":
+                if(ConfigProvider.hasConfigValue(providedConfig, "oracle.query")){
+                    return readFromOracleBatchWithSql(providedConfig);
+                }
+                return readFromOracleBatch(providedConfig);
+            case "stream":
+                throw new IllegalArgumentException("spark sql doesnt supported streaming read for jdbc");
+            default:
+                throw new IllegalArgumentException(processType.toLowerCase() + "is not a valid argument");
+        }
+    }
 
+    private Properties getPropertiesFromOracleConfig() {
+        Properties props = new Properties();
+        for(Map.Entry<String,String> entry : oracleConfig.entrySet()) {
+            props.put(entry.getKey(), entry.getValue());
+        }
+        return props;
+    }
+
+    private Dataset<Row> readFromOracleBatchWithSql(JsonNode providedConfig) throws Exception {
+        JsonNode mergedConfig = getOracleConfig(providedConfig);
+        return spark
+                .read()
+                .format("jdbc")
+                .option("url", ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.url"))
+                .option("query", ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.query"))
+                .option("driver",ConfigProvider.retrieveConfigValue(mergedConfig,"oracle.driver"))
+                .option("user",ConfigProvider.retrieveConfigValue(mergedConfig,"oracle.username"))
+                .option("password",ConfigProvider.retrieveConfigValue(mergedConfig,"oracle.password"))
+                .load();
+    }
+
+    private Dataset<Row> readFromOracleBatch(JsonNode providedConfig) throws Exception {
+        JsonNode mergedConfig = getOracleConfig(providedConfig);
+        return spark
+                .read()
+                .jdbc(
+                        ConfigProvider.retrieveConfigValue(mergedConfig, "oracle.url"),
+                        ConfigProvider.retrieveConfigValue(mergedConfig,"oracle.dbtable"),
+                        getPropertiesFromOracleConfig()
+                );
+    }
     public void writeToOracle(Dataset dataset, String processType, JsonNode providedConfig) throws Exception {
         if (dataset == null)
             throw new IllegalArgumentException("can't write to Jdbc database: the input dataSet is NULL, please check" +
@@ -87,8 +133,9 @@ public class Oracle implements Serializable {
     }
 
     public void batchUpSertToOracle(Dataset dataset, String driver, String saveMode, String pk) {
-        columnNameToLowerCase(dataset).coalesce(1).foreachPartition( new OracleUpsertWriter(oracleConfig, driver,
-                dataset.schema(),pk) );
+        JDBCUpserter.JDBCInfo info = new JDBCUpserter.JDBCInfo( oracleConfig, driver, dataset.schema(), pk);
+        //use 10 jdbc collections
+        JDBCUpserter.dowork( columnNameToLowerCase(dataset).coalesce(10), spark, info );
 
     }
 

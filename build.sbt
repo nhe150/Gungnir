@@ -1,10 +1,15 @@
 name := "Gungnir"
-
 version := "0.8.1"
-
 
 scalaVersion := "2.12.12"
 val sparkVersion = "3.1.1"
+
+resolvers ++= Seq(
+  "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
+  Resolver.mavenLocal,
+  ("webex-pda-group" at "http://engci-maven.cisco.com/artifactory/pda-group").withAllowInsecureProtocol(true)
+)
+
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",

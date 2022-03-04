@@ -90,7 +90,7 @@ object AppDatabase {
         session.execute(insertStatement.bind(orgId,region));
       }
     } catch {
-      case e => {
+      case ex   => {
         log.error("FAFL_ERROR while executing insert with values orgid=" + orgId + " and region=" + region)
       }
     }
